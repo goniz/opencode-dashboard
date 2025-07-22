@@ -1,5 +1,3 @@
-import { Opencode } from "@opencode/sdk";
+import { Opencode } from "@opencode-ai/sdk";
 
-export const opencode = new Opencode({
-  apiKey: process.env.OPENCODE_API_KEY!,
-});
+export const opencode = new Opencode();

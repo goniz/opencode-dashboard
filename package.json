@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@opencode/sdk": "github:sst/opencode-sdk-js",
+    "@opencode-ai/sdk": "^0.1.0-alpha.20",
     "next": "15.4.3",
     "react": "19.1.0",
     "react-dom": "19.1.0"
