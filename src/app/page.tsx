@@ -23,6 +23,7 @@ export default function Home() {
 
   const handleFolderSelect = (path: string) => {
     setSelectedFolder(path);
+    setSelectedModel(null); // Reset model selection when folder changes
     setAppState("model-selection");
   };
 
@@ -119,17 +120,30 @@ export default function Home() {
           <FolderSelector onFolderSelect={handleFolderSelect} />
         )}
 
-        {appState === "model-selection" && (
-          <div className="space-y-4">
-            <ModelSelector onModelSelect={handleModelSelect} />
-            <div className="text-center">
-              <button
-                onClick={handleBackToFolderSelection}
-                className="px-4 py-2 text-blue-600 hover:text-blue-800 text-sm"
-              >
-                ← Back to folder selection
-              </button>
+        {appState === "model-selection" && selectedFolder && (
+          <div className="space-y-6">
+            <div className="max-w-2xl mx-auto p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
+              <div className="text-center">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+                  Folder Selected!
+                </h2>
+                <div className="p-4 bg-green-100 dark:bg-green-900/20 border border-green-300 dark:border-green-700 rounded mb-4">
+                  <p className="text-green-800 dark:text-green-300 font-mono text-sm">
+                    {selectedFolder}
+                  </p>
+                </div>
+                <button
+                  onClick={handleBackToFolderSelection}
+                  className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                >
+                  Select Different Folder
+                </button>
+              </div>
             </div>
+            <ModelSelector 
+              folderPath={selectedFolder} 
+              onModelSelect={handleModelSelect} 
+            />
           </div>
         )}
 
