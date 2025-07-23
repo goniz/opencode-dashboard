@@ -36,7 +36,7 @@ class OpenCodeSessionManager {
     };
 
     try {
-      const process = spawn("opencode", ["serve", "--model", config.model, "--port", port.toString()], {
+      const process = spawn("opencode", ["--model", config.model", "serve", "--port", port.toString()], {
         cwd: config.folder,
         stdio: ["pipe", "pipe", "pipe"]
       });
