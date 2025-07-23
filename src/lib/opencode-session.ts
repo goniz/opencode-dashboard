@@ -36,7 +36,7 @@ class OpenCodeSessionManager {
     };
 
     try {
-      const process = spawn("opencode", ["--model", config.model", "serve", "--port", port.toString()], {
+      const process = spawn("opencode", ["serve", "--port", port.toString()], {
         cwd: config.folder,
         stdio: ["pipe", "pipe", "pipe"]
       });
@@ -56,7 +56,7 @@ class OpenCodeSessionManager {
 
       process.stdout?.on("data", (data) => {
         console.log(`OpenCode stdout: ${data}`);
-        if (data.toString().includes("Server running")) {
+        if (data.toString().includes("server listening")) {
           session.status = "running";
           session.client = new Opencode({
             baseURL: `http://localhost:${port}`
