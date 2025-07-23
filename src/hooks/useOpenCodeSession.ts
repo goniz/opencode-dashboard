@@ -1,12 +1,20 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import type {
-  OpenCodeSession,
-  OpenCodeSessionConfig,
-} from "@/lib/opencode-session";
-import { sessionManager, OpenCodeSessionError } from "@/lib/opencode-session";
-import { OpenCodeError } from "@/lib/opencode-client";
+
+export interface OpenCodeSessionConfig {
+  folder: string;
+  model: string;
+  port?: number;
+}
+
+export interface OpenCodeSession {
+  id: string;
+  folder: string;
+  model: string;
+  port: number;
+  status: "starting" | "running" | "stopped" | "error";
+}
 
 export interface SessionError {
   message: string;
@@ -68,15 +76,13 @@ export function useOpenCodeSession(): UseOpenCodeSessionReturn {
       let sessionError: SessionError;
       if (typeof error === "string") {
         sessionError = { message: error };
-      } else if (error instanceof OpenCodeSessionError) {
+      } else if (error && typeof error === "object" && "recoverySuggestion" in error) {
         sessionError = {
           message: error.message,
-          recoverySuggestion: error.recoverySuggestion,
+          recoverySuggestion: error.recoverySuggestion as string,
         };
-      } else if (error instanceof OpenCodeError) {
-        sessionError = { message: error.message };
       } else {
-        sessionError = { message: error.message };
+        sessionError = { message: error.message || "An unknown error occurred" };
       }
 
       updateState({ error: sessionError, isLoading: false });
@@ -88,139 +94,140 @@ export function useOpenCodeSession(): UseOpenCodeSessionReturn {
     updateState({ error: null });
   }, [updateState]);
 
-  const handleApiCall = useCallback(async <T>(
-    apiCall: () => Promise<T>,
-    successHandler: (result: T) => void,
-    errorHandler?: (error: Error) => void
-  ) => {
+  const loadSessions = useCallback(async () => {
     updateState({ isLoading: true, error: null });
+    
     try {
-      const result = await apiCall();
-      successHandler(result);
+      const response = await fetch("/api/opencode");
+      if (!response.ok) {
+        throw new Error("Failed to fetch sessions");
+      }
+      
+      const data = await response.json();
+      const sessions = data.sessions || [];
+      
+      updateState({
+        sessions,
+        isLoading: false,
+      });
     } catch (error) {
-      console.error("API call failed:", error);
-      setError(error as Error);
-      if (errorHandler) {
-        errorHandler(error as Error);
-      }
-    } finally {
-      if (mountedRef.current) {
-        updateState({ isLoading: false });
-      }
+      console.error("Failed to load sessions:", error);
+      setError(error instanceof Error ? error.message : "Failed to load sessions");
     }
   }, [updateState, setError]);
 
-  const loadSessions = useCallback(async () => {
-    await handleApiCall(
-      async () => sessionManager.getAllSessions(),
-      (localSessions) => {
-        updateState({
-          sessions: localSessions,
-        });
-      }
-    );
-  }, [updateState, handleApiCall]);
-
-  const createSession = useCallback(
-    async (config: OpenCodeSessionConfig): Promise<OpenCodeSession> => {
-      let session: OpenCodeSession | null = null;
-      await handleApiCall(
-        async () => {
-          session = await sessionManager.startSession(config);
-          return session;
+  const createSession = useCallback(async (config: OpenCodeSessionConfig): Promise<OpenCodeSession> => {
+    updateState({ isLoading: true, error: null });
+    
+    try {
+      const response = await fetch("/api/opencode", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-        () => {
-          const allSessions = sessionManager.getAllSessions();
-          updateState({
-            sessions: allSessions,
-            currentSession: session,
-          });
-        },
-        (error) => {
-          throw error; // Re-throw to be caught by the caller
-        }
-      );
-      if (!session) {
-        throw new Error("Session creation failed, but no error was thrown.");
+        body: JSON.stringify(config),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to create session");
       }
+      
+      const sessionData = await response.json();
+      const session: OpenCodeSession = {
+        id: sessionData.sessionId,
+        folder: config.folder,
+        model: config.model,
+        port: sessionData.port,
+        status: sessionData.status,
+      };
+      
+      // Refresh sessions list
+      await loadSessions();
+      updateState({
+        currentSession: session,
+        isLoading: false,
+      });
+      
       return session;
-    },
-    [updateState, handleApiCall]
-  );
+    } catch (error) {
+      console.error("Failed to create session:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to create session";
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    }
+  }, [updateState, setError, loadSessions]);
 
-  const switchToSession = useCallback(
-    (sessionId: string) => {
-      const session = sessionManager.getSession(sessionId);
-      if (session) {
-        updateState({ currentSession: session });
-      } else {
-        setError(`Session ${sessionId} not found`);
+  const switchToSession = useCallback((sessionId: string) => {
+    const session = state.sessions.find(s => s.id === sessionId);
+    if (session) {
+      updateState({ currentSession: session });
+    } else {
+      setError(`Session ${sessionId} not found`);
+    }
+  }, [updateState, setError, state.sessions]);
+
+  const stopSession = useCallback(async (sessionId: string) => {
+    updateState({ isLoading: true, error: null });
+    
+    try {
+      const response = await fetch(`/api/opencode?sessionId=${sessionId}`, {
+        method: "DELETE",
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to stop session");
       }
-    },
-    [updateState, setError]
-  );
+      
+      // Refresh sessions list
+      await loadSessions();
+      const wasCurrentSession = state.currentSession?.id === sessionId;
+      
+      updateState({
+        currentSession: wasCurrentSession ? null : state.currentSession,
+        isLoading: false,
+      });
+    } catch (error) {
+      console.error("Failed to stop session:", error);
+      setError(error instanceof Error ? error.message : "Failed to stop session");
+    }
+  }, [updateState, setError, state.currentSession, loadSessions]);
 
-  const stopSession = useCallback(
-    async (sessionId: string) => {
-      await handleApiCall(
-        () => sessionManager.stopSession(sessionId),
-        () => {
-          const allSessions = sessionManager.getAllSessions();
-          const wasCurrentSession = state.currentSession?.id === sessionId;
-          updateState({
-            sessions: allSessions,
-            currentSession: wasCurrentSession ? null : state.currentSession,
-          });
-        }
-      );
-    },
-    [updateState, state.currentSession, handleApiCall]
-  );
+  const refreshSession = useCallback(async (sessionId: string) => {
+    updateState({ isLoading: true, error: null });
+    
+    try {
+      // Refresh sessions list to get updated status
+      await loadSessions();
+      const updatedSession = state.sessions.find(s => s.id === sessionId);
+      
+      updateState({
+        currentSession: state.currentSession?.id === sessionId ? updatedSession || null : state.currentSession,
+        isLoading: false,
+      });
+    } catch (error) {
+      console.error("Failed to refresh session:", error);
+      setError(error instanceof Error ? error.message : "Failed to refresh session");
+    }
+  }, [updateState, setError, state.currentSession, state.sessions, loadSessions]);
 
-  const refreshSession = useCallback(
-    async (sessionId: string) => {
-      await handleApiCall(
-        async () => sessionManager.getSession(sessionId),
-        (session) => {
-          if (!session) {
-            throw new Error(`Session ${sessionId} not found`);
-          }
-          const allSessions = sessionManager.getAllSessions();
-          const updatedSession = allSessions.find((s) => s.id === sessionId);
-          updateState({
-            sessions: allSessions,
-            currentSession:
-              state.currentSession?.id === sessionId
-                ? updatedSession || null
-                : state.currentSession,
-          });
-        }
-      );
-    },
-    [updateState, state.currentSession, handleApiCall]
-  );
-
-  const loadSessionMessages = useCallback(
-    async (sessionId: string): Promise<unknown[]> => {
-      try {
-        const session = sessionManager.getSession(sessionId);
-        if (!session || session.status !== "running" || !session.client) {
-          console.warn(
-            `Session ${sessionId} is not running or client not available`
-          );
-          return [];
-        }
-
-        const messages = await session.client.session.messages(sessionId);
-        return messages || [];
-      } catch (error) {
-        console.error(`Failed to load messages for session ${sessionId}:`, error);
-        setError(error as OpenCodeError);
+  const loadSessionMessages = useCallback(async (sessionId: string): Promise<unknown[]> => {
+    try {
+      const session = state.sessions.find(s => s.id === sessionId);
+      if (!session || session.status !== "running") {
+        console.warn(`Session ${sessionId} is not running`);
         return [];
       }
-    },
-    [setError]
-  );
+
+      // For now, return empty array as message loading will be handled by the chat interface
+      // This can be implemented later with a proper API endpoint
+      return [];
+    } catch (error) {
+      console.error(`Failed to load messages for session ${sessionId}:`, error);
+      return [];
+    }
+  }, [state.sessions]);
 
   // Load sessions on mount
   useEffect(() => {
