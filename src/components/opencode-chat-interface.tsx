@@ -7,7 +7,7 @@ import { Button } from "../../button";
 import { Thread } from "../../thread";
 import { useOpenCodeSession } from "@/hooks/useOpenCodeSession";
 import { cn } from "@/lib/utils";
-import { PlusIcon, PlayIcon, StopCircleIcon, FolderIcon, BrainIcon, ServerIcon } from "lucide-react";
+import { PlusIcon, PlayIcon, StopCircleIcon, FolderIcon, BrainIcon, ServerIcon, AlertTriangleIcon } from "lucide-react";
 import type { OpenCodeSession } from "@/lib/opencode-session";
 import { messageConverter } from "@/lib/message-converter";
 import type { Message as UseChatMessage } from "ai";
@@ -123,16 +123,25 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
           </div>
           
           {error && (
-            <div className="mb-3 p-2 bg-destructive/10 border border-destructive/20 rounded-md">
-              <p className="text-sm text-destructive">{error}</p>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-6 text-xs mt-1"
-                onClick={clearError}
-              >
-                Dismiss
-              </Button>
+            <div className="mb-3 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+              <div className="flex items-start gap-3">
+                <AlertTriangleIcon className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-semibold text-destructive">Error</p>
+                  <p className="text-sm text-destructive/80 mt-1">{error.message}</p>
+                  {error.recoverySuggestion && (
+                    <p className="text-xs text-muted-foreground mt-2">{error.recoverySuggestion}</p>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 px-2 text-xs mt-2 hover:bg-destructive/20"
+                    onClick={clearError}
+                  >
+                    Dismiss
+                  </Button>
+                </div>
+              </div>
             </div>
           )}
         </div>
