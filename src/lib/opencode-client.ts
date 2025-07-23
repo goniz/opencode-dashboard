@@ -187,9 +187,8 @@ export const sessionOperations = {
 
   /**
    * Send a message to a session with error handling
-   * Note: Parameters will be adjusted based on actual SDK types
    */
-  async sendMessage(sessionId: string, params: any) {
+  async sendMessage(sessionId: string, params: Opencode.SessionChatParams) {
     return withOpenCodeErrorHandling(
       () => opencodeClient.session.chat(sessionId, params),
       { operation: 'session.chat', sessionId }
@@ -198,9 +197,8 @@ export const sessionOperations = {
 
   /**
    * Initialize a session with context
-   * Note: Parameters will be adjusted based on actual SDK types
    */
-  async initialize(sessionId: string, params: any) {
+  async initialize(sessionId: string, params: Opencode.SessionInitParams) {
     return withOpenCodeErrorHandling(
       () => opencodeClient.session.init(sessionId, params),
       { operation: 'session.init', sessionId }

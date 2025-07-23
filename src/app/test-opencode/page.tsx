@@ -4,7 +4,12 @@ import { useState } from 'react';
 import { demoOpenCodeOperations, testClientConfiguration } from '@/lib/opencode-demo';
 
 export default function TestOpenCodePage() {
-  const [testResults, setTestResults] = useState<any>(null);
+  const [testResults, setTestResults] = useState<{
+    isHealthy: boolean;
+    sessionCount: number;
+    newSessionId: string;
+    messageCount: number;
+  } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,7 +27,9 @@ export default function TestOpenCodePage() {
       console.log('Running demo operations...');
       const results = await demoOpenCodeOperations();
       
-      setTestResults(results);
+      if (results) {
+        setTestResults(results);
+      }
     } catch (err) {
       console.error('Test failed:', err);
       setError(err instanceof Error ? err.message : 'Unknown error occurred');
