@@ -88,7 +88,7 @@ export function useOpenCodeSession(): UseOpenCodeSessionReturn {
     updateState({ error: null });
   }, [updateState]);
 
-  const handleApiCall = async <T>(
+  const handleApiCall = useCallback(async <T>(
     apiCall: () => Promise<T>,
     successHandler: (result: T) => void,
     errorHandler?: (error: Error) => void
@@ -108,18 +108,18 @@ export function useOpenCodeSession(): UseOpenCodeSessionReturn {
         updateState({ isLoading: false });
       }
     }
-  };
+  }, [updateState, setError]);
 
   const loadSessions = useCallback(async () => {
     await handleApiCall(
-      () => sessionManager.getAllSessions(),
+      async () => sessionManager.getAllSessions(),
       (localSessions) => {
         updateState({
           sessions: localSessions,
         });
       }
     );
-  }, [updateState]);
+  }, [updateState, handleApiCall]);
 
   const createSession = useCallback(
     async (config: OpenCodeSessionConfig): Promise<OpenCodeSession> => {
@@ -145,7 +145,7 @@ export function useOpenCodeSession(): UseOpenCodeSessionReturn {
       }
       return session;
     },
-    [updateState]
+    [updateState, handleApiCall]
   );
 
   const switchToSession = useCallback(
@@ -174,13 +174,13 @@ export function useOpenCodeSession(): UseOpenCodeSessionReturn {
         }
       );
     },
-    [updateState, state.currentSession]
+    [updateState, state.currentSession, handleApiCall]
   );
 
   const refreshSession = useCallback(
     async (sessionId: string) => {
       await handleApiCall(
-        () => sessionManager.getSession(sessionId),
+        async () => sessionManager.getSession(sessionId),
         (session) => {
           if (!session) {
             throw new Error(`Session ${sessionId} not found`);
@@ -197,7 +197,7 @@ export function useOpenCodeSession(): UseOpenCodeSessionReturn {
         }
       );
     },
-    [updateState, state.currentSession]
+    [updateState, state.currentSession, handleApiCall]
   );
 
   const loadSessionMessages = useCallback(
@@ -254,7 +254,7 @@ export function useOpenCodeSession(): UseOpenCodeSessionReturn {
     loadSessions,
     createSession,
     switchToSession,
-_   stopSession,
+    stopSession,
     refreshSession,
     loadSessionMessages,
     clearError,

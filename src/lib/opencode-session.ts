@@ -162,7 +162,7 @@ class OpenCodeSessionManager {
     if (session.process && !session.process.killed) {
       session.process.kill("SIGTERM");
 
-      await new Promise((resolve) => {
+      await new Promise<void>((resolve) => {
         setTimeout(() => {
           if (session.process && !session.process.killed) {
             session.process.kill("SIGKILL");
