@@ -4,7 +4,7 @@ import { useState } from "react";
 import FolderSelector from "@/components/folder-selector";
 import ModelSelector from "@/components/model-selector";
 import SessionStarter from "@/components/session-starter";
-import SessionDashboard from "@/components/session-dashboard";
+import OpenCodeChatInterface from "@/components/opencode-chat-interface";
 
 type AppState = "folder-selection" | "model-selection" | "session-ready" | "session-running";
 
@@ -42,12 +42,7 @@ export default function Home() {
     setAppState("session-running");
   };
 
-  const handleSessionStop = () => {
-    setSessionData(null);
-    setAppState("folder-selection");
-    setSelectedFolder(null);
-    setSelectedModel(null);
-  };
+
 
   const handleBackToFolderSelection = () => {
     setAppState("folder-selection");
@@ -166,10 +161,7 @@ export default function Home() {
         )}
 
         {appState === "session-running" && sessionData && (
-          <SessionDashboard
-            sessionData={sessionData}
-            onSessionStop={handleSessionStop}
-          />
+          <OpenCodeChatInterface />
         )}
       </div>
     </div>

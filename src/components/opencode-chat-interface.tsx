@@ -8,7 +8,7 @@ import { Thread } from "../../thread";
 import { useOpenCodeSession } from "@/hooks/useOpenCodeSession";
 import { cn } from "@/lib/utils";
 import { PlusIcon, PlayIcon, StopCircleIcon, FolderIcon, BrainIcon, ServerIcon } from "lucide-react";
-import type { OpenCodeSession } from "@/lib/opencode-session";
+import type { OpenCodeSession } from "@/hooks/useOpenCodeSession";
 import { messageConverter } from "@/lib/message-converter";
 import type { Message as UseChatMessage } from "ai";
 import type { OpenCodeMessage } from "@/lib/message-types";
@@ -117,6 +117,7 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
               variant="outline"
               className="h-8 w-8 p-0"
               onClick={() => window.location.href = "/"}
+              title="Create New Session"
             >
               <PlusIcon className="h-4 w-4" />
             </Button>
@@ -229,14 +230,14 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
                 No Session Selected
               </h3>
               <p className="text-muted-foreground mb-4 max-w-sm">
-                Select an active OpenCode session from the sidebar to start chatting, or create a new session.
+                Select an active OpenCode session from the sidebar to start chatting, or go back to create a new session.
               </p>
               <Button
                 onClick={() => window.location.href = "/"}
                 className="gap-2"
               >
                 <PlusIcon className="h-4 w-4" />
-                Create New Session
+                Go Back to Main
               </Button>
             </div>
           </div>

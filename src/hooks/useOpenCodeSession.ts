@@ -1,8 +1,20 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import type { OpenCodeSession, OpenCodeSessionConfig } from "@/lib/opencode-session";
-import { sessionManager } from "@/lib/opencode-session";
+
+export interface OpenCodeSessionConfig {
+  folder: string;
+  model: string;
+  port?: number;
+}
+
+export interface OpenCodeSession {
+  id: string;
+  folder: string;
+  model: string;
+  port: number;
+  status: "starting" | "running" | "stopped" | "error";
+}
 
 export interface SessionState {
   sessions: OpenCodeSession[];
@@ -61,11 +73,16 @@ export function useOpenCodeSession(): UseOpenCodeSessionReturn {
     updateState({ isLoading: true, error: null });
     
     try {
-      // Get local sessions from session manager
-      const localSessions = sessionManager.getAllSessions();
+      const response = await fetch("/api/opencode");
+      if (!response.ok) {
+        throw new Error("Failed to fetch sessions");
+      }
+      
+      const data = await response.json();
+      const sessions = data.sessions || [];
       
       updateState({
-        sessions: localSessions,
+        sessions,
         isLoading: false,
       });
     } catch (error) {
@@ -78,12 +95,31 @@ export function useOpenCodeSession(): UseOpenCodeSessionReturn {
     updateState({ isLoading: true, error: null });
     
     try {
-      const session = await sessionManager.startSession(config);
+      const response = await fetch("/api/opencode", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(config),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to create session");
+      }
+      
+      const sessionData = await response.json();
+      const session: OpenCodeSession = {
+        id: sessionData.sessionId,
+        folder: config.folder,
+        model: config.model,
+        port: sessionData.port,
+        status: sessionData.status,
+      };
       
       // Refresh sessions list
-      const allSessions = sessionManager.getAllSessions();
+      await loadSessions();
       updateState({
-        sessions: allSessions,
         currentSession: session,
         isLoading: false,
       });
@@ -95,29 +131,35 @@ export function useOpenCodeSession(): UseOpenCodeSessionReturn {
       setError(errorMessage);
       throw new Error(errorMessage);
     }
-  }, [updateState, setError]);
+  }, [updateState, setError, loadSessions]);
 
   const switchToSession = useCallback((sessionId: string) => {
-    const session = sessionManager.getSession(sessionId);
+    const session = state.sessions.find(s => s.id === sessionId);
     if (session) {
       updateState({ currentSession: session });
     } else {
       setError(`Session ${sessionId} not found`);
     }
-  }, [updateState, setError]);
+  }, [updateState, setError, state.sessions]);
 
   const stopSession = useCallback(async (sessionId: string) => {
     updateState({ isLoading: true, error: null });
     
     try {
-      await sessionManager.stopSession(sessionId);
+      const response = await fetch(`/api/opencode?sessionId=${sessionId}`, {
+        method: "DELETE",
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to stop session");
+      }
       
       // Refresh sessions list
-      const allSessions = sessionManager.getAllSessions();
+      await loadSessions();
       const wasCurrentSession = state.currentSession?.id === sessionId;
       
       updateState({
-        sessions: allSessions,
         currentSession: wasCurrentSession ? null : state.currentSession,
         isLoading: false,
       });
@@ -125,23 +167,17 @@ export function useOpenCodeSession(): UseOpenCodeSessionReturn {
       console.error("Failed to stop session:", error);
       setError(error instanceof Error ? error.message : "Failed to stop session");
     }
-  }, [updateState, setError, state.currentSession]);
+  }, [updateState, setError, state.currentSession, loadSessions]);
 
   const refreshSession = useCallback(async (sessionId: string) => {
     updateState({ isLoading: true, error: null });
     
     try {
-      const session = sessionManager.getSession(sessionId);
-      if (!session) {
-        throw new Error(`Session ${sessionId} not found`);
-      }
-
       // Refresh sessions list to get updated status
-      const allSessions = sessionManager.getAllSessions();
-      const updatedSession = allSessions.find(s => s.id === sessionId);
+      await loadSessions();
+      const updatedSession = state.sessions.find(s => s.id === sessionId);
       
       updateState({
-        sessions: allSessions,
         currentSession: state.currentSession?.id === sessionId ? updatedSession || null : state.currentSession,
         isLoading: false,
       });
@@ -149,23 +185,24 @@ export function useOpenCodeSession(): UseOpenCodeSessionReturn {
       console.error("Failed to refresh session:", error);
       setError(error instanceof Error ? error.message : "Failed to refresh session");
     }
-  }, [updateState, setError, state.currentSession]);
+  }, [updateState, setError, state.currentSession, state.sessions, loadSessions]);
 
   const loadSessionMessages = useCallback(async (sessionId: string): Promise<unknown[]> => {
     try {
-      const session = sessionManager.getSession(sessionId);
-      if (!session || session.status !== "running" || !session.client) {
-        console.warn(`Session ${sessionId} is not running or client not available`);
+      const session = state.sessions.find(s => s.id === sessionId);
+      if (!session || session.status !== "running") {
+        console.warn(`Session ${sessionId} is not running`);
         return [];
       }
 
-      const messages = await session.client.session.messages(sessionId);
-      return messages || [];
+      // For now, return empty array as message loading will be handled by the chat interface
+      // This can be implemented later with a proper API endpoint
+      return [];
     } catch (error) {
       console.error(`Failed to load messages for session ${sessionId}:`, error);
       return [];
     }
-  }, []);
+  }, [state.sessions]);
 
   // Load sessions on mount
   useEffect(() => {
