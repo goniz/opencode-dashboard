@@ -16,11 +16,16 @@ export interface OpenCodeSession {
   status: "starting" | "running" | "stopped" | "error";
 }
 
+export interface SessionError {
+  message: string;
+  recoverySuggestion?: string;
+}
+
 export interface SessionState {
   sessions: OpenCodeSession[];
   currentSession: OpenCodeSession | null;
   isLoading: boolean;
-  error: string | null;
+  error: SessionError | null;
 }
 
 export interface UseOpenCodeSessionReturn {
@@ -28,8 +33,8 @@ export interface UseOpenCodeSessionReturn {
   sessions: OpenCodeSession[];
   currentSession: OpenCodeSession | null;
   isLoading: boolean;
-  error: string | null;
-  
+  error: SessionError | null;
+
   // Actions
   loadSessions: () => Promise<void>;
   createSession: (config: OpenCodeSessionConfig) => Promise<OpenCodeSession>;
@@ -58,12 +63,32 @@ export function useOpenCodeSession(): UseOpenCodeSessionReturn {
 
   const updateState = useCallback((updates: Partial<SessionState>) => {
     if (!mountedRef.current) return;
-    setState(prev => ({ ...prev, ...updates }));
+    setState((prev) => ({ ...prev, ...updates }));
   }, []);
 
-  const setError = useCallback((error: string | null) => {
-    updateState({ error, isLoading: false });
-  }, [updateState]);
+  const setError = useCallback(
+    (error: Error | SessionError | string | null) => {
+      if (!error) {
+        updateState({ error: null, isLoading: false });
+        return;
+      }
+
+      let sessionError: SessionError;
+      if (typeof error === "string") {
+        sessionError = { message: error };
+      } else if (error && typeof error === "object" && "recoverySuggestion" in error) {
+        sessionError = {
+          message: error.message,
+          recoverySuggestion: error.recoverySuggestion as string,
+        };
+      } else {
+        sessionError = { message: error.message || "An unknown error occurred" };
+      }
+
+      updateState({ error: sessionError, isLoading: false });
+    },
+    [updateState]
+  );
 
   const clearError = useCallback(() => {
     updateState({ error: null });
