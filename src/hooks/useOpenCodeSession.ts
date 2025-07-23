@@ -24,6 +24,7 @@ export interface UseOpenCodeSessionReturn {
   switchToSession: (sessionId: string) => void;
   stopSession: (sessionId: string) => Promise<void>;
   refreshSession: (sessionId: string) => Promise<void>;
+  loadSessionMessages: (sessionId: string) => Promise<unknown[]>;
   clearError: () => void;
 }
 
@@ -150,6 +151,22 @@ export function useOpenCodeSession(): UseOpenCodeSessionReturn {
     }
   }, [updateState, setError, state.currentSession]);
 
+  const loadSessionMessages = useCallback(async (sessionId: string): Promise<unknown[]> => {
+    try {
+      const session = sessionManager.getSession(sessionId);
+      if (!session || session.status !== "running" || !session.client) {
+        console.warn(`Session ${sessionId} is not running or client not available`);
+        return [];
+      }
+
+      const messages = await session.client.session.messages(sessionId);
+      return messages || [];
+    } catch (error) {
+      console.error(`Failed to load messages for session ${sessionId}:`, error);
+      return [];
+    }
+  }, []);
+
   // Load sessions on mount
   useEffect(() => {
     loadSessions();
@@ -184,6 +201,7 @@ export function useOpenCodeSession(): UseOpenCodeSessionReturn {
     switchToSession,
     stopSession,
     refreshSession,
+    loadSessionMessages,
     clearError,
   };
 }

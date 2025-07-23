@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { AssistantRuntimeProvider } from "@assistant-ui/react";
 import { useChatRuntime } from "@assistant-ui/react-ai-sdk";
 import { Button } from "../../button";
@@ -9,6 +9,9 @@ import { useOpenCodeSession } from "@/hooks/useOpenCodeSession";
 import { cn } from "@/lib/utils";
 import { PlusIcon, PlayIcon, StopCircleIcon, FolderIcon, BrainIcon, ServerIcon } from "lucide-react";
 import type { OpenCodeSession } from "@/lib/opencode-session";
+import { messageConverter } from "@/lib/message-converter";
+import type { Message as UseChatMessage } from "ai";
+import type { OpenCodeMessage } from "@/lib/message-types";
 
 interface OpenCodeChatInterfaceProps {
   className?: string;
@@ -22,10 +25,38 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
     error,
     switchToSession,
     stopSession,
+    loadSessionMessages: hookLoadSessionMessages,
     clearError,
   } = useOpenCodeSession();
 
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [initialMessages, setInitialMessages] = useState<Array<UseChatMessage & { role: "user" | "assistant" | "system" }>>([]);
+
+  // Function to load messages from OpenCode session
+  const loadSessionMessages = useCallback(async (sessionId: string) => {
+    if (!sessionId) return [];
+    
+    setLoadingMessages(true);
+    try {
+      const messages = await hookLoadSessionMessages(sessionId);
+      if (messages && Array.isArray(messages)) {
+        // Convert OpenCode messages to useChat format and filter valid roles
+        const convertedMessages = messages
+          .map((msg: unknown) => messageConverter.openCodeToUseChat(msg as OpenCodeMessage))
+          .filter((msg: UseChatMessage): msg is UseChatMessage & { role: "user" | "assistant" | "system" } => 
+            msg.role === "user" || msg.role === "assistant" || msg.role === "system"
+          ) as Array<UseChatMessage & { role: "user" | "assistant" | "system" }>;
+        return convertedMessages;
+      }
+      return [];
+    } catch (error) {
+      console.warn(`Error loading messages for session ${sessionId}:`, error);
+      return [];
+    } finally {
+      setLoadingMessages(false);
+    }
+  }, [hookLoadSessionMessages]);
 
   // Update selected session when current session changes
   useEffect(() => {
@@ -34,14 +65,32 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
     }
   }, [currentSession]);
 
+  // Load messages when session changes
+  useEffect(() => {
+    if (selectedSessionId && currentSession?.status === "running") {
+      loadSessionMessages(selectedSessionId).then(messages => {
+        setInitialMessages(messages);
+      });
+    } else {
+      setInitialMessages([]);
+    }
+  }, [selectedSessionId, currentSession?.status, loadSessionMessages]);
+
   // Create chat runtime for the selected session
   const runtime = useChatRuntime({
     api: selectedSessionId ? `/api/opencode-chat?sessionId=${selectedSessionId}` : "/api/chat",
+    initialMessages: initialMessages.length > 0 ? initialMessages : undefined,
   });
 
-  const handleSessionSelect = (session: OpenCodeSession) => {
+  const handleSessionSelect = async (session: OpenCodeSession) => {
     setSelectedSessionId(session.id);
     switchToSession(session.id);
+    
+    // Load messages for the selected session
+    if (session.status === "running") {
+      const messages = await loadSessionMessages(session.id);
+      setInitialMessages(messages);
+    }
   };
 
   const handleStopSession = async (sessionId: string) => {
@@ -132,6 +181,12 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
+                  {loadingMessages && (
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <div className="animate-spin rounded-full h-3 w-3 border border-current border-t-transparent"></div>
+                      Loading messages...
+                    </div>
+                  )}
                   <div className={cn(
                     "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium",
                     currentSession.status === "running" && "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400",
@@ -154,7 +209,16 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
 
             {/* Thread Component */}
             <div className="flex-1">
-              <Thread />
+              {loadingMessages ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent mx-auto mb-3"></div>
+                    <p className="text-sm text-muted-foreground">Loading message history...</p>
+                  </div>
+                </div>
+              ) : (
+                <Thread />
+              )}
             </div>
           </AssistantRuntimeProvider>
         ) : (
