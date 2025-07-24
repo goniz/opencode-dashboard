@@ -7,7 +7,7 @@ import { Button } from "../../button";
 import { Thread } from "../../thread";
 import { useOpenCodeSession } from "@/hooks/useOpenCodeSession";
 import { cn } from "@/lib/utils";
-import { PlusIcon, PlayIcon, StopCircleIcon, FolderIcon, BrainIcon, ServerIcon, AlertTriangleIcon } from "lucide-react";
+import { PlusIcon, PlayIcon, StopCircleIcon, FolderIcon, BrainIcon, ServerIcon, RotateCwIcon, AlertTriangleIcon } from "lucide-react";
 import type { OpenCodeSession } from "@/hooks/useOpenCodeSession";
 import { messageConverter } from "@/lib/message-converter";
 import type { Message as UseChatMessage } from "ai";
@@ -25,38 +25,48 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
     error,
     switchToSession,
     stopSession,
-    loadSessionMessages: hookLoadSessionMessages,
+
     clearError,
   } = useOpenCodeSession();
 
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
-  const [loadingMessages, setLoadingMessages] = useState(false);
+
   const [initialMessages, setInitialMessages] = useState<Array<UseChatMessage & { role: "user" | "assistant" | "system" }>>([]);
 
-  // Function to load messages from OpenCode session
-  const loadSessionMessages = useCallback(async (sessionId: string) => {
+  // Simple sync state for loading indicator
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  // Function to load messages directly from OpenCode API
+  const loadMessagesFromOpenCode = useCallback(async (sessionId: string) => {
     if (!sessionId) return [];
     
-    setLoadingMessages(true);
+    setIsSyncing(true);
     try {
-      const messages = await hookLoadSessionMessages(sessionId);
-      if (messages && Array.isArray(messages)) {
-        // Convert OpenCode messages to useChat format and filter valid roles
-        const convertedMessages = messages
-          .map((msg: unknown) => messageConverter.openCodeToUseChat(msg as OpenCodeMessage))
-          .filter((msg: UseChatMessage): msg is UseChatMessage & { role: "user" | "assistant" | "system" } => 
-            msg.role === "user" || msg.role === "assistant" || msg.role === "system"
-          ) as Array<UseChatMessage & { role: "user" | "assistant" | "system" }>;
-        return convertedMessages;
+      const response = await fetch(`/api/opencode-chat?sessionId=${sessionId}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch messages from OpenCode");
       }
-      return [];
+      
+      const data = await response.json();
+      const messages = data.messages || [];
+      
+      // Convert OpenCode messages to useChat format
+      const convertedMessages = messages
+        .map((msg: unknown) => messageConverter.openCodeToUseChat(msg as OpenCodeMessage))
+        .filter((msg: UseChatMessage): msg is UseChatMessage & { role: "user" | "assistant" | "system" } => 
+          msg.role === "user" || msg.role === "assistant" || msg.role === "system"
+        ) as Array<UseChatMessage & { role: "user" | "assistant" | "system" }>;
+      
+      return convertedMessages;
     } catch (error) {
-      console.warn(`Error loading messages for session ${sessionId}:`, error);
+      console.warn(`Error loading messages from OpenCode session ${sessionId}:`, error);
       return [];
     } finally {
-      setLoadingMessages(false);
+      setIsSyncing(false);
     }
-  }, [hookLoadSessionMessages]);
+  }, []);
+
+
 
   // Update selected session when current session changes
   useEffect(() => {
@@ -65,16 +75,16 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
     }
   }, [currentSession]);
 
-  // Load messages when session changes
+  // Load messages when session changes (always from OpenCode)
   useEffect(() => {
     if (selectedSessionId && currentSession?.status === "running") {
-      loadSessionMessages(selectedSessionId).then(messages => {
+      loadMessagesFromOpenCode(selectedSessionId).then(messages => {
         setInitialMessages(messages);
       });
     } else {
       setInitialMessages([]);
     }
-  }, [selectedSessionId, currentSession?.status, loadSessionMessages]);
+  }, [selectedSessionId, currentSession?.status, loadMessagesFromOpenCode]);
 
   // Create chat runtime for the selected session
   const runtime = useChatRuntime({
@@ -86,9 +96,9 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
     setSelectedSessionId(session.id);
     switchToSession(session.id);
     
-    // Load messages for the selected session
+    // Load messages from OpenCode (the authoritative source)
     if (session.status === "running") {
-      const messages = await loadSessionMessages(session.id);
+      const messages = await loadMessagesFromOpenCode(session.id);
       setInitialMessages(messages);
     }
   };
@@ -191,12 +201,29 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  {loadingMessages && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 px-2 text-xs"
+                    onClick={async () => {
+                      if (currentSession && selectedSessionId) {
+                        const messages = await loadMessagesFromOpenCode(selectedSessionId);
+                        setInitialMessages(messages);
+                      }
+                    }}
+                    disabled={isSyncing || !currentSession}
+                  >
+                    <RotateCwIcon className={cn("h-3 w-3", isSyncing && "animate-spin")} />
+                    Sync from OpenCode
+                  </Button>
+                  
+                  {isSyncing && (
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <div className="animate-spin rounded-full h-3 w-3 border border-current border-t-transparent"></div>
-                      Loading messages...
+                      <RotateCwIcon className="h-3 w-3 animate-spin" />
+                      Syncing from OpenCode...
                     </div>
                   )}
+                  
                   <div className={cn(
                     "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium",
                     currentSession.status === "running" && "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400",
@@ -219,11 +246,11 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
 
             {/* Thread Component */}
             <div className="flex-1">
-              {loadingMessages ? (
+              {isSyncing ? (
                 <div className="flex items-center justify-center h-full">
                   <div className="text-center">
                     <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent mx-auto mb-3"></div>
-                    <p className="text-sm text-muted-foreground">Loading message history...</p>
+                    <p className="text-sm text-muted-foreground">Loading messages from OpenCode...</p>
                   </div>
                 </div>
               ) : (
