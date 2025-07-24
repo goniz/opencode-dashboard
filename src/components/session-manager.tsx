@@ -10,11 +10,12 @@ import ModelSelector from "./model-selector";
 
 interface SessionManagerProps {
   className?: string;
+  onOpenChat?: () => void;
 }
 
 type CreateSessionState = "idle" | "folder-selection" | "model-selection" | "creating";
 
-export default function SessionManager({ className }: SessionManagerProps) {
+export default function SessionManager({ className, onOpenChat }: SessionManagerProps) {
   const {
     sessions,
     currentSession,
@@ -224,9 +225,12 @@ export default function SessionManager({ className }: SessionManagerProps) {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => window.open(`http://localhost:${session.port}`, "_blank")}
+                        onClick={() => {
+                          switchToSession(session.id);
+                          onOpenChat?.();
+                        }}
                       >
-                        Open
+                        Open Chat
                       </Button>
                       {currentSession?.id !== session.id && (
                         <Button
