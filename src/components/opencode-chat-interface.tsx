@@ -87,10 +87,15 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
   }, [selectedSessionId, currentSession?.status, loadMessagesFromOpenCode]);
 
   // Create chat runtime for the selected session
-  const runtime = useChatRuntime({
-    api: selectedSessionId ? `/api/opencode-chat?sessionId=${selectedSessionId}` : "/api/chat",
-    initialMessages: initialMessages.length > 0 ? initialMessages : undefined,
-  });
+  const runtime = useChatRuntime(
+    selectedSessionId ? {
+      api: `/api/opencode-chat?sessionId=${selectedSessionId}`,
+      initialMessages: initialMessages.length > 0 ? initialMessages : undefined,
+    } : {
+      api: "/api/placeholder", // Placeholder API that won't be used
+      initialMessages: [],
+    }
+  );
 
   const handleSessionSelect = async (session: OpenCodeSession) => {
     setSelectedSessionId(session.id);
