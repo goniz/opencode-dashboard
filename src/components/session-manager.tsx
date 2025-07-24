@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "../../button";
 import { cn } from "@/lib/utils";
-import { useOpenCodeSession } from "@/hooks/useOpenCodeSession";
+import { useOpenCodeSessionContext } from "@/contexts/OpenCodeSessionContext";
 import { PlusIcon, TrashIcon, PlayIcon, FolderIcon, BrainIcon, ServerIcon } from "lucide-react";
 import FolderSelector from "./folder-selector";
 import ModelSelector from "./model-selector";
@@ -25,7 +25,7 @@ export default function SessionManager({ className, onOpenChat }: SessionManager
     stopSession,
     switchToSession,
     clearError,
-  } = useOpenCodeSession();
+  } = useOpenCodeSessionContext();
 
   const [createSessionState, setCreateSessionState] = useState<CreateSessionState>("idle");
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);

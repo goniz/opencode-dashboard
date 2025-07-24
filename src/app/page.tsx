@@ -3,14 +3,14 @@
 import { useState, useEffect } from "react";
 import SessionManager from "@/components/session-manager";
 import OpenCodeChatInterface from "@/components/opencode-chat-interface";
-import { useOpenCodeSession } from "@/hooks/useOpenCodeSession";
+import { useOpenCodeSessionContext } from "@/contexts/OpenCodeSessionContext";
 import { Button } from "../../button";
 import { ArrowLeftIcon } from "lucide-react";
 
 type ViewState = "sessions" | "chat";
 
 export default function Home() {
-  const { currentSession } = useOpenCodeSession();
+  const { currentSession } = useOpenCodeSessionContext();
   const [viewState, setViewState] = useState<ViewState>("sessions");
 
   const handleOpenChat = () => {
