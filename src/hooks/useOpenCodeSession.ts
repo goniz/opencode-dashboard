@@ -109,17 +109,24 @@ export function useOpenCodeSession(): UseOpenCodeSessionReturn {
       }
       
       const data = await response.json();
-      const sessions = data.sessions || [];
+      const sessions: OpenCodeSession[] = data.sessions || [];
+      
+      // Preserve currentSession if it still exists in the updated sessions list
+      const currentSessionId = state.currentSession?.id;
+      const updatedCurrentSession = currentSessionId 
+        ? sessions.find((s: OpenCodeSession) => s.id === currentSessionId) || null
+        : null;
       
       updateState({
         sessions,
+        currentSession: updatedCurrentSession,
         isLoading: false,
       });
     } catch (error) {
       console.error("Failed to load sessions:", error);
       setError(error instanceof Error ? error.message : "Failed to load sessions");
     }
-  }, [updateState, setError]);
+  }, [updateState, setError, state.currentSession]);
 
   const createSession = useCallback(async (config: OpenCodeSessionConfig): Promise<OpenCodeSession> => {
     updateState({ isLoading: true, error: null });
