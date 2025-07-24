@@ -5,7 +5,6 @@ import { OpenCodeError } from "./opencode-client";
 
 export interface OpenCodeWorkspaceConfig {
   folder: string;
-  model: string;
   port?: number;
 }
 

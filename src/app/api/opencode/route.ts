@@ -12,10 +12,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const workspace = await workspaceManager.startWorkspace({ folder, model });
+    const workspace = await workspaceManager.startWorkspace({ folder });
+    const session = workspaceManager.createSession(workspace.id, model);
 
     return NextResponse.json({
       workspaceId: workspace.id,
+      sessionId: session.id,
       port: workspace.port,
       status: workspace.status
     });
