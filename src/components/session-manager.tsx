@@ -221,27 +221,28 @@ export default function SessionManager({ className, onOpenChat }: SessionManager
 
                 <div className="flex items-center gap-2 ml-4">
                   {session.status === "running" && (
-                    <>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          switchToSession(session.id);
-                          onOpenChat?.();
-                        }}
-                      >
-                        Open Chat
-                      </Button>
-                      {currentSession?.id !== session.id && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => switchToSession(session.id)}
-                        >
-                          <PlayIcon className="w-4 h-4" />
-                        </Button>
-                      )}
-                    </>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        console.log("🚀 Open Chat clicked for session:", session.id);
+                        switchToSession(session.id);
+                        console.log("📞 Calling onOpenChat callback");
+                        onOpenChat?.();
+                      }}
+                    >
+                      Open Chat
+                    </Button>
+                  )}
+                  {session.status === "running" && currentSession?.id !== session.id && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => switchToSession(session.id)}
+                      title="Set as active session"
+                    >
+                      <PlayIcon className="w-4 h-4" />
+                    </Button>
                   )}
                   <Button
                     variant="outline"

@@ -14,6 +14,8 @@ export default function Home() {
   const [viewState, setViewState] = useState<ViewState>("sessions");
 
   const handleOpenChat = () => {
+    console.log("🎯 handleOpenChat called, switching to chat view");
+    console.log("Current session:", currentSession);
     setViewState("chat");
   };
 
@@ -21,7 +23,17 @@ export default function Home() {
     setViewState("sessions");
   };
 
-  if (viewState === "chat" && currentSession && currentSession.status === "running") {
+  console.log("🔍 Render - viewState:", viewState, "currentSession:", currentSession?.id);
+
+  if (viewState === "chat") {
+    console.log("💬 Attempting to show chat view");
+    if (!currentSession) {
+      console.log("❌ No current session, returning to sessions view");
+      setViewState("sessions");
+      return null;
+    }
+    console.log("✅ Showing chat interface for session:", currentSession.id);
+
     return (
       <div className="min-h-screen bg-background">
         <div className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -48,9 +60,17 @@ export default function Home() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400">
-                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                  Running
+                <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+                  currentSession.status === "running" 
+                    ? "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400"
+                    : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400"
+                }`}>
+                  <div className={`w-2 h-2 rounded-full ${
+                    currentSession.status === "running" 
+                      ? "bg-green-500 animate-pulse" 
+                      : "bg-yellow-500 animate-pulse"
+                  }`} />
+                  {currentSession.status}
                 </div>
               </div>
             </div>
