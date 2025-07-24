@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import SessionManager from "@/components/session-manager";
 import OpenCodeChatInterface from "@/components/opencode-chat-interface";
-import { useOpenCodeSessionContext } from "@/contexts/OpenCodeSessionContext";
+import { useOpenCodeSessionContext } from "@/contexts/OpenCodeWorkspaceContext";
 import { Button } from "../../button";
 import { ArrowLeftIcon } from "lucide-react";
 

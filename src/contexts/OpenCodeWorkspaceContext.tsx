@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, ReactNode } from "react";
-import { useOpenCodeSession, UseOpenCodeSessionReturn } from "@/hooks/useOpenCodeSession";
+import { useOpenCodeSession, UseOpenCodeSessionReturn } from "@/hooks/useOpenCodeWorkspace";
 
 const OpenCodeSessionContext = createContext<UseOpenCodeSessionReturn | null>(null);
 
