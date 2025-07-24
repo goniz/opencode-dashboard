@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "../../button";
 import { cn } from "@/lib/utils";
-import { useOpenCodeSessionContext } from "@/contexts/OpenCodeSessionContext";
+import { useOpenCodeSessionContext } from "@/contexts/OpenCodeWorkspaceContext";
 import { PlusIcon, TrashIcon, PlayIcon, FolderIcon, BrainIcon, ServerIcon } from "lucide-react";
 import FolderSelector from "./folder-selector";
 import ModelSelector from "./model-selector";
