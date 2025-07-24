@@ -5,18 +5,26 @@ import { OpenCodeError } from "./opencode-client";
 
 export interface OpenCodeWorkspaceConfig {
   folder: string;
-  model: string;
   port?: number;
+}
+
+export interface ChatSession {
+  id: string;
+  workspaceId: string;
+  model: string;
+  createdAt: Date;
+  lastActivity: Date;
+  status: "active" | "inactive";
 }
 
 export interface OpenCodeWorkspace {
   id: string;
   folder: string;
-  model: string;
   port: number;
-  process: ChildProcess | null;
-  client: Opencode | null;
   status: "starting" | "running" | "stopped" | "error";
+  process?: ChildProcess;
+  client?: Opencode;
+  sessions: Map<string, ChatSession>;
   error?: OpenCodeWorkspaceError;
 }
 
@@ -34,6 +42,51 @@ export class OpenCodeWorkspaceError extends Error {
 class OpenCodeWorkspaceManager {
   private workspaces: Map<string, OpenCodeWorkspace> = new Map();
 
+  // Session management methods
+  createSession(workspaceId: string, model: string): ChatSession {
+    const workspace = this.workspaces.get(workspaceId);
+    if (!workspace) {
+      throw new OpenCodeWorkspaceError(`Workspace ${workspaceId} not found`);
+    }
+
+    const sessionId = `session-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+    const session: ChatSession = {
+      id: sessionId,
+      workspaceId,
+      model,
+      createdAt: new Date(),
+      lastActivity: new Date(),
+      status: "active",
+    };
+
+    workspace.sessions.set(sessionId, session);
+    return session;
+  }
+
+  getSession(workspaceId: string, sessionId: string): ChatSession | undefined {
+    const workspace = this.workspaces.get(workspaceId);
+    return workspace?.sessions.get(sessionId);
+  }
+
+  deleteSession(workspaceId: string, sessionId: string): void {
+    const workspace = this.workspaces.get(workspaceId);
+    if (workspace) {
+      workspace.sessions.delete(sessionId);
+    }
+  }
+
+  getWorkspaceSessions(workspaceId: string): ChatSession[] {
+    const workspace = this.workspaces.get(workspaceId);
+    return workspace ? Array.from(workspace.sessions.values()) : [];
+  }
+
+  updateSessionActivity(workspaceId: string, sessionId: string): void {
+    const session = this.getSession(workspaceId, sessionId);
+    if (session) {
+      session.lastActivity = new Date();
+    }
+  }
+
   async startWorkspace(config: OpenCodeWorkspaceConfig): Promise<OpenCodeWorkspace> {
     const port = config.port || (await findAvailablePort());
     const workspaceId = `${Date.now()}-${Math.random()
@@ -43,11 +96,11 @@ class OpenCodeWorkspaceManager {
     const workspace: OpenCodeWorkspace = {
       id: workspaceId,
       folder: config.folder,
-      model: config.model,
       port,
-      process: null,
-      client: null,
+      process: undefined,
+      client: undefined,
       status: "starting",
+      sessions: new Map<string, ChatSession>(),
     };
 
     try {
@@ -158,6 +211,9 @@ class OpenCodeWorkspaceManager {
     if (!workspace) {
       throw new OpenCodeError(`Workspace ${workspaceId} not found`);
     }
+
+    // Clean up all sessions in the workspace
+    workspace.sessions.clear();
 
     if (workspace.process && !workspace.process.killed) {
       workspace.process.kill("SIGTERM");

@@ -12,12 +12,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const session = await workspaceManager.startWorkspace({ folder, model });
+    const workspace = await workspaceManager.startWorkspace({ folder });
+    const session = workspaceManager.createSession(workspace.id, model);
 
     return NextResponse.json({
+      workspaceId: workspace.id,
       sessionId: session.id,
-      port: session.port,
-      status: session.status
+      port: workspace.port,
+      status: workspace.status
     });
   } catch (error) {
     console.error("Failed to start OpenCode session:", error);
@@ -30,20 +32,20 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   try {
-    const sessions = workspaceManager.getAllWorkspaces();
+    const workspaces = workspaceManager.getAllWorkspaces();
     return NextResponse.json({
-      sessions: sessions.map(session => ({
-        id: session.id,
-        folder: session.folder,
-        model: session.model,
-        port: session.port,
-        status: session.status
+      workspaces: workspaces.map(workspace => ({
+        id: workspace.id,
+        folder: workspace.folder,
+        port: workspace.port,
+        status: workspace.status,
+        sessionCount: workspace.sessions.size
       }))
     });
   } catch (error) {
-    console.error("Failed to get sessions:", error);
+    console.error("Failed to get workspaces:", error);
     return NextResponse.json(
-      { error: "Failed to get sessions" },
+      { error: "Failed to get workspaces" },
       { status: 500 }
     );
   }
@@ -52,22 +54,22 @@ export async function GET() {
 export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const sessionId = searchParams.get("sessionId");
+    const workspaceId = searchParams.get("workspaceId");
 
-    if (!sessionId) {
+    if (!workspaceId) {
       return NextResponse.json(
-        { error: "Session ID is required" },
+        { error: "Workspace ID is required" },
         { status: 400 }
       );
     }
 
-    await workspaceManager.stopWorkspace(sessionId);
+    await workspaceManager.stopWorkspace(workspaceId);
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Failed to stop session:", error);
+    console.error("Failed to stop workspace:", error);
     return NextResponse.json(
-      { error: "Failed to stop session" },
+      { error: "Failed to stop workspace" },
       { status: 500 }
     );
   }
