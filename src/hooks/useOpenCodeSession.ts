@@ -38,7 +38,7 @@ export interface UseOpenCodeSessionReturn {
   // Actions
   loadSessions: () => Promise<void>;
   createSession: (config: OpenCodeSessionConfig) => Promise<OpenCodeSession>;
-  switchToSession: (sessionId: string) => void;
+  switchToSession: (sessionId: string) => Promise<void>;
   stopSession: (sessionId: string) => Promise<void>;
   refreshSession: (sessionId: string) => Promise<void>;
   loadSessionMessages: (sessionId: string) => Promise<unknown[]>;
@@ -163,7 +163,7 @@ export function useOpenCodeSession(): UseOpenCodeSessionReturn {
     }
   }, [updateState, setError, loadSessions]);
 
-  const switchToSession = useCallback((sessionId: string) => {
+  const switchToSession = useCallback(async (sessionId: string): Promise<void> => {
     console.log("🔄 switchToSession called with ID:", sessionId);
     console.log("📋 Available sessions:", state.sessions.map(s => ({ id: s.id, status: s.status })));
     const session = state.sessions.find(s => s.id === sessionId);
@@ -171,6 +171,10 @@ export function useOpenCodeSession(): UseOpenCodeSessionReturn {
       console.log("✅ Found session, switching to:", session);
       updateState({ currentSession: session });
       console.log("🎯 updateState called with session:", session.id);
+      
+      // Wait for the next tick to ensure state has updated
+      await new Promise(resolve => setTimeout(resolve, 0));
+      console.log("⏰ State update should be complete now");
     } else {
       console.log("❌ Session not found in available sessions");
       setError(`Session ${sessionId} not found`);

@@ -224,9 +224,9 @@ export default function SessionManager({ className, onOpenChat }: SessionManager
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => {
+                      onClick={async () => {
                         console.log("🚀 Open Chat clicked for session:", session.id);
-                        switchToSession(session.id);
+                        await switchToSession(session.id);
                         console.log("📞 Calling onOpenChat callback");
                         onOpenChat?.();
                       }}

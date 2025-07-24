@@ -84,7 +84,7 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
 
   const handleSessionSelect = async (session: OpenCodeSession) => {
     setSelectedSessionId(session.id);
-    switchToSession(session.id);
+    await switchToSession(session.id);
     
     // Load messages for the selected session
     if (session.status === "running") {
