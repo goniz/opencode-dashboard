@@ -7,9 +7,9 @@
 ## Overview
 
 This plan separates two distinct concepts that were previously conflated:
-- **Workspace**: A running OpenCode instance (folder + model + port + process)
-- **Session**: An individual chat conversation within a workspace (maps to OpenCode SDK session)
-- **Relationship**: One workspace can have multiple concurrent sessions
+- **Workspace**: A running OpenCode instance (folder + port + process)
+- **Session**: An individual chat conversation within a workspace with its own model (maps to OpenCode SDK session)
+- **Relationship**: One workspace can have multiple concurrent sessions, each with potentially different models
 
 ## Progress Tracking
 
@@ -36,7 +36,6 @@ This plan separates two distinct concepts that were previously conflated:
   interface OpenCodeWorkspace {
     id: string;           // workspace identifier
     folder: string;
-    model: string;
     port: number;
     status: "starting" | "running" | "stopped" | "error";
     process?: ChildProcess;
@@ -47,6 +46,7 @@ This plan separates two distinct concepts that were previously conflated:
   interface ChatSession {
     id: string;           // OpenCode SDK session ID
     workspaceId: string;
+    model: string;        // Model for this specific session
     createdAt: Date;
     lastActivity: Date;
     status: "active" | "inactive";
@@ -102,15 +102,15 @@ This plan separates two distinct concepts that were previously conflated:
 ```typescript
 // Create workspace
 POST /api/workspaces
-{ folder: "/path", model: "gpt-4" }
+{ folder: "/path" }
 
 // Create session in workspace
 POST /api/workspaces/workspace-123/sessions
-{ }
+{ model: "gpt-4" }
 
 // Send chat message
 POST /api/workspaces/workspace-123/sessions/session-abc/chat
-{ messages: [...], model: "gpt-4", stream: true }
+{ messages: [...], stream: true }
 
 // Get chat history
 GET /api/workspaces/workspace-123/sessions/session-abc/chat
