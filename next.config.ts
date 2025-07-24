@@ -5,7 +5,8 @@ const nextConfig: NextConfig = {
   ...(process.env.NODE_ENV === "development" && {
       allowedDevOrigins: [
         "gzahavy-mac.tail7ffba.ts.net",
-        "*.tail7ffba.ts.net"
+        "*.tail7ffba.ts.net",
+        "192.168.1.252"
       ]
   })
 };

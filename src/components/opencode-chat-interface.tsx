@@ -5,7 +5,7 @@ import { AssistantRuntimeProvider } from "@assistant-ui/react";
 import { useChatRuntime } from "@assistant-ui/react-ai-sdk";
 import { Button } from "../../button";
 import { Thread } from "../../thread";
-import { useOpenCodeSession } from "@/hooks/useOpenCodeSession";
+import { useOpenCodeSessionContext } from "@/contexts/OpenCodeSessionContext";
 import { cn } from "@/lib/utils";
 import { PlusIcon, PlayIcon, StopCircleIcon, FolderIcon, BrainIcon, ServerIcon, AlertTriangleIcon } from "lucide-react";
 import type { OpenCodeSession } from "@/hooks/useOpenCodeSession";
@@ -27,7 +27,7 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
     stopSession,
     loadSessionMessages: hookLoadSessionMessages,
     clearError,
-  } = useOpenCodeSession();
+  } = useOpenCodeSessionContext();
 
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [loadingMessages, setLoadingMessages] = useState(false);
@@ -84,7 +84,7 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
 
   const handleSessionSelect = async (session: OpenCodeSession) => {
     setSelectedSessionId(session.id);
-    switchToSession(session.id);
+    await switchToSession(session.id);
     
     // Load messages for the selected session
     if (session.status === "running") {

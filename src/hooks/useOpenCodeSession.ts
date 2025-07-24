@@ -38,7 +38,7 @@ export interface UseOpenCodeSessionReturn {
   // Actions
   loadSessions: () => Promise<void>;
   createSession: (config: OpenCodeSessionConfig) => Promise<OpenCodeSession>;
-  switchToSession: (sessionId: string) => void;
+  switchToSession: (sessionId: string) => Promise<void>;
   stopSession: (sessionId: string) => Promise<void>;
   refreshSession: (sessionId: string) => Promise<void>;
   loadSessionMessages: (sessionId: string) => Promise<unknown[]>;
@@ -63,7 +63,12 @@ export function useOpenCodeSession(): UseOpenCodeSessionReturn {
 
   const updateState = useCallback((updates: Partial<SessionState>) => {
     if (!mountedRef.current) return;
-    setState((prev) => ({ ...prev, ...updates }));
+    console.log("🔄 updateState called with:", updates);
+    setState((prev) => {
+      const newState = { ...prev, ...updates };
+      console.log("📊 State updated from:", prev, "to:", newState);
+      return newState;
+    });
   }, []);
 
   const setError = useCallback(
@@ -104,17 +109,24 @@ export function useOpenCodeSession(): UseOpenCodeSessionReturn {
       }
       
       const data = await response.json();
-      const sessions = data.sessions || [];
+      const sessions: OpenCodeSession[] = data.sessions || [];
+      
+      // Preserve currentSession if it still exists in the updated sessions list
+      const currentSessionId = state.currentSession?.id;
+      const updatedCurrentSession = currentSessionId 
+        ? sessions.find((s: OpenCodeSession) => s.id === currentSessionId) || null
+        : null;
       
       updateState({
         sessions,
+        currentSession: updatedCurrentSession,
         isLoading: false,
       });
     } catch (error) {
       console.error("Failed to load sessions:", error);
       setError(error instanceof Error ? error.message : "Failed to load sessions");
     }
-  }, [updateState, setError]);
+  }, [updateState, setError, state.currentSession]);
 
   const createSession = useCallback(async (config: OpenCodeSessionConfig): Promise<OpenCodeSession> => {
     updateState({ isLoading: true, error: null });
@@ -158,11 +170,20 @@ export function useOpenCodeSession(): UseOpenCodeSessionReturn {
     }
   }, [updateState, setError, loadSessions]);
 
-  const switchToSession = useCallback((sessionId: string) => {
+  const switchToSession = useCallback(async (sessionId: string): Promise<void> => {
+    console.log("🔄 switchToSession called with ID:", sessionId);
+    console.log("📋 Available sessions:", state.sessions.map(s => ({ id: s.id, status: s.status })));
     const session = state.sessions.find(s => s.id === sessionId);
     if (session) {
+      console.log("✅ Found session, switching to:", session);
       updateState({ currentSession: session });
+      console.log("🎯 updateState called with session:", session.id);
+      
+      // Wait for the next tick to ensure state has updated
+      await new Promise(resolve => setTimeout(resolve, 0));
+      console.log("⏰ State update should be complete now");
     } else {
+      console.log("❌ Session not found in available sessions");
       setError(`Session ${sessionId} not found`);
     }
   }, [updateState, setError, state.sessions]);
