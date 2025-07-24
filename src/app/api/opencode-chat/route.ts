@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { sessionManager } from "@/lib/opencode-session";
+import { workspaceManager } from "@/lib/opencode-workspace";
 import { withOpenCodeErrorHandling } from "@/lib/opencode-client";
 import type Opencode from "@opencode-ai/sdk";
 
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get the session from the session manager
-    const session = sessionManager.getSession(sessionId);
+    const session = workspaceManager.getWorkspace(sessionId);
     if (!session) {
       return NextResponse.json(
         { error: `Session ${sessionId} not found` },
@@ -233,7 +233,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get the session from the session manager
-    const session = sessionManager.getSession(sessionId);
+    const session = workspaceManager.getWorkspace(sessionId);
     if (!session) {
       return NextResponse.json(
         { error: `Session ${sessionId} not found` },

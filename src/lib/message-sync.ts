@@ -3,7 +3,7 @@
 import type { Message as UseChatMessage } from "ai";
 import type { OpenCodeMessage } from "./message-types";
 import { messageConverter } from "./message-converter";
-import type { OpenCodeSession } from "./opencode-session";
+import type { OpenCodeWorkspace } from "./opencode-workspace";
 
 export interface MessageSyncState {
   lastSyncTimestamp: number;
@@ -68,7 +68,7 @@ export class MessageSynchronizer {
    */
   async synchronizeMessages(
     sessionId: string,
-    session: OpenCodeSession
+    session: OpenCodeWorkspace
   ): Promise<SyncResult> {
     const state = this.syncStates.get(sessionId);
     if (!state) {
@@ -152,7 +152,7 @@ export class MessageSynchronizer {
    */
   async getMessagesFromOpenCode(
     sessionId: string,
-    session: OpenCodeSession
+    session: OpenCodeWorkspace
   ): Promise<UseChatMessage[]> {
     try {
       const openCodeMessages = await this.getOpenCodeMessages(session);
@@ -235,7 +235,7 @@ export class MessageSynchronizer {
   /**
    * Get messages from OpenCode session
    */
-  private async getOpenCodeMessages(session: OpenCodeSession): Promise<OpenCodeMessage[]> {
+  private async getOpenCodeMessages(session: OpenCodeWorkspace): Promise<OpenCodeMessage[]> {
     if (!session.client || session.status !== "running") {
       return [];
     }

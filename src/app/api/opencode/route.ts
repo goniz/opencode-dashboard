@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { sessionManager } from "@/lib/opencode-session";
+import { workspaceManager } from "@/lib/opencode-workspace";
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const session = await sessionManager.startSession({ folder, model });
+    const session = await workspaceManager.startWorkspace({ folder, model });
 
     return NextResponse.json({
       sessionId: session.id,
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   try {
-    const sessions = sessionManager.getAllSessions();
+    const sessions = workspaceManager.getAllWorkspaces();
     return NextResponse.json({
       sessions: sessions.map(session => ({
         id: session.id,
@@ -61,7 +61,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    await sessionManager.stopSession(sessionId);
+    await workspaceManager.stopWorkspace(sessionId);
 
     return NextResponse.json({ success: true });
   } catch (error) {
