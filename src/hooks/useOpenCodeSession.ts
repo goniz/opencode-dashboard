@@ -63,7 +63,12 @@ export function useOpenCodeSession(): UseOpenCodeSessionReturn {
 
   const updateState = useCallback((updates: Partial<SessionState>) => {
     if (!mountedRef.current) return;
-    setState((prev) => ({ ...prev, ...updates }));
+    console.log("🔄 updateState called with:", updates);
+    setState((prev) => {
+      const newState = { ...prev, ...updates };
+      console.log("📊 State updated from:", prev, "to:", newState);
+      return newState;
+    });
   }, []);
 
   const setError = useCallback(
@@ -159,10 +164,15 @@ export function useOpenCodeSession(): UseOpenCodeSessionReturn {
   }, [updateState, setError, loadSessions]);
 
   const switchToSession = useCallback((sessionId: string) => {
+    console.log("🔄 switchToSession called with ID:", sessionId);
+    console.log("📋 Available sessions:", state.sessions.map(s => ({ id: s.id, status: s.status })));
     const session = state.sessions.find(s => s.id === sessionId);
     if (session) {
+      console.log("✅ Found session, switching to:", session);
       updateState({ currentSession: session });
+      console.log("🎯 updateState called with session:", session.id);
     } else {
+      console.log("❌ Session not found in available sessions");
       setError(`Session ${sessionId} not found`);
     }
   }, [updateState, setError, state.sessions]);
