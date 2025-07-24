@@ -228,7 +228,10 @@ export default function SessionManager({ className, onOpenChat }: SessionManager
                         console.log("🚀 Open Chat clicked for session:", session.id);
                         await switchToSession(session.id);
                         console.log("📞 Calling onOpenChat callback");
-                        onOpenChat?.();
+                        // Add a small delay to ensure React state has updated
+                        setTimeout(() => {
+                          onOpenChat?.();
+                        }, 10);
                       }}
                     >
                       Open Chat

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import SessionManager from "@/components/session-manager";
 import OpenCodeChatInterface from "@/components/opencode-chat-interface";
 import { useOpenCodeSession } from "@/hooks/useOpenCodeSession";
@@ -16,6 +16,7 @@ export default function Home() {
   const handleOpenChat = () => {
     console.log("🎯 handleOpenChat called, switching to chat view");
     console.log("Current session:", currentSession);
+    // Always switch to chat view - the useEffect will handle fallback if needed
     setViewState("chat");
   };
 
@@ -23,13 +24,20 @@ export default function Home() {
     setViewState("sessions");
   };
 
+  // Handle case where chat view is requested but no session is available
+  useEffect(() => {
+    if (viewState === "chat" && !currentSession) {
+      console.log("❌ No current session available, returning to sessions view");
+      setViewState("sessions");
+    }
+  }, [viewState, currentSession]);
+
   console.log("🔍 Render - viewState:", viewState, "currentSession:", currentSession?.id);
 
   if (viewState === "chat") {
     console.log("💬 Attempting to show chat view");
     if (!currentSession) {
-      console.log("❌ No current session, returning to sessions view");
-      setViewState("sessions");
+      console.log("⏳ Waiting for session to be set...");
       return null;
     }
     console.log("✅ Showing chat interface for session:", currentSession.id);
