@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { Message as UseChatMessage } from "ai";
-import type { OpenCodeSession } from "@/lib/opencode-session";
+import type { OpenCodeWorkspace } from "@/lib/opencode-workspace";
 import { 
   messageSynchronizer, 
   type MessageSyncState, 
@@ -31,7 +31,7 @@ export interface UseMessageSyncReturn {
 }
 
 export function useMessageSync(
-  session: OpenCodeSession | null,
+  session: OpenCodeWorkspace | null,
   options: UseMessageSyncOptions = {}
 ): UseMessageSyncReturn {
   const [syncState, setSyncState] = useState<MessageSyncState | null>(null);

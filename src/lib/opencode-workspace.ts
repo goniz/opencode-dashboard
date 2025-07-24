@@ -3,13 +3,13 @@ import Opencode from "@opencode-ai/sdk";
 import { findAvailablePort } from "./port-utils";
 import { OpenCodeError } from "./opencode-client";
 
-export interface OpenCodeSessionConfig {
+export interface OpenCodeWorkspaceConfig {
   folder: string;
   model: string;
   port?: number;
 }
 
-export interface OpenCodeSession {
+export interface OpenCodeWorkspace {
   id: string;
   folder: string;
   model: string;
@@ -17,31 +17,31 @@ export interface OpenCodeSession {
   process: ChildProcess | null;
   client: Opencode | null;
   status: "starting" | "running" | "stopped" | "error";
-  error?: OpenCodeSessionError;
+  error?: OpenCodeWorkspaceError;
 }
 
-export class OpenCodeSessionError extends Error {
+export class OpenCodeWorkspaceError extends Error {
   constructor(
     message: string,
     public readonly originalError?: unknown,
     public readonly recoverySuggestion?: string
   ) {
     super(message);
-    this.name = "OpenCodeSessionError";
+    this.name = "OpenCodeWorkspaceError";
   }
 }
 
-class OpenCodeSessionManager {
-  private sessions: Map<string, OpenCodeSession> = new Map();
+class OpenCodeWorkspaceManager {
+  private workspaces: Map<string, OpenCodeWorkspace> = new Map();
 
-  async startSession(config: OpenCodeSessionConfig): Promise<OpenCodeSession> {
+  async startWorkspace(config: OpenCodeWorkspaceConfig): Promise<OpenCodeWorkspace> {
     const port = config.port || (await findAvailablePort());
-    const sessionId = `${Date.now()}-${Math.random()
+    const workspaceId = `${Date.now()}-${Math.random()
       .toString(36)
       .substring(2, 11)}`;
 
-    const session: OpenCodeSession = {
-      id: sessionId,
+    const workspace: OpenCodeWorkspace = {
+      id: workspaceId,
       folder: config.folder,
       model: config.model,
       port,
@@ -59,12 +59,12 @@ class OpenCodeSessionManager {
         stdio: ["pipe", "pipe", "pipe"],
       });
 
-      session.process = process;
+      workspace.process = process;
 
       process.on("error", (error) => {
         console.error(`OpenCode process error:`, error);
-        session.status = "error";
-        session.error = new OpenCodeSessionError(
+        workspace.status = "error";
+        workspace.error = new OpenCodeWorkspaceError(
           "Failed to start OpenCode process.",
           error,
           "Ensure the 'opencode' command is installed and accessible in your system's PATH."
@@ -73,24 +73,24 @@ class OpenCodeSessionManager {
 
       process.on("exit", (code) => {
         console.log(`OpenCode process exited with code ${code}`);
-        if (code !== 0 && session.status !== "running") {
-          session.status = "error";
-          session.error = new OpenCodeSessionError(
+        if (code !== 0 && workspace.status !== "running") {
+          workspace.status = "error";
+          workspace.error = new OpenCodeWorkspaceError(
             `OpenCode process exited with error code ${code}.`,
             undefined,
             "Check the console for error messages from the 'opencode' command."
           );
         } else {
-          session.status = "stopped";
+          workspace.status = "stopped";
         }
-        this.sessions.delete(sessionId);
+        this.workspaces.delete(workspaceId);
       });
 
       process.stdout?.on("data", (data) => {
         console.log(`OpenCode stdout: ${data}`);
         if (data.toString().includes("server listening")) {
-          session.status = "running";
-          session.client = new Opencode({
+          workspace.status = "running";
+          workspace.client = new Opencode({
             baseURL: `http://localhost:${port}`,
           });
         }
@@ -98,20 +98,20 @@ class OpenCodeSessionManager {
 
       process.stderr?.on("data", (data) => {
         console.error(`OpenCode stderr: ${data}`);
-        session.status = "error";
-        session.error = new OpenCodeSessionError(
+        workspace.status = "error";
+        workspace.error = new OpenCodeWorkspaceError(
           "An error occurred in the OpenCode process.",
           data.toString(),
           "Review the OpenCode logs for details."
         );
       });
 
-      this.sessions.set(sessionId, session);
+      this.workspaces.set(workspaceId, workspace);
 
       await new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
           reject(
-            new OpenCodeSessionError(
+            new OpenCodeWorkspaceError(
               "Timeout waiting for OpenCode server to start.",
               undefined,
               "Verify that the 'opencode' command can start successfully and that the port is not blocked."
@@ -120,14 +120,14 @@ class OpenCodeSessionManager {
         }, 30000);
 
         const checkStatus = () => {
-          if (session.status === "running") {
+          if (workspace.status === "running") {
             clearTimeout(timeout);
-            resolve(session);
-          } else if (session.status === "error") {
+            resolve(workspace);
+          } else if (workspace.status === "error") {
             clearTimeout(timeout);
             reject(
-              session.error ||
-                new OpenCodeSessionError(
+              workspace.error ||
+                new OpenCodeWorkspaceError(
                   "Failed to start OpenCode server due to an unknown error."
                 )
             );
@@ -139,54 +139,54 @@ class OpenCodeSessionManager {
         checkStatus();
       });
 
-      return session;
+      return workspace;
     } catch (error) {
-      session.status = "error";
-      session.error =
-        error instanceof OpenCodeSessionError
+      workspace.status = "error";
+      workspace.error =
+        error instanceof OpenCodeWorkspaceError
           ? error
-          : new OpenCodeSessionError(
-              "An unexpected error occurred while starting the session.",
+          : new OpenCodeWorkspaceError(
+              "An unexpected error occurred while starting the workspace.",
               error
             );
-      throw session.error;
+      throw workspace.error;
     }
   }
 
-  async stopSession(sessionId: string): Promise<void> {
-    const session = this.sessions.get(sessionId);
-    if (!session) {
-      throw new OpenCodeError(`Session ${sessionId} not found`);
+  async stopWorkspace(workspaceId: string): Promise<void> {
+    const workspace = this.workspaces.get(workspaceId);
+    if (!workspace) {
+      throw new OpenCodeError(`Workspace ${workspaceId} not found`);
     }
 
-    if (session.process && !session.process.killed) {
-      session.process.kill("SIGTERM");
+    if (workspace.process && !workspace.process.killed) {
+      workspace.process.kill("SIGTERM");
 
       await new Promise<void>((resolve) => {
         setTimeout(() => {
-          if (session.process && !session.process.killed) {
-            session.process.kill("SIGKILL");
+          if (workspace.process && !workspace.process.killed) {
+            workspace.process.kill("SIGKILL");
           }
           resolve();
         }, 5000);
       });
     }
 
-    session.status = "stopped";
-    this.sessions.delete(sessionId);
+    workspace.status = "stopped";
+    this.workspaces.delete(workspaceId);
   }
 
-  getSession(sessionId: string): OpenCodeSession | undefined {
-    return this.sessions.get(sessionId);
+  getWorkspace(workspaceId: string): OpenCodeWorkspace | undefined {
+    return this.workspaces.get(workspaceId);
   }
 
-  getAllSessions(): OpenCodeSession[] {
-    return Array.from(this.sessions.values());
+  getAllWorkspaces(): OpenCodeWorkspace[] {
+    return Array.from(this.workspaces.values());
   }
 
-  async stopAllSessions(): Promise<void> {
-    const stopPromises = Array.from(this.sessions.keys()).map((id) =>
-      this.stopSession(id).catch(console.error)
+  async stopAllWorkspaces(): Promise<void> {
+    const stopPromises = Array.from(this.workspaces.keys()).map((id) =>
+      this.stopWorkspace(id).catch(console.error)
     );
     await Promise.all(stopPromises);
   }
@@ -196,7 +196,7 @@ class OpenCodeSessionManager {
       const process = spawn("opencode", ["--version"]);
       process.on("error", () => {
         reject(
-          new OpenCodeSessionError(
+          new OpenCodeWorkspaceError(
             "'opencode' command not found.",
             undefined,
             "Please ensure the OpenCode CLI is installed and in your system's PATH."
@@ -208,7 +208,7 @@ class OpenCodeSessionManager {
           resolve();
         } else {
           reject(
-            new OpenCodeSessionError(
+            new OpenCodeWorkspaceError(
               `'opencode' command failed with exit code ${code}.`,
               undefined,
               "Verify your OpenCode CLI installation."
@@ -220,4 +220,4 @@ class OpenCodeSessionManager {
   }
 }
 
-export const sessionManager = new OpenCodeSessionManager();
+export const workspaceManager = new OpenCodeWorkspaceManager();
