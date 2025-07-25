@@ -37,6 +37,14 @@ export default function Home() {
           // Switch to this session
           await switchToSession(sessionId);
           console.log("Switched to session:", sessionId);
+          
+          // Wait for state update to complete before changing view
+          // This ensures currentSession is set before the useEffect runs
+          setTimeout(() => {
+            console.log("Setting view state to chat after delay");
+            setViewState("chat");
+          }, 100);
+          return; // Exit early to prevent immediate view state change
         } else {
           console.log("Could not find workspace containing session:", sessionId);
         }
@@ -56,8 +64,17 @@ export default function Home() {
   // Handle case where chat view is requested but no session is available
   useEffect(() => {
     if (viewState === "chat" && !currentSession) {
-      console.log("❌ No current session available, returning to workspaces view");
-      setViewState("workspaces");
+      console.log("❌ No current session available, checking again after delay");
+      
+      // Add a delay before redirecting to give time for state updates to complete
+      const timer = setTimeout(() => {
+        if (!currentSession) {
+          console.log("❌ Still no current session available, returning to workspaces view");
+          setViewState("workspaces");
+        }
+      }, 500);
+      
+      return () => clearTimeout(timer);
     }
   }, [viewState, currentSession]);
 
