@@ -120,14 +120,14 @@ export function useOpenCodeSession(): UseOpenCodeSessionReturn {
       const sessions: OpenCodeSession[] = data.map((workspace: {
         id: string;
         folder: string;
-        model?: string;
+        model: string;
         port: number;
         status: string;
         sessions?: unknown[];
       }) => ({
         id: workspace.id,
         folder: workspace.folder,
-        model: workspace.model || "gpt-4",
+        model: workspace.model,
         port: workspace.port,
         status: workspace.status,
         sessions: workspace.sessions || [],
