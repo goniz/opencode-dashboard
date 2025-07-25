@@ -2,21 +2,28 @@
 
 import { useState, useEffect } from "react";
 import WorkspaceManager from "@/components/workspace-manager";
+import WorkspaceDashboard from "@/components/workspace-dashboard";
 import OpenCodeChatInterface from "@/components/opencode-chat-interface";
 import { useOpenCodeSession } from "@/hooks/useOpenCodeWorkspace";
 import { Button } from "../../button";
 import { ArrowLeftIcon } from "lucide-react";
 
-type ViewState = "workspaces" | "chat";
+type ViewState = "workspaces" | "workspace-dashboard" | "chat";
 
 export default function Home() {
-  const { currentSession } = useOpenCodeSession();
+  const { currentSession, sessions: workspaces } = useOpenCodeSession();
   const [viewState, setViewState] = useState<ViewState>("workspaces");
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null);
+
+  const handleOpenWorkspace = (workspaceId: string) => {
+    console.log("🎯 handleOpenWorkspace called for workspace:", workspaceId);
+    setSelectedWorkspaceId(workspaceId);
+    setViewState("workspace-dashboard");
+  };
 
   const handleOpenChat = () => {
     console.log("🎯 handleOpenChat called, switching to chat view");
     console.log("Current session:", currentSession);
-    // Always switch to chat view - the useEffect will handle fallback if needed
     setViewState("chat");
   };
 
@@ -33,6 +40,59 @@ export default function Home() {
   }, [viewState, currentSession]);
 
   console.log("🔍 Render - viewState:", viewState, "currentSession:", currentSession?.id);
+
+  if (viewState === "workspace-dashboard") {
+    const selectedWorkspace = workspaces.find(w => w.id === selectedWorkspaceId);
+    
+    if (!selectedWorkspace) {
+      console.log("❌ Selected workspace not found, returning to workspaces view");
+      setViewState("workspaces");
+      return null;
+    }
+
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="container mx-auto px-4 py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleBackToWorkspaces}
+                  className="flex items-center gap-2"
+                >
+                  <ArrowLeftIcon className="w-4 h-4" />
+                  Back to Workspaces
+                </Button>
+                <div className="h-4 w-px bg-border" />
+                <div>
+                  <h1 className="text-lg font-semibold text-foreground">
+                    Workspace Dashboard
+                  </h1>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedWorkspace.folder.split("/").pop()} • {selectedWorkspace.model}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="py-8">
+          <WorkspaceDashboard
+            workspaceData={{
+              workspaceId: selectedWorkspace.id,
+              port: selectedWorkspace.port,
+              folder: selectedWorkspace.folder,
+              model: selectedWorkspace.model,
+            }}
+            onWorkspaceStop={handleBackToWorkspaces}
+            onOpenChat={handleOpenChat}
+          />
+        </div>
+      </div>
+    );
+  }
 
   if (viewState === "chat") {
     console.log("💬 Attempting to show chat view");
@@ -103,7 +163,7 @@ export default function Home() {
           </p>
         </div>
         
-        <WorkspaceManager onOpenChat={handleOpenChat} />
+        <WorkspaceManager onOpenWorkspace={handleOpenWorkspace} />
       </div>
     </div>
   );
