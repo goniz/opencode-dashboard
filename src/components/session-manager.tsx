@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "../../button";
 import { cn } from "@/lib/utils";
 import { useWorkspaceSessions } from "@/hooks/useWorkspaceSessions";
@@ -24,11 +24,18 @@ export default function SessionManager({ workspaceId, className, onOpenChat }: S
     createSession,
     deleteSession,
     setActiveSession,
-    refreshSessions: _refreshSessions, // eslint-disable-line @typescript-eslint/no-unused-vars
+    refreshSessions,
   } = useWorkspaceSessions();
 
   const [createSessionState, setCreateSessionState] = useState<CreateSessionState>("idle");
   const [sessionToDelete, setSessionToDelete] = useState<string | null>(null);
+
+  // Load sessions when workspace ID changes
+  useEffect(() => {
+    if (workspaceId) {
+      refreshSessions(workspaceId);
+    }
+  }, [workspaceId, refreshSessions]);
 
   const handleCreateSessionClick = () => {
     setCreateSessionState("model-selection");

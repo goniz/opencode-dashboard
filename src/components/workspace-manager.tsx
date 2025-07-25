@@ -4,9 +4,10 @@ import { useState } from "react";
 import { Button } from "../../button";
 import { cn } from "@/lib/utils";
 import { useOpenCodeSession } from "@/hooks/useOpenCodeWorkspace";
-import { PlusIcon, TrashIcon, PlayIcon, FolderIcon, BrainIcon, ServerIcon } from "lucide-react";
+import { PlusIcon, TrashIcon, PlayIcon, FolderIcon, BrainIcon, ServerIcon, MessageSquareIcon, XIcon } from "lucide-react";
 import FolderSelector from "./folder-selector";
 import ModelSelector from "./model-selector";
+import SessionManager from "./session-manager";
 
 interface WorkspaceManagerProps {
   className?: string;
@@ -31,6 +32,7 @@ export default function WorkspaceManager({ className, onOpenChat }: WorkspaceMan
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
   const [, setSelectedModel] = useState<string | null>(null);
   const [workspaceToDelete, setWorkspaceToDelete] = useState<string | null>(null);
+  const [sessionManagementWorkspaceId, setSessionManagementWorkspaceId] = useState<string | null>(null);
 
   const handleCreateWorkspaceClick = () => {
     setCreateWorkspaceState("folder-selection");
@@ -203,7 +205,7 @@ export default function WorkspaceManager({ className, onOpenChat }: WorkspaceMan
                     )}
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <FolderIcon className="w-4 h-4" />
                       <span className="font-mono truncate">{workspace.folder}</span>
@@ -215,6 +217,10 @@ export default function WorkspaceManager({ className, onOpenChat }: WorkspaceMan
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <ServerIcon className="w-4 h-4" />
                       <span className="font-mono">localhost:{workspace.port}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <MessageSquareIcon className="w-4 h-4" />
+                      <span>{workspace.sessions?.length || 0} session{(workspace.sessions?.length || 0) !== 1 ? 's' : ''}</span>
                     </div>
                   </div>
                 </div>
@@ -235,6 +241,16 @@ export default function WorkspaceManager({ className, onOpenChat }: WorkspaceMan
                       }}
                     >
                       Open Chat
+                    </Button>
+                  )}
+                  {workspace.status === "running" && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSessionManagementWorkspaceId(workspace.id)}
+                      title="Manage sessions in this workspace"
+                    >
+                      <MessageSquareIcon className="w-4 h-4" />
                     </Button>
                   )}
                   {workspace.status === "running" && currentWorkspace?.id !== workspace.id && (
@@ -285,6 +301,37 @@ export default function WorkspaceManager({ className, onOpenChat }: WorkspaceMan
                 {isLoading ? "Deleting..." : "Delete"}
               </Button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Session Management Modal */}
+      {sessionManagementWorkspaceId && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-background p-6 rounded-lg shadow-xl max-w-4xl w-full mx-4 border border-border max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-xl font-semibold text-foreground">Manage Sessions</h3>
+                <p className="text-muted-foreground text-sm mt-1">
+                  Workspace: {workspaces.find(w => w.id === sessionManagementWorkspaceId)?.folder.split("/").pop()}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSessionManagementWorkspaceId(null)}
+              >
+                <XIcon className="w-4 h-4" />
+              </Button>
+            </div>
+            <SessionManager
+              workspaceId={sessionManagementWorkspaceId}
+              onOpenChat={(sessionId) => {
+                console.log("Opening chat for session:", sessionId);
+                setSessionManagementWorkspaceId(null);
+                onOpenChat?.();
+              }}
+            />
           </div>
         </div>
       )}

@@ -14,6 +14,14 @@ export interface OpenCodeSession {
   model: string;
   port: number;
   status: "starting" | "running" | "stopped" | "error";
+  sessions?: Array<{
+    id: string;
+    workspaceId: string;
+    model: string;
+    createdAt: string;
+    lastActivity: string;
+    status: "active" | "inactive";
+  }>;
 }
 
 export interface SessionError {
@@ -109,7 +117,21 @@ export function useOpenCodeSession(): UseOpenCodeSessionReturn {
       }
       
       const data = await response.json();
-      const sessions: OpenCodeSession[] = data.sessions || [];
+      const sessions: OpenCodeSession[] = data.map((workspace: {
+        id: string;
+        folder: string;
+        model?: string;
+        port: number;
+        status: string;
+        sessions?: unknown[];
+      }) => ({
+        id: workspace.id,
+        folder: workspace.folder,
+        model: workspace.model || "gpt-4",
+        port: workspace.port,
+        status: workspace.status,
+        sessions: workspace.sessions || [],
+      }));
       
       // Preserve currentSession if it still exists in the updated sessions list
       const currentSessionId = state.currentSession?.id;
