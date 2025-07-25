@@ -38,10 +38,11 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
 
   // Function to load messages directly from OpenCode API
   const loadMessagesFromOpenCode = useCallback(async (sessionId: string) => {
-    if (!sessionId) return [];
+    if (!sessionId || !currentSession) return [];
     
     setIsSyncing(true);
     try {
+      // For now, use the old endpoint until we have proper workspace/session separation
       const response = await fetch(`/api/opencode-chat?sessionId=${sessionId}`);
       if (!response.ok) {
         throw new Error("Failed to fetch messages from OpenCode");
@@ -64,7 +65,7 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
     } finally {
       setIsSyncing(false);
     }
-  }, []);
+  }, [currentSession]);
 
 
 
@@ -126,13 +127,13 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
         {/* Header */}
         <div className="p-4 border-b border-border">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold text-foreground">OpenCode Sessions</h2>
+            <h2 className="text-lg font-semibold text-foreground">Active Workspaces</h2>
             <Button
               size="sm"
               variant="outline"
               className="h-8 w-8 p-0"
               onClick={() => window.location.href = "/"}
-              title="Create New Session"
+              title="Create New Workspace"
             >
               <PlusIcon className="h-4 w-4" />
             </Button>
@@ -171,8 +172,8 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
           ) : sessions.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <ServerIcon className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p className="text-sm">No active sessions</p>
-              <p className="text-xs mt-1">Create a new session to get started</p>
+              <p className="text-sm">No active workspaces</p>
+              <p className="text-xs mt-1">Create a new workspace to get started</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -202,7 +203,10 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
                     Chat with OpenCode
                   </h3>
                   <p className="text-sm text-muted-foreground">
-                    Session: {currentSession.folder} • {currentSession.model}
+                    Workspace: {currentSession.folder.split("/").pop()} • Session: {currentSession.model}
+                  </p>
+                  <p className="text-xs text-muted-foreground/70">
+                    {currentSession.folder}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -268,10 +272,10 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
             <div className="text-center">
               <ServerIcon className="h-16 w-16 mx-auto mb-4 text-muted-foreground/50" />
               <h3 className="text-lg font-medium text-foreground mb-2">
-                No Session Selected
+                No Workspace Selected
               </h3>
               <p className="text-muted-foreground mb-4 max-w-sm">
-                Select an active OpenCode session from the sidebar to start chatting, or go back to create a new session.
+                Select an active OpenCode workspace from the sidebar to start chatting, or go back to create a new workspace.
               </p>
               <Button
                 onClick={() => window.location.href = "/"}
