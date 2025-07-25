@@ -9,13 +9,15 @@ import ModelSelector from "./model-selector";
 
 interface SessionManagerProps {
   workspaceId: string;
+  folderPath?: string;
+  defaultModel?: string;
   className?: string;
   onOpenChat?: (sessionId: string) => void;
 }
 
 type CreateSessionState = "idle" | "model-selection" | "creating";
 
-export default function SessionManager({ workspaceId, className, onOpenChat }: SessionManagerProps) {
+export default function SessionManager({ workspaceId, folderPath, defaultModel, className, onOpenChat }: SessionManagerProps) {
   const {
     sessions,
     activeSessionId,
@@ -95,7 +97,7 @@ export default function SessionManager({ workspaceId, className, onOpenChat }: S
             Cancel
           </Button>
         </div>
-        <ModelSelector folderPath="" onModelSelect={handleModelSelect} />
+        <ModelSelector folderPath={folderPath || ""} defaultModel={defaultModel} onModelSelect={handleModelSelect} />
       </div>
     );
   }

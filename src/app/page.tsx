@@ -11,7 +11,7 @@ import { ArrowLeftIcon } from "lucide-react";
 type ViewState = "workspaces" | "workspace-dashboard" | "chat";
 
 export default function Home() {
-  const { currentSession, sessions: workspaces } = useOpenCodeSession();
+  const { currentSession, sessions: workspaces, switchToSession } = useOpenCodeSession();
   const [viewState, setViewState] = useState<ViewState>("workspaces");
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null);
 
@@ -21,9 +21,31 @@ export default function Home() {
     setViewState("workspace-dashboard");
   };
 
-  const handleOpenChat = () => {
+  const handleOpenChat = async (sessionId?: string) => {
     console.log("🎯 handleOpenChat called, switching to chat view");
-    console.log("Current session:", currentSession);
+    
+    if (sessionId) {
+      console.log("Session ID provided:", sessionId);
+      try {
+        // Find the workspace that contains this session
+        const workspace = workspaces.find(w => 
+          w.sessions?.some(s => s.id === sessionId)
+        );
+        
+        if (workspace) {
+          console.log("Found workspace containing session:", workspace.id);
+          // Switch to this session
+          await switchToSession(sessionId);
+          console.log("Switched to session:", sessionId);
+        } else {
+          console.log("Could not find workspace containing session:", sessionId);
+        }
+      } catch (error) {
+        console.error("Error switching to session:", error);
+      }
+    }
+    
+    console.log("Current session after potential switch:", currentSession?.id);
     setViewState("chat");
   };
 
@@ -87,7 +109,7 @@ export default function Home() {
               model: selectedWorkspace.model,
             }}
             onWorkspaceStop={handleBackToWorkspaces}
-            onOpenChat={handleOpenChat}
+            onOpenChat={(sessionId) => handleOpenChat(sessionId)}
           />
         </div>
       </div>

@@ -16,7 +16,7 @@ interface WorkspaceData {
 interface WorkspaceDashboardProps {
   workspaceData: WorkspaceData;
   onWorkspaceStop: () => void;
-  onOpenChat: () => void;
+  onOpenChat: (sessionId?: string) => void;
   className?: string;
 }
 
@@ -47,9 +47,7 @@ export default function WorkspaceDashboard({ workspaceData, onWorkspaceStop, onO
     }
   };
 
-  const openInBrowser = () => {
-    window.open(`http://localhost:${workspaceData.port}`, "_blank");
-  };
+
 
   return (
     <div className={cn("w-full max-w-2xl mx-auto p-8 bg-background rounded-2xl shadow-2xl border border-border/50", className)}>
@@ -124,17 +122,7 @@ export default function WorkspaceDashboard({ workspaceData, onWorkspaceStop, onO
           </Button>
         </div>
 
-        <div className="text-center">
-          <Button
-            onClick={openInBrowser}
-            variant="outline"
-            size="lg"
-            className="w-full max-w-md"
-          >
-            <ServerIcon className="w-5 h-5 mr-2" />
-            Open in Browser
-          </Button>
-        </div>
+
 
         <div className="mt-6 text-xs text-muted-foreground/80">
           <p>Workspace ID: <span className="font-mono">{workspaceData.workspaceId}</span></p>
@@ -162,10 +150,12 @@ export default function WorkspaceDashboard({ workspaceData, onWorkspaceStop, onO
             </div>
             <SessionManager
               workspaceId={workspaceData.workspaceId}
+              folderPath={workspaceData.folder}
+              defaultModel={workspaceData.model}
               onOpenChat={(sessionId) => {
                 console.log("Opening chat for session:", sessionId);
                 setShowSessionManager(false);
-                onOpenChat();
+                onOpenChat(sessionId);
               }}
             />
           </div>
