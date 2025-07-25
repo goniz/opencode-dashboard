@@ -24,37 +24,52 @@ export default function Home() {
   const handleOpenChat = async (sessionId?: string) => {
     console.log("🎯 handleOpenChat called, switching to chat view");
     
+    // Store the current view state to restore it if needed
+    const previousViewState = viewState;
+    
     if (sessionId) {
       console.log("Session ID provided:", sessionId);
-      try {
-        // Find the workspace that contains this session
-        const workspace = workspaces.find(w => 
-          w.sessions?.some(s => s.id === sessionId)
-        );
-        
-        if (workspace) {
-          console.log("Found workspace containing session:", workspace.id);
-          // Switch to this session
-          await switchToSession(sessionId);
-          console.log("Switched to session:", sessionId);
+      
+      // First, find the session in the workspaces
+      let foundSession = false;
+      
+      for (const workspace of workspaces) {
+        if (workspace.sessions?.some(s => s.id === sessionId)) {
+          console.log("Found session in workspace:", workspace.id);
+          foundSession = true;
           
-          // Wait for state update to complete before changing view
-          // This ensures currentSession is set before the useEffect runs
-          setTimeout(() => {
-            console.log("Setting view state to chat after delay");
+          try {
+            // Set the selected workspace ID to ensure it's available
+            setSelectedWorkspaceId(workspace.id);
+            
+            // Switch to this session
+            await switchToSession(sessionId);
+            console.log("Switched to session:", sessionId);
+            
+            // Now it's safe to change the view state
             setViewState("chat");
-          }, 100);
-          return; // Exit early to prevent immediate view state change
-        } else {
-          console.log("Could not find workspace containing session:", sessionId);
+          } catch (error) {
+            console.error("Error switching to session:", error);
+            // Restore previous view state on error
+            setViewState(previousViewState);
+          }
+          
+          break;
         }
-      } catch (error) {
-        console.error("Error switching to session:", error);
       }
+      
+      if (!foundSession) {
+        console.log("Could not find workspace containing session:", sessionId);
+        // Don't change view state if session not found
+      }
+    } else if (currentSession) {
+      // If no session ID is provided but we have a current session, just switch to chat view
+      console.log("No session ID provided, using current session:", currentSession.id);
+      setViewState("chat");
+    } else {
+      console.log("No valid session found, not switching to chat view");
+      // Don't change view state if no valid session
     }
-    
-    console.log("Current session after potential switch:", currentSession?.id);
-    setViewState("chat");
   };
 
   const handleBackToWorkspaces = () => {
@@ -63,20 +78,48 @@ export default function Home() {
 
   // Handle case where chat view is requested but no session is available
   useEffect(() => {
-    if (viewState === "chat" && !currentSession) {
-      console.log("❌ No current session available, checking again after delay");
-      
-      // Add a delay before redirecting to give time for state updates to complete
-      const timer = setTimeout(() => {
-        if (!currentSession) {
-          console.log("❌ Still no current session available, returning to workspaces view");
+    if (viewState === "chat") {
+      if (!currentSession) {
+        console.log("❌ No current session available for chat view");
+        
+        // Check if we have any workspaces with sessions
+        const hasAnySessions = workspaces.some(w => w.sessions && w.sessions.length > 0);
+        
+        if (hasAnySessions) {
+          console.log("🔍 Found workspaces with sessions, trying to load one");
+          
+          // Try to load the first available session
+          for (const workspace of workspaces) {
+            if (workspace.sessions && workspace.sessions.length > 0) {
+              const firstSession = workspace.sessions[0];
+              console.log("🔄 Attempting to switch to session:", firstSession.id);
+              
+              // Set the selected workspace ID
+              setSelectedWorkspaceId(workspace.id);
+              
+              // Switch to this session
+              switchToSession(firstSession.id)
+                .then(() => {
+                  console.log("✅ Successfully switched to session:", firstSession.id);
+                })
+                .catch(error => {
+                  console.error("❌ Failed to switch to session:", error);
+                  console.log("⬅️ Returning to workspaces view");
+                  setViewState("workspaces");
+                });
+              
+              return;
+            }
+          }
+        } else {
+          console.log("⬅️ No sessions available, returning to workspaces view");
           setViewState("workspaces");
         }
-      }, 500);
-      
-      return () => clearTimeout(timer);
+      } else {
+        console.log("✅ Current session available for chat view:", currentSession.id);
+      }
     }
-  }, [viewState, currentSession]);
+  }, [viewState, currentSession, workspaces, switchToSession, setSelectedWorkspaceId]);
 
   console.log("🔍 Render - viewState:", viewState, "currentSession:", currentSession?.id);
 
