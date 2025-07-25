@@ -7,11 +7,11 @@ import { useOpenCodeSession } from "@/hooks/useOpenCodeWorkspace";
 import { Button } from "../../button";
 import { ArrowLeftIcon } from "lucide-react";
 
-type ViewState = "sessions" | "chat";
+type ViewState = "workspaces" | "chat";
 
 export default function Home() {
   const { currentSession } = useOpenCodeSession();
-  const [viewState, setViewState] = useState<ViewState>("sessions");
+  const [viewState, setViewState] = useState<ViewState>("workspaces");
 
   const handleOpenChat = () => {
     console.log("🎯 handleOpenChat called, switching to chat view");
@@ -20,15 +20,15 @@ export default function Home() {
     setViewState("chat");
   };
 
-  const handleBackToSessions = () => {
-    setViewState("sessions");
+  const handleBackToWorkspaces = () => {
+    setViewState("workspaces");
   };
 
   // Handle case where chat view is requested but no session is available
   useEffect(() => {
     if (viewState === "chat" && !currentSession) {
-      console.log("❌ No current session available, returning to sessions view");
-      setViewState("sessions");
+      console.log("❌ No current session available, returning to workspaces view");
+      setViewState("workspaces");
     }
   }, [viewState, currentSession]);
 
@@ -51,11 +51,11 @@ export default function Home() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={handleBackToSessions}
+                  onClick={handleBackToWorkspaces}
                   className="flex items-center gap-2"
                 >
                   <ArrowLeftIcon className="w-4 h-4" />
-                  Back to Sessions
+                  Back to Workspaces
                 </Button>
                 <div className="h-4 w-px bg-border" />
                 <div>
@@ -99,7 +99,7 @@ export default function Home() {
             OpenCode Dashboard
           </h1>
           <p className="text-lg text-muted-foreground">
-            Manage your OpenCode sessions
+            Manage your OpenCode workspaces
           </p>
         </div>
         

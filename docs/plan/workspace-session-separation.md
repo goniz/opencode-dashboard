@@ -15,7 +15,7 @@ This plan separates two distinct concepts that were previously conflated:
 
 - [x] **Phase 1**: Complete Refactoring *(4/4 tasks)* ✅ *Completed 2025-01-24*
 - [x] **Phase 2**: Object-Centric API Restructure *(3/3 tasks)* ✅ *Completed 2025-01-25*
-- [ ] **Phase 3**: Component Restructure *(0/4 tasks)*
+- [x] **Phase 3**: Component Restructure *(4/4 tasks)* ✅ *Completed 2025-01-25*
 - [ ] **Phase 4**: Complete Integration *(0/4 tasks)*
 
 ---
@@ -134,15 +134,15 @@ GET /api/workspaces/workspace-123/sessions/session-abc/chat
   - [x] ~~`src/components/session-tabs.tsx` (NEW - tab interface for multiple sessions)~~
   - [x] ~~`src/components/session-creator.tsx` (NEW - create new session in workspace)~~
 
-- [ ] **3.3** Update all API calls to use new nested endpoints
-  - [ ] Update workspace management calls
-  - [ ] Update session management calls
-  - [ ] Update chat API calls
+- [x] ~~**3.3** Update all API calls to use new nested endpoints~~ ✅ *Completed 2025-01-25*
+  - [x] ~~Update workspace management calls~~
+  - [x] ~~Update session management calls~~
+  - [x] ~~Update chat API calls~~
 
-- [ ] **3.4** Update UI text and terminology
-  - [ ] All "Session" text → "Workspace" where appropriate
-  - [ ] Add session management UI within workspace view
-  - [ ] Show workspace info + active session info in chat
+- [x] ~~**3.4** Update UI text and terminology~~ ✅ *Completed 2025-01-25*
+  - [x] ~~All "Session" text → "Workspace" where appropriate~~
+  - [x] ~~Add session management UI within workspace view~~
+  - [x] ~~Show workspace info + active session info in chat~~
 
 ---
 

@@ -103,7 +103,7 @@ export function useOpenCodeSession(): UseOpenCodeSessionReturn {
     updateState({ isLoading: true, error: null });
     
     try {
-      const response = await fetch("/api/opencode");
+      const response = await fetch("/api/workspaces");
       if (!response.ok) {
         throw new Error("Failed to fetch sessions");
       }
@@ -132,7 +132,7 @@ export function useOpenCodeSession(): UseOpenCodeSessionReturn {
     updateState({ isLoading: true, error: null });
     
     try {
-      const response = await fetch("/api/opencode", {
+      const response = await fetch("/api/workspaces", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -192,7 +192,7 @@ export function useOpenCodeSession(): UseOpenCodeSessionReturn {
     updateState({ isLoading: true, error: null });
     
     try {
-      const response = await fetch(`/api/opencode?sessionId=${sessionId}`, {
+      const response = await fetch(`/api/workspaces/${sessionId}`, {
         method: "DELETE",
       });
       
