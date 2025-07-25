@@ -1,16 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import SessionManager from "@/components/session-manager";
+import WorkspaceManager from "@/components/workspace-manager";
 import OpenCodeChatInterface from "@/components/opencode-chat-interface";
-import { useOpenCodeSessionContext } from "@/contexts/OpenCodeWorkspaceContext";
+import { useOpenCodeSession } from "@/hooks/useOpenCodeWorkspace";
 import { Button } from "../../button";
 import { ArrowLeftIcon } from "lucide-react";
 
 type ViewState = "sessions" | "chat";
 
 export default function Home() {
-  const { currentSession } = useOpenCodeSessionContext();
+  const { currentSession } = useOpenCodeSession();
   const [viewState, setViewState] = useState<ViewState>("sessions");
 
   const handleOpenChat = () => {
@@ -103,7 +103,7 @@ export default function Home() {
           </p>
         </div>
         
-        <SessionManager onOpenChat={handleOpenChat} />
+        <WorkspaceManager onOpenChat={handleOpenChat} />
       </div>
     </div>
   );

@@ -5,38 +5,38 @@ import { Button } from "../../button";
 import { cn } from "@/lib/utils";
 import { AlertTriangleIcon, CheckCircleIcon, FolderIcon, BrainIcon, ServerIcon } from "lucide-react";
 
-interface SessionData {
-  sessionId: string;
+interface WorkspaceData {
+  workspaceId: string;
   port: number;
   folder: string;
   model: string;
 }
 
-interface SessionDashboardProps {
-  sessionData: SessionData;
-  onSessionStop: () => void;
+interface WorkspaceDashboardProps {
+  workspaceData: WorkspaceData;
+  onWorkspaceStop: () => void;
   className?: string;
 }
 
-export default function SessionDashboard({ sessionData, onSessionStop, className }: SessionDashboardProps) {
+export default function WorkspaceDashboard({ workspaceData, onWorkspaceStop, className }: WorkspaceDashboardProps) {
   const [isStopping, setIsStopping] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleStopSession = async () => {
+  const handleStopWorkspace = async () => {
     setIsStopping(true);
     setError(null);
 
     try {
-      const response = await fetch(`/api/opencode?sessionId=${sessionData.sessionId}`, {
+      const response = await fetch(`/api/workspaces/${workspaceData.workspaceId}`, {
         method: "DELETE",
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to stop session");
+        throw new Error(errorData.error || "Failed to stop workspace");
       }
 
-      onSessionStop();
+      onWorkspaceStop();
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
@@ -45,7 +45,7 @@ export default function SessionDashboard({ sessionData, onSessionStop, className
   };
 
   const openInBrowser = () => {
-    window.open(`http://localhost:${sessionData.port}`, "_blank");
+    window.open(`http://localhost:${workspaceData.port}`, "_blank");
   };
 
   return (
@@ -54,7 +54,7 @@ export default function SessionDashboard({ sessionData, onSessionStop, className
         <div className="flex items-center justify-center mb-4 text-foreground">
           <CheckCircleIcon className="w-7 h-7 text-green-500 mr-3" />
           <h2 className="text-3xl font-bold">
-            OpenCode Session Running
+            OpenCode Workspace Running
           </h2>
         </div>
         
@@ -65,21 +65,21 @@ export default function SessionDashboard({ sessionData, onSessionStop, className
         <div className="space-y-4 mb-8 text-left">
           <InfoCard icon={<ServerIcon />} label="Server URL">
             <a 
-              href={`http://localhost:${sessionData.port}`}
+              href={`http://localhost:${workspaceData.port}`}
               target="_blank"
               rel="noopener noreferrer"
               className="font-mono text-sm text-primary hover:underline"
             >
-              http://localhost:{sessionData.port}
+              http://localhost:{workspaceData.port}
             </a>
           </InfoCard>
           
           <InfoCard icon={<FolderIcon />} label="Project Folder">
-            <p className="font-mono text-sm text-foreground">{sessionData.folder}</p>
+            <p className="font-mono text-sm text-foreground">{workspaceData.folder}</p>
           </InfoCard>
           
           <InfoCard icon={<BrainIcon />} label="Model">
-            <p className="font-mono text-sm text-foreground">{sessionData.model}</p>
+            <p className="font-mono text-sm text-foreground">{workspaceData.model}</p>
           </InfoCard>
         </div>
 
@@ -103,7 +103,7 @@ export default function SessionDashboard({ sessionData, onSessionStop, className
           </Button>
           
           <Button
-            onClick={handleStopSession}
+            onClick={handleStopWorkspace}
             disabled={isStopping}
             variant="outline"
             size="lg"
@@ -115,13 +115,13 @@ export default function SessionDashboard({ sessionData, onSessionStop, className
                 Stopping...
               </>
             ) : (
-              "Stop Session"
+              "Stop Workspace"
             )}
           </Button>
         </div>
 
         <div className="mt-6 text-xs text-muted-foreground/80">
-          <p>Session ID: <span className="font-mono">{sessionData.sessionId}</span></p>
+          <p>Workspace ID: <span className="font-mono">{workspaceData.workspaceId}</span></p>
         </div>
       </div>
     </div>

@@ -4,23 +4,23 @@ import { useState } from "react";
 import { Button } from "../../button";
 import { cn } from "@/lib/utils";
 
-interface SessionStarterProps {
+interface WorkspaceStarterProps {
   folder: string;
   model: string;
-  onSessionStart: (sessionData: { sessionId: string; port: number }) => void;
+  onWorkspaceStart: (workspaceData: { workspaceId: string; port: number }) => void;
   className?: string;
 }
 
-export default function SessionStarter({ folder, model, onSessionStart, className }: SessionStarterProps) {
+export default function WorkspaceStarter({ folder, model, onWorkspaceStart, className }: WorkspaceStarterProps) {
   const [isStarting, setIsStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleStartSession = async () => {
+  const handleStartWorkspace = async () => {
     setIsStarting(true);
     setError(null);
 
     try {
-      const response = await fetch("/api/opencode", {
+      const response = await fetch("/api/workspaces", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -30,12 +30,12 @@ export default function SessionStarter({ folder, model, onSessionStart, classNam
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to start session");
+        throw new Error(errorData.error || "Failed to start workspace");
       }
 
       const data = await response.json();
-      onSessionStart({
-        sessionId: data.sessionId,
+      onWorkspaceStart({
+        workspaceId: data.workspaceId,
         port: data.port,
       });
     } catch (err) {
@@ -49,7 +49,7 @@ export default function SessionStarter({ folder, model, onSessionStart, classNam
     <div className={cn("w-full max-w-2xl mx-auto p-6 bg-white dark:bg-gray-900 rounded-lg shadow-lg", className)}>
       <div className="text-center">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-          Ready to Start OpenCode Session
+          Ready to Start OpenCode Workspace
         </h2>
         
         <div className="space-y-3 mb-6">
@@ -71,17 +71,17 @@ export default function SessionStarter({ folder, model, onSessionStart, classNam
         )}
 
         <Button
-          onClick={handleStartSession}
+          onClick={handleStartWorkspace}
           disabled={isStarting}
           className="px-6 py-3 text-lg"
         >
           {isStarting ? (
             <>
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-              Starting OpenCode Session...
+              Starting OpenCode Workspace...
             </>
           ) : (
-            "Start OpenCode Session"
+            "Start OpenCode Workspace"
           )}
         </Button>
 
