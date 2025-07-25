@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { workspaceManager } from "@/lib/opencode-workspace";
 import { withOpenCodeErrorHandling } from "@/lib/opencode-client";
+import { parseModelString } from "@/lib/utils";
 import type Opencode from "@opencode-ai/sdk";
 
 export const runtime = "nodejs";
@@ -61,12 +62,15 @@ export async function POST(
     // Generate a unique message ID
     const messageID = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 
+    // Parse model string to extract provider and model ID
+    const { providerID, modelID } = parseModelString(session.model);
+
     // Prepare the chat parameters according to OpenCode SDK
     const chatParams: Opencode.SessionChatParams = {
       messageID,
       mode: "chat",
-      modelID: session.model,
-      providerID: "openai",
+      modelID,
+      providerID,
       parts: [
         {
           id: `part_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
