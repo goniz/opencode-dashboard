@@ -3,6 +3,33 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  
+  /* Mobile-first breakpoints */
+  --breakpoint-sm: 480px;   /* Large mobile */
+  --breakpoint-md: 768px;   /* Tablet */
+  --breakpoint-lg: 1024px;  /* Desktop */
+  --breakpoint-xl: 1280px;  /* Large desktop */
+  
+  /* Responsive spacing scale */
+  --spacing-xs: clamp(0.25rem, 0.5vw, 0.5rem);
+  --spacing-sm: clamp(0.5rem, 1vw, 0.75rem);
+  --spacing-md: clamp(0.75rem, 1.5vw, 1rem);
+  --spacing-lg: clamp(1rem, 2vw, 1.5rem);
+  --spacing-xl: clamp(1.5rem, 3vw, 2rem);
+  --spacing-2xl: clamp(2rem, 4vw, 3rem);
+  
+  /* Fluid typography */
+  --text-xs: clamp(0.75rem, 0.8vw, 0.875rem);
+  --text-sm: clamp(0.875rem, 1vw, 1rem);
+  --text-base: clamp(1rem, 1.2vw, 1.125rem);
+  --text-lg: clamp(1.125rem, 1.4vw, 1.25rem);
+  --text-xl: clamp(1.25rem, 1.6vw, 1.5rem);
+  --text-2xl: clamp(1.5rem, 2vw, 2rem);
+  --text-3xl: clamp(2rem, 2.5vw, 2.5rem);
+  
+  /* Touch-friendly sizing */
+  --touch-target-min: 44px;
+  --touch-spacing: 8px;
 }
 
 @theme inline {
@@ -10,6 +37,25 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  
+  /* Mobile-first breakpoints */
+  --breakpoint-sm: 480px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  
+  /* Touch-friendly utilities */
+  --size-touch: 44px;
+  --size-touch-lg: 56px;
+  --gap-touch: 8px;
+  
+  /* Responsive spacing utilities */
+  --spacing-fluid-xs: var(--spacing-xs);
+  --spacing-fluid-sm: var(--spacing-sm);
+  --spacing-fluid-md: var(--spacing-md);
+  --spacing-fluid-lg: var(--spacing-lg);
+  --spacing-fluid-xl: var(--spacing-xl);
+  --spacing-fluid-2xl: var(--spacing-2xl);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -22,5 +68,54 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  font-size: var(--text-base);
+  line-height: 1.6;
 }
+
+/* Touch-friendly base styles */
+button, 
+[role="button"],
+input[type="button"],
+input[type="submit"],
+input[type="reset"] {
+  min-height: var(--touch-target-min);
+  min-width: var(--touch-target-min);
+}
+
+/* Mobile-first responsive utilities */
+.touch-target {
+  min-height: var(--touch-target-min);
+  min-width: var(--touch-target-min);
+}
+
+.touch-target-lg {
+  min-height: var(--size-touch-lg);
+  min-width: var(--size-touch-lg);
+}
+
+.gap-touch {
+  gap: var(--gap-touch);
+}
+
+.text-fluid-xs { font-size: var(--text-xs); }
+.text-fluid-sm { font-size: var(--text-sm); }
+.text-fluid-base { font-size: var(--text-base); }
+.text-fluid-lg { font-size: var(--text-lg); }
+.text-fluid-xl { font-size: var(--text-xl); }
+.text-fluid-2xl { font-size: var(--text-2xl); }
+.text-fluid-3xl { font-size: var(--text-3xl); }
+
+.p-fluid-xs { padding: var(--spacing-xs); }
+.p-fluid-sm { padding: var(--spacing-sm); }
+.p-fluid-md { padding: var(--spacing-md); }
+.p-fluid-lg { padding: var(--spacing-lg); }
+.p-fluid-xl { padding: var(--spacing-xl); }
+.p-fluid-2xl { padding: var(--spacing-2xl); }
+
+.m-fluid-xs { margin: var(--spacing-xs); }
+.m-fluid-sm { margin: var(--spacing-sm); }
+.m-fluid-md { margin: var(--spacing-md); }
+.m-fluid-lg { margin: var(--spacing-lg); }
+.m-fluid-xl { margin: var(--spacing-xl); }
+.m-fluid-2xl { margin: var(--spacing-2xl); }
