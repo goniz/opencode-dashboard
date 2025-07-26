@@ -7,6 +7,8 @@ import { useOpenCodeSession } from "@/hooks/useOpenCodeWorkspace";
 import { PlusIcon, TrashIcon, FolderIcon, BrainIcon, ServerIcon, MessageSquareIcon } from "lucide-react";
 import FolderSelector from "./folder-selector";
 import ModelSelector from "./model-selector";
+import FloatingActionButton from "./floating-action-button";
+import MobileModal from "./mobile-modal";
 
 interface WorkspaceManagerProps {
   className?: string;
@@ -250,34 +252,42 @@ export default function WorkspaceManager({ className, onOpenWorkspace }: Workspa
         </div>
       )}
 
-      {/* Delete Confirmation Dialog */}
-      {workspaceToDelete && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-background p-6 rounded-lg shadow-xl max-w-md w-full mx-4 border border-border">
-            <h3 className="text-lg font-semibold text-foreground mb-2">Delete Workspace</h3>
-            <p className="text-muted-foreground mb-6">
-              Are you sure you want to delete this workspace? This action cannot be undone and will stop the running server.
-            </p>
-            <div className="flex gap-3 justify-end">
-              <Button
-                variant="outline"
-                onClick={() => setWorkspaceToDelete(null)}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={() => handleDeleteWorkspace(workspaceToDelete)}
-                disabled={isLoading}
-              >
-                {isLoading ? "Deleting..." : "Delete"}
-              </Button>
-            </div>
+      {/* Delete Confirmation Modal */}
+      <MobileModal
+        isOpen={!!workspaceToDelete}
+        onClose={() => setWorkspaceToDelete(null)}
+        title="Delete Workspace"
+      >
+        <div className="space-y-4">
+          <p className="text-muted-foreground">
+            Are you sure you want to delete this workspace? This action cannot be undone and will stop the running server.
+          </p>
+          <div className="flex flex-col md:flex-row gap-3 md:justify-end">
+            <Button
+              variant="outline"
+              onClick={() => setWorkspaceToDelete(null)}
+              className="w-full md:w-auto"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => workspaceToDelete && handleDeleteWorkspace(workspaceToDelete)}
+              disabled={isLoading}
+              className="w-full md:w-auto"
+            >
+              {isLoading ? "Deleting..." : "Delete"}
+            </Button>
           </div>
         </div>
-      )}
+      </MobileModal>
 
-
+      {/* Floating Action Button for Mobile */}
+      <FloatingActionButton
+        onClick={handleCreateWorkspaceClick}
+        disabled={isLoading || createWorkspaceState === "creating"}
+        label={createWorkspaceState === "creating" ? "Creating..." : "Create Workspace"}
+      />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import WorkspaceManager from "@/components/workspace-manager";
 import WorkspaceDashboard from "@/components/workspace-dashboard";
 import OpenCodeChatInterface from "@/components/opencode-chat-interface";
+import MobileNavigation from "@/components/mobile-navigation";
 import { useOpenCodeSessionContext } from "@/contexts/OpenCodeWorkspaceContext";
 import { Button } from "../../button";
 import { ArrowLeftIcon } from "lucide-react";
@@ -157,8 +158,14 @@ export default function Home() {
     }
 
     return (
-      <div className="min-h-screen bg-background">
-        <div className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="min-h-screen bg-background pb-16 md:pb-0">
+        <MobileNavigation
+          currentView={viewState}
+          onNavigate={setViewState}
+          onBackToWorkspaces={handleBackToWorkspaces}
+        />
+        
+        <div className="hidden md:block border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="container mx-auto px-4 py-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -193,7 +200,7 @@ export default function Home() {
               model: selectedWorkspace.model,
             }}
             onWorkspaceStop={handleBackToWorkspaces}
-            onOpenChat={(sessionId) => handleOpenChat(sessionId)}
+            onOpenChat={(sessionId?: string) => handleOpenChat(sessionId)}
           />
         </div>
       </div>
@@ -216,8 +223,14 @@ export default function Home() {
     console.log("✅ Showing chat interface for session:", currentSession.id);
 
     return (
-      <div className="min-h-screen bg-background">
-        <div className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="min-h-screen bg-background pb-16 md:pb-0">
+        <MobileNavigation
+          currentView={viewState}
+          onNavigate={setViewState}
+          onBackToWorkspaces={handleBackToWorkspaces}
+        />
+        
+        <div className="hidden md:block border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="container mx-auto px-4 py-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -257,7 +270,7 @@ export default function Home() {
             </div>
           </div>
         </div>
-        <div className="h-[calc(100vh-73px)]">
+        <div className="h-[calc(100vh-73px)] md:h-[calc(100vh-73px)]">
           <OpenCodeChatInterface />
         </div>
       </div>
@@ -265,9 +278,15 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-background py-8">
+    <div className="min-h-screen bg-background py-8 pb-16 md:pb-8">
+      <MobileNavigation
+        currentView={viewState}
+        onNavigate={setViewState}
+        onBackToWorkspaces={handleBackToWorkspaces}
+      />
+      
       <div className="container mx-auto px-4">
-        <div className="text-center mb-8">
+        <div className="text-center mb-8 mt-16 md:mt-0">
           <h1 className="text-4xl font-bold text-foreground mb-2">
             OpenCode Dashboard
           </h1>

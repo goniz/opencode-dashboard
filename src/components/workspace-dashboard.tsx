@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { Button } from "../../button";
 import { cn } from "@/lib/utils";
-import { AlertTriangleIcon, CheckCircleIcon, FolderIcon, BrainIcon, ServerIcon, MessageSquareIcon, XIcon } from "lucide-react";
+import { AlertTriangleIcon, CheckCircleIcon, FolderIcon, BrainIcon, ServerIcon, MessageSquareIcon } from "lucide-react";
 import SessionManager from "./session-manager";
+import ResponsiveSidebar from "./responsive-sidebar";
 
 interface WorkspaceData {
   workspaceId: string;
@@ -129,38 +130,28 @@ export default function WorkspaceDashboard({ workspaceData, onWorkspaceStop, onO
         </div>
       </div>
 
-      {/* Session Management Modal */}
-      {showSessionManager && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-background p-6 rounded-lg shadow-xl max-w-4xl w-full mx-4 border border-border max-h-[80vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h3 className="text-xl font-semibold text-foreground">Manage Sessions</h3>
-                <p className="text-muted-foreground text-sm mt-1">
-                  Workspace: {workspaceData.folder.split("/").pop()}
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowSessionManager(false)}
-              >
-                <XIcon className="w-4 h-4" />
-              </Button>
-            </div>
-            <SessionManager
-              workspaceId={workspaceData.workspaceId}
-              folderPath={workspaceData.folder}
-              defaultModel={workspaceData.model}
-              onOpenChat={(sessionId) => {
-                console.log("Opening chat for session:", sessionId);
-                setShowSessionManager(false);
-                onOpenChat(sessionId);
-              }}
-            />
-          </div>
+      {/* Session Management Sidebar */}
+      <ResponsiveSidebar
+        isOpen={showSessionManager}
+        onClose={() => setShowSessionManager(false)}
+        title="Manage Sessions"
+      >
+        <div className="p-4">
+          <p className="text-muted-foreground text-sm mb-4">
+            Workspace: {workspaceData.folder.split("/").pop()}
+          </p>
+          <SessionManager
+            workspaceId={workspaceData.workspaceId}
+            folderPath={workspaceData.folder}
+            defaultModel={workspaceData.model}
+            onOpenChat={(sessionId: string) => {
+              console.log("Opening chat for session:", sessionId);
+              setShowSessionManager(false);
+              onOpenChat(sessionId);
+            }}
+          />
         </div>
-      )}
+      </ResponsiveSidebar>
     </div>
   );
 }
