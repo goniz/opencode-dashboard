@@ -4,6 +4,9 @@ import { useState, useEffect } from "react";
 import { Button } from "../../button";
 import { MenuIcon, XIcon, HomeIcon, FolderIcon, MessageSquareIcon, SettingsIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useGestures } from "@/hooks/useGestures";
+import TouchFeedback from "./touch-feedback";
+import FocusManager from "./focus-manager";
 
 interface MobileNavigationProps {
   currentView: "workspaces" | "workspace-dashboard" | "chat";
@@ -21,6 +24,23 @@ export default function MobileNavigation({
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+
+  // Add gesture support
+  const gestureRef = useGestures({
+    onSwipeRight: () => {
+      if (!isDrawerOpen) {
+        setIsDrawerOpen(true);
+      }
+    },
+    onSwipeLeft: () => {
+      if (isDrawerOpen) {
+        setIsDrawerOpen(false);
+      }
+    },
+    onPullToRefresh: () => {
+      window.location.reload();
+    }
+  });
 
   // Close drawer when view changes
   useEffect(() => {
@@ -85,7 +105,7 @@ export default function MobileNavigation({
   ];
 
   return (
-    <>
+    <div ref={gestureRef as React.RefObject<HTMLDivElement>} className="h-full">
       {/* Mobile Header with Hamburger */}
       <div className={cn(
         "md:hidden fixed top-0 left-0 right-0 z-30 flex items-center justify-between p-4 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60",
@@ -93,15 +113,17 @@ export default function MobileNavigation({
         isHeaderVisible ? "translate-y-0" : "-translate-y-full",
         className
       )}>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setIsDrawerOpen(true)}
-          className="flex items-center gap-2 min-h-[44px] min-w-[44px]"
-          aria-label="Open navigation menu"
-        >
-          <MenuIcon className="w-5 h-5" />
-        </Button>
+        <TouchFeedback>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsDrawerOpen(true)}
+            className="flex items-center gap-2 min-h-[44px] min-w-[44px]"
+            aria-label="Open navigation menu"
+          >
+            <MenuIcon className="w-5 h-5" />
+          </Button>
+        </TouchFeedback>
 
         <div className="flex-1 text-center">
           <h1 className="text-lg font-semibold text-foreground">
@@ -124,12 +146,17 @@ export default function MobileNavigation({
       )}
 
       {/* Slide-out Navigation Drawer */}
-      <div
-        className={cn(
-          "fixed top-0 left-0 h-full w-80 max-w-[85vw] bg-background border-r border-border z-50 transform transition-transform duration-300 ease-in-out md:hidden",
-          isDrawerOpen ? "translate-x-0" : "-translate-x-full"
-        )}
+      <FocusManager
+        trapFocus={isDrawerOpen}
+        autoFocus={isDrawerOpen}
+        restoreFocus={true}
       >
+        <div
+          className={cn(
+            "fixed top-0 left-0 h-full w-80 max-w-[85vw] bg-background border-r border-border z-50 transform transition-transform duration-300 ease-in-out md:hidden",
+            isDrawerOpen ? "translate-x-0" : "-translate-x-full"
+          )}
+        >
         {/* Drawer Header */}
         <div className="flex items-center justify-between p-4 border-b border-border">
           <h2 className="text-lg font-semibold text-foreground">Navigation</h2>
@@ -151,34 +178,38 @@ export default function MobileNavigation({
             const isActive = currentView === item.id;
             
             return (
-              <Button
-                key={item.id}
-                variant={isActive ? "default" : "ghost"}
-                className={cn(
-                  "w-full justify-start gap-3 min-h-[44px] text-left",
-                  item.disabled && "opacity-50 cursor-not-allowed"
-                )}
-                onClick={item.disabled ? undefined : item.action}
-                disabled={item.disabled}
-              >
-                <Icon className="w-5 h-5" />
-                {item.label}
-              </Button>
+              <TouchFeedback key={item.id}>
+                <Button
+                  variant={isActive ? "default" : "ghost"}
+                  className={cn(
+                    "w-full justify-start gap-3 min-h-[44px] text-left",
+                    item.disabled && "opacity-50 cursor-not-allowed"
+                  )}
+                  onClick={item.disabled ? undefined : item.action}
+                  disabled={item.disabled}
+                >
+                  <Icon className="w-5 h-5" />
+                  {item.label}
+                </Button>
+              </TouchFeedback>
             );
           })}
         </nav>
 
         {/* Drawer Footer */}
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border">
-          <Button
-            variant="ghost"
-            className="w-full justify-start gap-3 min-h-[44px]"
-          >
-            <SettingsIcon className="w-5 h-5" />
-            Settings
-          </Button>
+          <TouchFeedback>
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-3 min-h-[44px]"
+            >
+              <SettingsIcon className="w-5 h-5" />
+              Settings
+            </Button>
+          </TouchFeedback>
         </div>
-      </div>
+        </div>
+      </FocusManager>
 
       {/* Bottom Navigation Bar */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-border z-30">
@@ -188,25 +219,26 @@ export default function MobileNavigation({
             const isActive = currentView === item.id;
             
             return (
-              <Button
-                key={item.id}
-                variant="ghost"
-                size="sm"
-                className={cn(
-                  "flex flex-col items-center gap-1 min-h-[44px] min-w-[44px] px-3 py-2",
-                  isActive && "text-primary",
-                  item.disabled && "opacity-50 cursor-not-allowed"
-                )}
-                onClick={item.disabled ? undefined : item.action}
-                disabled={item.disabled}
-              >
-                <Icon className="w-5 h-5" />
-                <span className="text-xs">{item.label}</span>
-              </Button>
+              <TouchFeedback key={item.id}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={cn(
+                    "flex flex-col items-center gap-1 min-h-[44px] min-w-[44px] px-3 py-2",
+                    isActive && "text-primary",
+                    item.disabled && "opacity-50 cursor-not-allowed"
+                  )}
+                  onClick={item.disabled ? undefined : item.action}
+                  disabled={item.disabled}
+                >
+                  <Icon className="w-5 h-5" />
+                  <span className="text-xs">{item.label}</span>
+                </Button>
+              </TouchFeedback>
             );
           })}
         </div>
       </div>
-    </>
+    </div>
   );
 }
