@@ -4,19 +4,18 @@ import { useState } from "react";
 import { Button } from "../../button";
 import { cn } from "@/lib/utils";
 import { useOpenCodeSession } from "@/hooks/useOpenCodeWorkspace";
-import { PlusIcon, TrashIcon, PlayIcon, FolderIcon, BrainIcon, ServerIcon, MessageSquareIcon, XIcon } from "lucide-react";
+import { PlusIcon, TrashIcon, FolderIcon, BrainIcon, ServerIcon, MessageSquareIcon } from "lucide-react";
 import FolderSelector from "./folder-selector";
 import ModelSelector from "./model-selector";
-import SessionManager from "./session-manager";
 
 interface WorkspaceManagerProps {
   className?: string;
-  onOpenChat?: () => void;
+  onOpenWorkspace?: (workspaceId: string) => void;
 }
 
 type CreateWorkspaceState = "idle" | "folder-selection" | "model-selection" | "creating";
 
-export default function WorkspaceManager({ className, onOpenChat }: WorkspaceManagerProps) {
+export default function WorkspaceManager({ className, onOpenWorkspace }: WorkspaceManagerProps) {
   const {
     sessions: workspaces,
     currentSession: currentWorkspace,
@@ -24,7 +23,7 @@ export default function WorkspaceManager({ className, onOpenChat }: WorkspaceMan
     error,
     createSession: createWorkspace,
     stopSession: stopWorkspace,
-    switchToSession: switchToWorkspace,
+
     clearError,
   } = useOpenCodeSession();
 
@@ -32,7 +31,7 @@ export default function WorkspaceManager({ className, onOpenChat }: WorkspaceMan
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
   const [, setSelectedModel] = useState<string | null>(null);
   const [workspaceToDelete, setWorkspaceToDelete] = useState<string | null>(null);
-  const [sessionManagementWorkspaceId, setSessionManagementWorkspaceId] = useState<string | null>(null);
+
 
   const handleCreateWorkspaceClick = () => {
     setCreateWorkspaceState("folder-selection");
@@ -230,37 +229,9 @@ export default function WorkspaceManager({ className, onOpenChat }: WorkspaceMan
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={async () => {
-                        console.log("🚀 Open Chat clicked for workspace:", workspace.id);
-                        await switchToWorkspace(workspace.id);
-                        console.log("📞 Calling onOpenChat callback");
-                        // Add a small delay to ensure React state has updated
-                        setTimeout(() => {
-                          onOpenChat?.();
-                        }, 10);
-                      }}
+                      onClick={() => onOpenWorkspace?.(workspace.id)}
                     >
-                      Open Chat
-                    </Button>
-                  )}
-                  {workspace.status === "running" && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setSessionManagementWorkspaceId(workspace.id)}
-                      title="Manage sessions in this workspace"
-                    >
-                      <MessageSquareIcon className="w-4 h-4" />
-                    </Button>
-                  )}
-                  {workspace.status === "running" && currentWorkspace?.id !== workspace.id && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => switchToWorkspace(workspace.id)}
-                      title="Set as active workspace"
-                    >
-                      <PlayIcon className="w-4 h-4" />
+                      Open Workspace
                     </Button>
                   )}
                   <Button
@@ -269,7 +240,8 @@ export default function WorkspaceManager({ className, onOpenChat }: WorkspaceMan
                     onClick={() => setWorkspaceToDelete(workspace.id)}
                     className="text-destructive hover:text-destructive hover:bg-destructive/10"
                   >
-                    <TrashIcon className="w-4 h-4" />
+                    <TrashIcon className="w-4 h-4 mr-1" />
+                    Delete Workspace
                   </Button>
                 </div>
               </div>
@@ -305,36 +277,7 @@ export default function WorkspaceManager({ className, onOpenChat }: WorkspaceMan
         </div>
       )}
 
-      {/* Session Management Modal */}
-      {sessionManagementWorkspaceId && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-background p-6 rounded-lg shadow-xl max-w-4xl w-full mx-4 border border-border max-h-[80vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h3 className="text-xl font-semibold text-foreground">Manage Sessions</h3>
-                <p className="text-muted-foreground text-sm mt-1">
-                  Workspace: {workspaces.find(w => w.id === sessionManagementWorkspaceId)?.folder.split("/").pop()}
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSessionManagementWorkspaceId(null)}
-              >
-                <XIcon className="w-4 h-4" />
-              </Button>
-            </div>
-            <SessionManager
-              workspaceId={sessionManagementWorkspaceId}
-              onOpenChat={(sessionId) => {
-                console.log("Opening chat for session:", sessionId);
-                setSessionManagementWorkspaceId(null);
-                onOpenChat?.();
-              }}
-            />
-          </div>
-        </div>
-      )}
+
     </div>
   );
 }

@@ -6,13 +6,14 @@ import { cn } from "@/lib/utils";
 
 interface ModelSelectorProps {
   folderPath: string;
+  defaultModel?: string;
   onModelSelect: (model: string) => void;
   className?: string;
 }
 
-export default function ModelSelector({ folderPath, onModelSelect, className }: ModelSelectorProps) {
+export default function ModelSelector({ folderPath, defaultModel, onModelSelect, className }: ModelSelectorProps) {
   const [models, setModels] = useState<string[]>([]);
-  const [selectedModel, setSelectedModel] = useState<string | null>(null);
+  const [selectedModel, setSelectedModel] = useState<string | null>(defaultModel || null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -21,6 +22,13 @@ export default function ModelSelector({ folderPath, onModelSelect, className }: 
       loadModels();
     }
   }, [folderPath]); // eslint-disable-line react-hooks/exhaustive-deps
+  
+  // Set the default model when models are loaded
+  useEffect(() => {
+    if (defaultModel && models.includes(defaultModel)) {
+      setSelectedModel(defaultModel);
+    }
+  }, [defaultModel, models]);
 
   const loadModels = async () => {
     setLoading(true);

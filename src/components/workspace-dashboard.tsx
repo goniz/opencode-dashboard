@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { Button } from "../../button";
 import { cn } from "@/lib/utils";
-import { AlertTriangleIcon, CheckCircleIcon, FolderIcon, BrainIcon, ServerIcon } from "lucide-react";
+import { AlertTriangleIcon, CheckCircleIcon, FolderIcon, BrainIcon, ServerIcon, MessageSquareIcon, XIcon } from "lucide-react";
+import SessionManager from "./session-manager";
 
 interface WorkspaceData {
   workspaceId: string;
@@ -15,12 +16,14 @@ interface WorkspaceData {
 interface WorkspaceDashboardProps {
   workspaceData: WorkspaceData;
   onWorkspaceStop: () => void;
+  onOpenChat: (sessionId?: string) => void;
   className?: string;
 }
 
-export default function WorkspaceDashboard({ workspaceData, onWorkspaceStop, className }: WorkspaceDashboardProps) {
+export default function WorkspaceDashboard({ workspaceData, onWorkspaceStop, onOpenChat, className }: WorkspaceDashboardProps) {
   const [isStopping, setIsStopping] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showSessionManager, setShowSessionManager] = useState(false);
 
   const handleStopWorkspace = async () => {
     setIsStopping(true);
@@ -44,9 +47,7 @@ export default function WorkspaceDashboard({ workspaceData, onWorkspaceStop, cla
     }
   };
 
-  const openInBrowser = () => {
-    window.open(`http://localhost:${workspaceData.port}`, "_blank");
-  };
+
 
   return (
     <div className={cn("w-full max-w-2xl mx-auto p-8 bg-background rounded-2xl shadow-2xl border border-border/50", className)}>
@@ -93,13 +94,14 @@ export default function WorkspaceDashboard({ workspaceData, onWorkspaceStop, cla
           </div>
         )}
 
-        <div className="flex gap-4 justify-center">
+        <div className="flex gap-4 justify-center mb-6">
           <Button
-            onClick={openInBrowser}
+            onClick={() => setShowSessionManager(true)}
             size="lg"
             className="flex-1 bg-primary/90 hover:bg-primary"
           >
-            Open Dashboard
+            <MessageSquareIcon className="w-5 h-5 mr-2" />
+            Manage Sessions
           </Button>
           
           <Button
@@ -112,18 +114,53 @@ export default function WorkspaceDashboard({ workspaceData, onWorkspaceStop, cla
             {isStopping ? (
               <>
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current mr-2"></div>
-                Stopping...
+                Deleting...
               </>
             ) : (
-              "Stop Workspace"
+              "Delete Workspace"
             )}
           </Button>
         </div>
+
+
 
         <div className="mt-6 text-xs text-muted-foreground/80">
           <p>Workspace ID: <span className="font-mono">{workspaceData.workspaceId}</span></p>
         </div>
       </div>
+
+      {/* Session Management Modal */}
+      {showSessionManager && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-background p-6 rounded-lg shadow-xl max-w-4xl w-full mx-4 border border-border max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-xl font-semibold text-foreground">Manage Sessions</h3>
+                <p className="text-muted-foreground text-sm mt-1">
+                  Workspace: {workspaceData.folder.split("/").pop()}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowSessionManager(false)}
+              >
+                <XIcon className="w-4 h-4" />
+              </Button>
+            </div>
+            <SessionManager
+              workspaceId={workspaceData.workspaceId}
+              folderPath={workspaceData.folder}
+              defaultModel={workspaceData.model}
+              onOpenChat={(sessionId) => {
+                console.log("Opening chat for session:", sessionId);
+                setShowSessionManager(false);
+                onOpenChat(sessionId);
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -5,7 +5,7 @@ import type { OpenCodeWorkspaceConfig } from "@/lib/opencode-workspace";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { folder } = body as { folder: string };
+    const { folder, model } = body as { folder: string; model: string };
 
     if (!folder) {
       return NextResponse.json(
@@ -14,12 +14,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const config: OpenCodeWorkspaceConfig = { folder };
+    if (!model) {
+      return NextResponse.json(
+        { error: "Model is required" },
+        { status: 400 }
+      );
+    }
+
+    const config: OpenCodeWorkspaceConfig = { folder, model };
     const workspace = await workspaceManager.startWorkspace(config);
 
     return NextResponse.json({
       id: workspace.id,
       folder: workspace.folder,
+      model: workspace.model,
       port: workspace.port,
       status: workspace.status,
       sessions: Array.from(workspace.sessions.values()),
@@ -41,6 +49,7 @@ export async function GET() {
       workspaces.map((workspace) => ({
         id: workspace.id,
         folder: workspace.folder,
+        model: workspace.model,
         port: workspace.port,
         status: workspace.status,
         sessions: Array.from(workspace.sessions.values()),

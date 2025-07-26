@@ -5,6 +5,7 @@ import { OpenCodeError } from "./opencode-client";
 
 export interface OpenCodeWorkspaceConfig {
   folder: string;
+  model: string;
   port?: number;
 }
 
@@ -20,6 +21,7 @@ export interface ChatSession {
 export interface OpenCodeWorkspace {
   id: string;
   folder: string;
+  model: string;
   port: number;
   status: "starting" | "running" | "stopped" | "error";
   process?: ChildProcess;
@@ -96,6 +98,7 @@ class OpenCodeWorkspaceManager {
     const workspace: OpenCodeWorkspace = {
       id: workspaceId,
       folder: config.folder,
+      model: config.model,
       port,
       process: undefined,
       client: undefined,
