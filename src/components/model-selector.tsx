@@ -58,24 +58,24 @@ export default function ModelSelector({ folderPath, defaultModel, onModelSelect,
   };
 
   return (
-    <div className={cn("w-full max-w-2xl mx-auto p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg", className)}>
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+    <div className={cn("w-full max-w-2xl mx-auto p-4 md:p-6 bg-background rounded-lg shadow-lg border border-border", className)}>
+      <div className="mb-4 md:mb-6">
+        <h2 className="text-xl md:text-2xl font-bold text-foreground mb-2">
           Select a Model
         </h2>
-        <p className="text-gray-600 dark:text-gray-300">
+        <p className="text-sm md:text-base text-muted-foreground">
           Choose from available models in the selected folder
         </p>
       </div>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-700 rounded text-red-700 dark:text-red-300">
+        <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded text-destructive text-sm break-words">
           {error}
           <Button
             onClick={loadModels}
             variant="outline"
             size="sm"
-            className="ml-2"
+            className="ml-2 min-h-[44px] lg:min-h-0"
           >
             Retry
           </Button>
@@ -84,9 +84,9 @@ export default function ModelSelector({ folderPath, defaultModel, onModelSelect,
 
       <div className="space-y-2">
         {loading ? (
-          <div className="text-center py-8 text-gray-500">Loading models...</div>
+          <div className="text-center py-6 md:py-8 text-muted-foreground">Loading models...</div>
         ) : models.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-6 md:py-8 text-muted-foreground">
             No models found in this folder
           </div>
         ) : (
@@ -95,19 +95,19 @@ export default function ModelSelector({ folderPath, defaultModel, onModelSelect,
               key={model}
               onClick={() => handleModelSelect(model)}
               className={cn(
-                "w-full text-left p-3 rounded border transition-colors",
+                "w-full text-left p-3 rounded border transition-colors touch-manipulation min-h-[44px] flex items-center",
                 selectedModel === model
-                  ? "bg-blue-100 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700"
-                  : "hover:bg-gray-100 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-600"
+                  ? "bg-primary/10 border-primary/30 ring-2 ring-primary/20"
+                  : "hover:bg-muted/50 border-border"
               )}
             >
-              <div className="flex items-center gap-2">
-                <span className="text-purple-500">🤖</span>
-                <span className="font-medium text-gray-900 dark:text-white">
+              <div className="flex items-center gap-2 w-full min-w-0">
+                <span className="text-primary text-lg">🤖</span>
+                <span className="font-medium text-foreground text-sm md:text-base truncate">
                   {model}
                 </span>
                 {selectedModel === model && (
-                  <span className="ml-auto text-blue-500">✓</span>
+                  <span className="ml-auto text-primary text-lg">✓</span>
                 )}
               </div>
             </button>
@@ -116,8 +116,8 @@ export default function ModelSelector({ folderPath, defaultModel, onModelSelect,
       </div>
 
       {selectedModel && (
-        <div className="mt-6 p-4 bg-green-100 dark:bg-green-900/20 border border-green-300 dark:border-green-700 rounded">
-          <p className="text-green-800 dark:text-green-300 font-medium">
+        <div className="mt-4 md:mt-6 p-3 md:p-4 bg-primary/10 border border-primary/20 rounded">
+          <p className="text-primary font-medium text-sm md:text-base">
             Selected model: {selectedModel}
           </p>
         </div>

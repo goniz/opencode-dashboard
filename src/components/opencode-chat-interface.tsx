@@ -129,17 +129,17 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
   };
 
   return (
-    <div className={cn("flex h-full bg-background", className)}>
+    <div className={cn("flex flex-col lg:flex-row h-full bg-background", className)}>
       {/* Session Sidebar */}
-      <div className="w-80 border-r border-border bg-muted/30 flex flex-col">
+      <div className="w-full lg:w-80 border-b lg:border-b-0 lg:border-r border-border bg-muted/30 flex flex-col max-h-[40vh] lg:max-h-none">
         {/* Header */}
-        <div className="p-4 border-b border-border">
+        <div className="p-3 md:p-4 border-b border-border">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold text-foreground">Active Workspaces</h2>
+            <h2 className="text-base md:text-lg font-semibold text-foreground">Active Workspaces</h2>
             <Button
               size="sm"
               variant="outline"
-              className="h-8 w-8 p-0"
+              className="h-8 w-8 p-0 min-h-[44px] min-w-[44px] lg:h-8 lg:w-8 lg:min-h-0 lg:min-w-0"
               onClick={() => window.location.href = "/"}
               title="Create New Workspace"
             >
@@ -148,19 +148,19 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
           </div>
           
           {error && (
-            <div className="mb-3 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
-              <div className="flex items-start gap-3">
-                <AlertTriangleIcon className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <p className="font-semibold text-destructive">Error</p>
-                  <p className="text-sm text-destructive/80 mt-1">{error.message}</p>
+            <div className="mb-3 p-2 md:p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+              <div className="flex items-start gap-2 md:gap-3">
+                <AlertTriangleIcon className="h-4 w-4 md:h-5 md:w-5 text-destructive flex-shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-destructive text-sm md:text-base">Error</p>
+                  <p className="text-xs md:text-sm text-destructive/80 mt-1 break-words">{error.message}</p>
                   {error.recoverySuggestion && (
-                    <p className="text-xs text-muted-foreground mt-2">{error.recoverySuggestion}</p>
+                    <p className="text-xs text-muted-foreground mt-2 break-words">{error.recoverySuggestion}</p>
                   )}
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="h-7 px-2 text-xs mt-2 hover:bg-destructive/20"
+                    className="h-7 px-2 text-xs mt-2 hover:bg-destructive/20 min-h-[44px] lg:min-h-0"
                     onClick={clearError}
                   >
                     Dismiss
@@ -172,15 +172,15 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
         </div>
 
         {/* Session List */}
-        <div className="flex-1 overflow-y-auto p-2">
+        <div className="flex-1 overflow-y-auto p-2 min-h-0">
           {isLoading && sessions.length === 0 ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+            <div className="flex items-center justify-center py-6 md:py-8">
+              <div className="animate-spin rounded-full h-5 w-5 md:h-6 md:w-6 border-b-2 border-primary"></div>
             </div>
           ) : sessions.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <ServerIcon className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p className="text-sm">No active workspaces</p>
+            <div className="text-center py-6 md:py-8 text-muted-foreground px-2">
+              <ServerIcon className="h-10 w-10 md:h-12 md:w-12 mx-auto mb-3 opacity-50" />
+              <p className="text-xs md:text-sm">No active workspaces</p>
               <p className="text-xs mt-1">Create a new workspace to get started</p>
             </div>
           ) : (
@@ -204,24 +204,24 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
         {selectedSessionId && currentSession ? (
           <AssistantRuntimeProvider runtime={runtime}>
             {/* Chat Header */}
-            <div className="border-b border-border p-4 bg-background">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-medium text-foreground">
+            <div className="border-b border-border p-3 md:p-4 bg-background">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-medium text-foreground text-sm md:text-base">
                     Chat with OpenCode
                   </h3>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-xs md:text-sm text-muted-foreground break-words">
                     Workspace: {currentSession.folder.split("/").pop()} • Session: {currentSession.model}
                   </p>
-                  <p className="text-xs text-muted-foreground/70">
+                  <p className="text-xs text-muted-foreground/70 break-all">
                     {currentSession.folder}
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="h-8 px-2 text-xs"
+                    className="h-8 px-2 text-xs min-h-[44px] lg:min-h-0"
                     onClick={async () => {
                       if (currentSession && selectedSessionId) {
                         const messages = await loadMessagesFromOpenCode(selectedSessionId);
@@ -231,7 +231,7 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
                     disabled={isSyncing || !currentSession}
                   >
                     <RotateCwIcon className={cn("h-3 w-3", isSyncing && "animate-spin")} />
-                    Sync from OpenCode
+                    <span className="ml-1">Sync from OpenCode</span>
                   </Button>
                   
                   {isSyncing && (
@@ -276,18 +276,18 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
             </div>
           </AssistantRuntimeProvider>
         ) : (
-          <div className="flex-1 flex items-center justify-center bg-muted/10">
-            <div className="text-center">
-              <ServerIcon className="h-16 w-16 mx-auto mb-4 text-muted-foreground/50" />
-              <h3 className="text-lg font-medium text-foreground mb-2">
+          <div className="flex-1 flex items-center justify-center bg-muted/10 p-4">
+            <div className="text-center max-w-sm">
+              <ServerIcon className="h-12 w-12 md:h-16 md:w-16 mx-auto mb-4 text-muted-foreground/50" />
+              <h3 className="text-base md:text-lg font-medium text-foreground mb-2">
                 No Workspace Selected
               </h3>
-              <p className="text-muted-foreground mb-4 max-w-sm">
+              <p className="text-sm md:text-base text-muted-foreground mb-4">
                 Select an active OpenCode workspace from the sidebar to start chatting, or go back to create a new workspace.
               </p>
               <Button
                 onClick={() => window.location.href = "/"}
-                className="gap-2"
+                className="gap-2 min-h-[44px] w-full sm:w-auto"
               >
                 <PlusIcon className="h-4 w-4" />
                 Go Back to Main
@@ -341,7 +341,7 @@ function SessionCard({ session, isSelected, onSelect, onStop }: SessionCardProps
   return (
     <div
       className={cn(
-        "p-3 rounded-lg border cursor-pointer transition-all hover:bg-muted/50",
+        "p-2 md:p-3 rounded-lg border cursor-pointer transition-all hover:bg-muted/50 touch-manipulation",
         isSelected
           ? "border-primary bg-primary/5 shadow-sm"
           : "border-border bg-background hover:border-border/80"
@@ -351,8 +351,8 @@ function SessionCard({ session, isSelected, onSelect, onStop }: SessionCardProps
       <div className="flex items-start justify-between mb-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <FolderIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-            <span className="text-sm font-medium text-foreground truncate">
+            <FolderIcon className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground flex-shrink-0" />
+            <span className="text-xs md:text-sm font-medium text-foreground truncate">
               {session.folder.split("/").pop() || session.folder}
             </span>
           </div>
@@ -367,7 +367,7 @@ function SessionCard({ session, isSelected, onSelect, onStop }: SessionCardProps
         <div className="flex items-center gap-2 ml-2">
           <div className={cn("flex items-center gap-1 text-xs", getStatusColor(session.status))}>
             {getStatusIcon(session.status)}
-            <span className="capitalize">{session.status}</span>
+            <span className="capitalize hidden sm:inline">{session.status}</span>
           </div>
         </div>
       </div>
@@ -381,7 +381,7 @@ function SessionCard({ session, isSelected, onSelect, onStop }: SessionCardProps
           <Button
             size="sm"
             variant="ghost"
-            className="h-6 px-2 text-xs hover:bg-destructive/10 hover:text-destructive"
+            className="h-6 px-2 text-xs hover:bg-destructive/10 hover:text-destructive min-h-[44px] lg:min-h-0"
             onClick={(e) => {
               e.stopPropagation();
               onStop();
