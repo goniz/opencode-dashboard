@@ -4,14 +4,14 @@ import { useState, useEffect } from "react";
 import WorkspaceManager from "@/components/workspace-manager";
 import WorkspaceDashboard from "@/components/workspace-dashboard";
 import OpenCodeChatInterface from "@/components/opencode-chat-interface";
-import { useOpenCodeSession } from "@/hooks/useOpenCodeWorkspace";
+import { useOpenCodeSessionContext } from "@/contexts/OpenCodeWorkspaceContext";
 import { Button } from "../../button";
 import { ArrowLeftIcon } from "lucide-react";
 
 type ViewState = "workspaces" | "workspace-dashboard" | "chat";
 
 export default function Home() {
-  const { currentSession, sessions: workspaces, switchToSession } = useOpenCodeSession();
+  const { currentSession, sessions: workspaces, switchToSession } = useOpenCodeSessionContext();
   const [viewState, setViewState] = useState<ViewState>("workspaces");
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null);
 
@@ -23,44 +23,68 @@ export default function Home() {
 
   const handleOpenChat = async (sessionId?: string) => {
     console.log("🎯 handleOpenChat called, switching to chat view");
-    
-    // Store the current view state to restore it if needed
-    const previousViewState = viewState;
+    console.log("📋 Available workspaces:", workspaces.map(w => ({ 
+      id: w.id, 
+      sessions: w.sessions?.map(s => s.id) || [] 
+    })));
     
     if (sessionId) {
       console.log("Session ID provided:", sessionId);
       
-      // First, find the session in the workspaces
-      let foundSession = false;
+      // First, find the workspace that contains this session
+      let foundWorkspace = null;
       
       for (const workspace of workspaces) {
+        console.log(`🔍 Checking workspace ${workspace.id} for session ${sessionId}`);
+        console.log(`   Workspace sessions:`, workspace.sessions?.map(s => s.id) || []);
+        
         if (workspace.sessions?.some(s => s.id === sessionId)) {
-          console.log("Found session in workspace:", workspace.id);
-          foundSession = true;
-          
-          try {
-            // Set the selected workspace ID to ensure it's available
-            setSelectedWorkspaceId(workspace.id);
-            
-            // Switch to this session
-            await switchToSession(sessionId);
-            console.log("Switched to session:", sessionId);
-            
-            // Now it's safe to change the view state
-            setViewState("chat");
-          } catch (error) {
-            console.error("Error switching to session:", error);
-            // Restore previous view state on error
-            setViewState(previousViewState);
-          }
-          
+          console.log("✅ Found session in workspace:", workspace.id);
+          foundWorkspace = workspace;
           break;
         }
       }
       
-      if (!foundSession) {
-        console.log("Could not find workspace containing session:", sessionId);
-        // Don't change view state if session not found
+      if (foundWorkspace) {
+        try {
+          console.log("🔄 Setting up workspace transition...");
+          
+          // Set the selected workspace ID to ensure it's available
+          setSelectedWorkspaceId(foundWorkspace.id);
+          
+          // Switch to chat view first to show loading state
+          setViewState("chat");
+          
+          // Switch to the workspace (not the individual session)
+          // The chat interface will handle the specific session
+          await switchToSession(foundWorkspace.id);
+          console.log("✅ Successfully switched to workspace:", foundWorkspace.id);
+        } catch (error) {
+          console.error("❌ Error switching to workspace:", error);
+          // Return to workspace dashboard on error
+          setViewState("workspace-dashboard");
+        }
+      } else {
+        console.log("❌ Could not find workspace containing session:", sessionId);
+        console.log("   This might mean the session data hasn't loaded yet or the session doesn't exist");
+        
+        // For now, let's try to find the workspace by ID if the sessionId looks like a workspace ID
+        // This is a fallback in case the session data structure is different than expected
+        const workspaceById = workspaces.find(w => w.id === sessionId);
+        if (workspaceById) {
+          console.log("🔄 Treating sessionId as workspaceId, found workspace:", workspaceById.id);
+          try {
+            setSelectedWorkspaceId(workspaceById.id);
+            setViewState("chat");
+            await switchToSession(workspaceById.id);
+            console.log("✅ Successfully switched to workspace by ID:", workspaceById.id);
+          } catch (error) {
+            console.error("❌ Error switching to workspace by ID:", error);
+            setViewState("workspace-dashboard");
+          }
+        } else {
+          console.log("❌ Could not find workspace by ID either");
+        }
       }
     } else if (currentSession) {
       // If no session ID is provided but we have a current session, just switch to chat view
@@ -180,7 +204,14 @@ export default function Home() {
     console.log("💬 Attempting to show chat view");
     if (!currentSession) {
       console.log("⏳ Waiting for session to be set...");
-      return null;
+      return (
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading chat session...</p>
+          </div>
+        </div>
+      );
     }
     console.log("✅ Showing chat interface for session:", currentSession.id);
 

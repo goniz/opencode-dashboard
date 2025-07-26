@@ -88,15 +88,23 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
   }, [selectedSessionId, currentSession?.status, loadMessagesFromOpenCode]);
 
   // Create chat runtime for the selected session
-  // Always require a session ID - error out if none is selected
-  if (!selectedSessionId) {
-    throw new Error("No OpenCode session selected. Please select a session to continue.");
-  }
-
+  // Use a placeholder sessionId if none is selected to avoid hook rule violations
   const runtime = useChatRuntime({
-    api: `/api/opencode-chat?sessionId=${selectedSessionId}`,
+    api: `/api/opencode-chat?sessionId=${selectedSessionId || 'placeholder'}`,
     initialMessages: initialMessages.length > 0 ? initialMessages : undefined,
   });
+
+  // Show loading state if no session is selected yet
+  if (!selectedSessionId) {
+    return (
+      <div className={cn("flex h-full bg-background items-center justify-center", className)}>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Connecting to OpenCode session...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleSessionSelect = async (session: OpenCodeSession) => {
     setSelectedSessionId(session.id);
