@@ -101,10 +101,10 @@ export default function WorkspaceManager({ className, onOpenWorkspace }: Workspa
 
   if (createWorkspaceState === "folder-selection") {
     return (
-      <div className={cn("w-full max-w-4xl mx-auto", className)}>
-        <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-foreground">Select Project Folder</h2>
-          <Button variant="outline" onClick={handleCancelCreate}>
+      <div className={cn("w-full max-w-4xl mx-auto px-4", className)}>
+        <div className="mb-4 md:mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <h2 className="text-xl md:text-2xl font-bold text-foreground">Select Project Folder</h2>
+          <Button variant="outline" onClick={handleCancelCreate} className="w-full sm:w-auto">
             Cancel
           </Button>
         </div>
@@ -115,15 +115,15 @@ export default function WorkspaceManager({ className, onOpenWorkspace }: Workspa
 
   if (createWorkspaceState === "model-selection" && selectedFolder) {
     return (
-      <div className={cn("w-full max-w-4xl mx-auto", className)}>
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-foreground">Select AI Model</h2>
-            <p className="text-muted-foreground mt-1">
-              Folder: <span className="font-mono text-sm">{selectedFolder}</span>
+      <div className={cn("w-full max-w-4xl mx-auto px-4", className)}>
+        <div className="mb-4 md:mb-6 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+          <div className="flex-1">
+            <h2 className="text-xl md:text-2xl font-bold text-foreground">Select AI Model</h2>
+            <p className="text-muted-foreground mt-1 text-sm break-all">
+              Folder: <span className="font-mono">{selectedFolder}</span>
             </p>
           </div>
-          <Button variant="outline" onClick={handleCancelCreate}>
+          <Button variant="outline" onClick={handleCancelCreate} className="w-full sm:w-auto">
             Cancel
           </Button>
         </div>
@@ -133,30 +133,35 @@ export default function WorkspaceManager({ className, onOpenWorkspace }: Workspa
   }
 
   return (
-    <div className={cn("w-full max-w-4xl mx-auto", className)}>
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-3xl font-bold text-foreground">OpenCode Workspaces</h1>
+    <div className={cn("w-full max-w-4xl mx-auto px-4", className)}>
+      <div className="mb-6 md:mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground">OpenCode Workspaces</h1>
           <Button
             onClick={handleCreateWorkspaceClick}
             disabled={isLoading || createWorkspaceState === "creating"}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 w-full sm:w-auto min-h-[44px]"
           >
             <PlusIcon className="w-4 h-4" />
-            {createWorkspaceState === "creating" ? "Creating..." : "New Workspace"}
+            <span className="hidden sm:inline">
+              {createWorkspaceState === "creating" ? "Creating..." : "New Workspace"}
+            </span>
+            <span className="sm:hidden">
+              {createWorkspaceState === "creating" ? "Creating..." : "New"}
+            </span>
           </Button>
         </div>
         
         {error && (
-          <div className="mb-4 p-4 bg-destructive/10 border border-destructive/20 rounded-lg flex items-start gap-3">
+          <div className="mb-4 p-3 md:p-4 bg-destructive/10 border border-destructive/20 rounded-lg flex items-start gap-3">
             <div className="text-left flex-1">
-              <p className="font-semibold text-destructive">Error</p>
-              <p className="text-sm text-destructive/80 mt-1">{error.message}</p>
+              <p className="font-semibold text-destructive text-sm md:text-base">Error</p>
+              <p className="text-xs md:text-sm text-destructive/80 mt-1 break-words">{error.message}</p>
               {error.recoverySuggestion && (
-                <p className="text-sm text-destructive/70 mt-2">{error.recoverySuggestion}</p>
+                <p className="text-xs md:text-sm text-destructive/70 mt-2 break-words">{error.recoverySuggestion}</p>
               )}
             </div>
-            <Button variant="ghost" size="sm" onClick={clearError}>
+            <Button variant="ghost" size="sm" onClick={clearError} className="min-h-[44px] min-w-[44px]">
               ×
             </Button>
           </div>
@@ -164,86 +169,91 @@ export default function WorkspaceManager({ className, onOpenWorkspace }: Workspa
       </div>
 
       {workspaces.length === 0 ? (
-        <div className="text-center py-12 bg-muted/50 rounded-lg border border-border/50">
-          <ServerIcon className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-foreground mb-2">No Workspaces</h3>
-          <p className="text-muted-foreground mb-4">
+        <div className="text-center py-8 md:py-12 bg-muted/50 rounded-lg border border-border/50">
+          <ServerIcon className="w-10 h-10 md:w-12 md:h-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-base md:text-lg font-semibold text-foreground mb-2">No Workspaces</h3>
+          <p className="text-sm md:text-base text-muted-foreground mb-4 px-4">
             Create your first OpenCode workspace to get started.
           </p>
-          <Button onClick={handleCreateWorkspaceClick} className="flex items-center gap-2">
+          <Button onClick={handleCreateWorkspaceClick} className="flex items-center gap-2 min-h-[44px]">
             <PlusIcon className="w-4 h-4" />
             Create Workspace
           </Button>
         </div>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid gap-3 md:gap-4">
           {workspaces.map((workspace) => (
             <div
               key={workspace.id}
               className={cn(
-                "p-6 bg-background rounded-lg border border-border/50 shadow-sm",
+                "p-4 md:p-6 bg-background rounded-lg border border-border/50 shadow-sm",
                 currentWorkspace?.id === workspace.id && "ring-2 ring-primary/20 border-primary/30"
               )}
             >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-3">
-                    <h3 className="text-lg font-semibold text-foreground">
+              <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-3">
+                    <h3 className="text-base md:text-lg font-semibold text-foreground break-words">
                       {formatWorkspaceName(workspace)}
                     </h3>
-                    <span
-                      className={cn(
-                        "px-2 py-1 text-xs font-medium rounded-full border",
-                        getStatusColor(workspace.status)
-                      )}
-                    >
-                      {workspace.status}
-                    </span>
-                    {currentWorkspace?.id === workspace.id && (
-                      <span className="px-2 py-1 text-xs font-medium rounded-full bg-primary/10 text-primary border border-primary/20">
-                        Active
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={cn(
+                          "px-2 py-1 text-xs font-medium rounded-full border",
+                          getStatusColor(workspace.status)
+                        )}
+                      >
+                        {workspace.status}
                       </span>
-                    )}
+                      {currentWorkspace?.id === workspace.id && (
+                        <span className="px-2 py-1 text-xs font-medium rounded-full bg-primary/10 text-primary border border-primary/20">
+                          Active
+                        </span>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <FolderIcon className="w-4 h-4" />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-4">
+                    <div className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground min-w-0">
+                      <FolderIcon className="w-4 h-4 flex-shrink-0" />
                       <span className="font-mono truncate">{workspace.folder}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <BrainIcon className="w-4 h-4" />
-                      <span>{workspace.model}</span>
+                    <div className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground">
+                      <BrainIcon className="w-4 h-4 flex-shrink-0" />
+                      <span className="truncate">{workspace.model}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <ServerIcon className="w-4 h-4" />
+                    <div className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground">
+                      <ServerIcon className="w-4 h-4 flex-shrink-0" />
                       <span className="font-mono">localhost:{workspace.port}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <MessageSquareIcon className="w-4 h-4" />
+                    <div className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground">
+                      <MessageSquareIcon className="w-4 h-4 flex-shrink-0" />
                       <span>{workspace.sessions?.length || 0} session{(workspace.sessions?.length || 0) !== 1 ? 's' : ''}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 ml-4">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 lg:ml-4">
                   {workspace.status === "running" && (
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => onOpenWorkspace?.(workspace.id)}
+                      className="w-full sm:w-auto min-h-[44px]"
                     >
-                      Open Workspace
+                      <span className="hidden sm:inline">Open Workspace</span>
+                      <span className="sm:hidden">Open</span>
                     </Button>
                   )}
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setWorkspaceToDelete(workspace.id)}
-                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10 w-full sm:w-auto min-h-[44px]"
                   >
-                    <TrashIcon className="w-4 h-4 mr-1" />
-                    Delete Workspace
+                    <TrashIcon className="w-4 h-4 mr-1 flex-shrink-0" />
+                    <span className="hidden sm:inline">Delete Workspace</span>
+                    <span className="sm:hidden">Delete</span>
                   </Button>
                 </div>
               </div>

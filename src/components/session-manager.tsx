@@ -85,15 +85,15 @@ export default function SessionManager({ workspaceId, folderPath, defaultModel, 
 
   if (createSessionState === "model-selection") {
     return (
-      <div className={cn("w-full", className)}>
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-bold text-foreground">Create New Session</h3>
-            <p className="text-muted-foreground text-sm mt-1">
+      <div className={cn("w-full px-4", className)}>
+        <div className="mb-4 md:mb-6 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+          <div className="flex-1">
+            <h3 className="text-base md:text-lg font-bold text-foreground">Create New Session</h3>
+            <p className="text-muted-foreground text-xs md:text-sm mt-1">
               Select an AI model for this chat session
             </p>
           </div>
-          <Button variant="outline" onClick={handleCancelCreate}>
+          <Button variant="outline" onClick={handleCancelCreate} className="w-full sm:w-auto min-h-[44px]">
             Cancel
           </Button>
         </div>
@@ -103,15 +103,15 @@ export default function SessionManager({ workspaceId, folderPath, defaultModel, 
   }
 
   return (
-    <div className={cn("w-full", className)}>
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-foreground">Chat Sessions</h3>
+    <div className={cn("w-full px-4", className)}>
+      <div className="mb-4 md:mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+          <h3 className="text-base md:text-lg font-bold text-foreground">Chat Sessions</h3>
           <Button
             onClick={handleCreateSessionClick}
             disabled={isLoading || createSessionState === "creating"}
             size="sm"
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 w-full sm:w-auto min-h-[44px]"
           >
             <PlusIcon className="w-4 h-4" />
             {createSessionState === "creating" ? "Creating..." : "New Session"}
@@ -119,67 +119,71 @@ export default function SessionManager({ workspaceId, folderPath, defaultModel, 
         </div>
         
         {error && (
-          <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg flex items-start gap-3">
+          <div className="mb-4 p-2 md:p-3 bg-destructive/10 border border-destructive/20 rounded-lg flex items-start gap-3">
             <div className="text-left flex-1">
-              <p className="font-semibold text-destructive text-sm">Error</p>
-              <p className="text-xs text-destructive/80 mt-1">{error}</p>
+              <p className="font-semibold text-destructive text-xs md:text-sm">Error</p>
+              <p className="text-xs text-destructive/80 mt-1 break-words">{error}</p>
             </div>
           </div>
         )}
       </div>
 
       {sessions.length === 0 ? (
-        <div className="text-center py-8 bg-muted/50 rounded-lg border border-border/50">
-          <MessageSquareIcon className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
-          <h4 className="text-sm font-semibold text-foreground mb-2">No Chat Sessions</h4>
-          <p className="text-muted-foreground text-xs mb-4">
+        <div className="text-center py-6 md:py-8 bg-muted/50 rounded-lg border border-border/50">
+          <MessageSquareIcon className="w-6 h-6 md:w-8 md:h-8 text-muted-foreground mx-auto mb-3" />
+          <h4 className="text-xs md:text-sm font-semibold text-foreground mb-2">No Chat Sessions</h4>
+          <p className="text-muted-foreground text-xs mb-4 px-4">
             Create your first chat session to start conversations.
           </p>
-          <Button onClick={handleCreateSessionClick} size="sm" className="flex items-center gap-2">
+          <Button onClick={handleCreateSessionClick} size="sm" className="flex items-center gap-2 min-h-[44px]">
             <PlusIcon className="w-4 h-4" />
             Create Session
           </Button>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2 md:space-y-3">
           {sessions.map((session) => (
             <div
               key={session.id}
               className={cn(
-                "p-4 bg-background rounded-lg border border-border/50 shadow-sm",
+                "p-3 md:p-4 bg-background rounded-lg border border-border/50 shadow-sm",
                 activeSessionId === session.id && "ring-2 ring-primary/20 border-primary/30"
               )}
             >
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <h4 className="text-sm font-semibold text-foreground">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
+                    <h4 className="text-xs md:text-sm font-semibold text-foreground">
                       {formatSessionName(session)}
                     </h4>
-                    <span
-                      className={cn(
-                        "px-2 py-1 text-xs font-medium rounded-full border",
-                        getStatusColor(session.status)
-                      )}
-                    >
-                      {session.status}
-                    </span>
-                    {activeSessionId === session.id && (
-                      <span className="px-2 py-1 text-xs font-medium rounded-full bg-primary/10 text-primary border border-primary/20">
-                        Current
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={cn(
+                          "px-2 py-1 text-xs font-medium rounded-full border",
+                          getStatusColor(session.status)
+                        )}
+                      >
+                        {session.status}
                       </span>
-                    )}
+                      {activeSessionId === session.id && (
+                        <span className="px-2 py-1 text-xs font-medium rounded-full bg-primary/10 text-primary border border-primary/20">
+                          Current
+                        </span>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <BrainIcon className="w-3 h-3" />
-                    <span>{session.model}</span>
-                    <span>•</span>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <BrainIcon className="w-3 h-3 flex-shrink-0" />
+                      <span className="truncate">{session.model}</span>
+                    </div>
+                    <span className="hidden sm:inline">•</span>
                     <span>Created {new Date(session.createdAt).toLocaleDateString()}</span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 ml-4">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 lg:ml-4">
                   <Button
                     variant="outline"
                     size="sm"
@@ -187,16 +191,19 @@ export default function SessionManager({ workspaceId, folderPath, defaultModel, 
                       setActiveSession(session.id);
                       onOpenChat?.(session.id);
                     }}
+                    className="w-full sm:w-auto min-h-[44px] lg:min-h-0"
                   >
-                    <MessageSquareIcon className="w-4 h-4" />
+                    <MessageSquareIcon className="w-4 h-4 mr-1 sm:mr-0" />
+                    <span className="sm:hidden">Open Chat</span>
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setSessionToDelete(session.id)}
-                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10 w-full sm:w-auto min-h-[44px] lg:min-h-0"
                   >
-                    <TrashIcon className="w-4 h-4" />
+                    <TrashIcon className="w-4 h-4 mr-1 sm:mr-0" />
+                    <span className="sm:hidden">Delete</span>
                   </Button>
                 </div>
               </div>
@@ -207,16 +214,17 @@ export default function SessionManager({ workspaceId, folderPath, defaultModel, 
 
       {/* Delete Confirmation Dialog */}
       {sessionToDelete && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-background p-6 rounded-lg shadow-xl max-w-md w-full mx-4 border border-border">
-            <h3 className="text-lg font-semibold text-foreground mb-2">Delete Session</h3>
-            <p className="text-muted-foreground mb-6">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-background p-4 md:p-6 rounded-lg shadow-xl max-w-md w-full border border-border">
+            <h3 className="text-base md:text-lg font-semibold text-foreground mb-2">Delete Session</h3>
+            <p className="text-sm md:text-base text-muted-foreground mb-4 md:mb-6">
               Are you sure you want to delete this chat session? This action cannot be undone and will remove all conversation history.
             </p>
-            <div className="flex gap-3 justify-end">
+            <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
               <Button
                 variant="outline"
                 onClick={() => setSessionToDelete(null)}
+                className="w-full sm:w-auto min-h-[44px]"
               >
                 Cancel
               </Button>
@@ -224,6 +232,7 @@ export default function SessionManager({ workspaceId, folderPath, defaultModel, 
                 variant="destructive"
                 onClick={() => handleDeleteSession(sessionToDelete)}
                 disabled={isLoading}
+                className="w-full sm:w-auto min-h-[44px]"
               >
                 {isLoading ? "Deleting..." : "Delete"}
               </Button>
