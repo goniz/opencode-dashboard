@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "../../button";
 import { cn } from "@/lib/utils";
-import { FolderIcon, BrainIcon, ClockIcon, RocketIcon, FileIcon, CodeIcon, DatabaseIcon, GlobeIcon } from "lucide-react";
+import { FolderIcon, BrainIcon, ClockIcon, RocketIcon } from "lucide-react";
 import FolderSelector from "./folder-selector";
 import ModelSelector from "./model-selector";
 
@@ -15,58 +15,14 @@ interface RecentFolder {
   projectType?: string;
 }
 
-interface WorkspaceTemplate {
-  id: string;
-  name: string;
-  description: string;
-  icon: React.ReactNode;
-  defaultModel: string;
-  folderPattern?: string;
-  quickActions?: string[];
-}
+
 
 interface QuickStartProps {
   onWorkspaceCreated: (workspaceData: { folder: string; model: string; autoOpenChat?: boolean }) => void;
   className?: string;
 }
 
-const WORKSPACE_TEMPLATES: WorkspaceTemplate[] = [
-  {
-    id: "react",
-    name: "React/Next.js",
-    description: "Modern React applications with TypeScript",
-    icon: <CodeIcon className="w-5 h-5" />,
-    defaultModel: "claude-3-5-sonnet-20241022",
-    folderPattern: "package.json",
-    quickActions: ["Component creation", "State management", "API integration"]
-  },
-  {
-    id: "python",
-    name: "Python",
-    description: "Python projects with Django/Flask support",
-    icon: <DatabaseIcon className="w-5 h-5" />,
-    defaultModel: "claude-3-5-sonnet-20241022",
-    folderPattern: "requirements.txt",
-    quickActions: ["Script writing", "Data analysis", "API development"]
-  },
-  {
-    id: "nodejs",
-    name: "Node.js",
-    description: "Backend services and Express applications",
-    icon: <GlobeIcon className="w-5 h-5" />,
-    defaultModel: "claude-3-5-sonnet-20241022",
-    folderPattern: "package.json",
-    quickActions: ["API endpoints", "Database integration", "Middleware"]
-  },
-  {
-    id: "generic",
-    name: "General",
-    description: "Any project type with flexible configuration",
-    icon: <FileIcon className="w-5 h-5" />,
-    defaultModel: "claude-3-5-sonnet-20241022",
-    quickActions: ["Code review", "Documentation", "Debugging"]
-  }
-];
+
 
 export default function QuickStart({ onWorkspaceCreated, className }: QuickStartProps) {
   const [recentFolders, setRecentFolders] = useState<RecentFolder[]>([]);
@@ -142,11 +98,7 @@ export default function QuickStart({ onWorkspaceCreated, className }: QuickStart
     }
   };
 
-  const handleTemplateSelect = async (template: WorkspaceTemplate) => {
-    // For templates, we need to let user select a folder
-    setSelectedModel(template.defaultModel);
-    setShowCustomCreation(true);
-  };
+
 
   const handleCustomFolderSelect = () => {
     setShowFolderSelector(true);
@@ -278,86 +230,102 @@ export default function QuickStart({ onWorkspaceCreated, className }: QuickStart
   }
 
   return (
-    <div className={cn("w-full max-w-4xl mx-auto px-4", className)}>
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-foreground mb-2">Quick Start</h1>
-        <p className="text-lg text-muted-foreground">
-          Get coding in seconds with your recent projects or templates
+    <div className={cn("w-full max-w-5xl mx-auto px-4", className)}>
+      <div className="text-center mb-12">
+        <h1 className="text-4xl font-bold text-foreground mb-3">Quick Start</h1>
+        <p className="text-xl text-muted-foreground">
+          Get coding in seconds with your recent folder + model combinations
         </p>
       </div>
 
-      {/* Recent Folders */}
-      {recentFolders.length > 0 && (
+      {/* Recent Folder+Model Combinations */}
+      {recentFolders.length > 0 ? (
         <div className="mb-8">
-          <div className="flex items-center gap-2 mb-4">
-            <ClockIcon className="w-5 h-5 text-muted-foreground" />
-            <h2 className="text-xl font-semibold text-foreground">Recent Projects</h2>
+          <div className="flex items-center gap-2 mb-6">
+            <ClockIcon className="w-6 h-6 text-primary" />
+            <div>
+              <h2 className="text-2xl font-bold text-foreground">Recent Combinations</h2>
+              <p className="text-muted-foreground">Continue where you left off with your recent folder + model combinations</p>
+            </div>
           </div>
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {recentFolders.map((folder, index) => (
               <button
                 key={index}
                 onClick={() => handleRecentFolderSelect(folder)}
                 disabled={isCreating}
-                className="p-4 bg-background rounded-lg border border-border hover:border-primary/30 hover:bg-muted/50 transition-colors text-left group"
+                className="p-6 bg-background rounded-xl border border-border hover:border-primary/30 hover:bg-muted/50 hover:shadow-md transition-all duration-200 text-left group relative overflow-hidden"
               >
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <FolderIcon className="w-4 h-4 text-primary" />
-                    <span className="font-medium text-foreground truncate">{folder.name}</span>
+                {/* Background gradient */}
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+                
+                <div className="relative">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-primary/10 rounded-lg">
+                        <FolderIcon className="w-5 h-5 text-primary" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-semibold text-foreground truncate text-lg">{folder.name}</h3>
+                        <p className="text-sm text-muted-foreground truncate">{folder.path}</p>
+                      </div>
+                    </div>
+                    <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full whitespace-nowrap">
+                      {formatTimeAgo(folder.lastUsed)}
+                    </span>
                   </div>
-                  <span className="text-xs text-muted-foreground">{formatTimeAgo(folder.lastUsed)}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <BrainIcon className="w-3 h-3" />
-                  <span className="truncate">{folder.lastUsedModel}</span>
-                </div>
-                <div className="mt-2 text-xs text-muted-foreground font-mono truncate">
-                  {folder.path}
+                  
+                  <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
+                    <BrainIcon className="w-4 h-4 text-primary flex-shrink-0" />
+                    <span className="text-sm font-medium text-foreground truncate">{folder.lastUsedModel}</span>
+                  </div>
+                  
+                  {folder.projectType && (
+                    <div className="mt-3 flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full ${
+                        folder.projectType === 'react' ? 'bg-blue-500' :
+                        folder.projectType === 'python' ? 'bg-green-500' :
+                        folder.projectType === 'nodejs' ? 'bg-yellow-500' :
+                        'bg-gray-500'
+                      }`} />
+                      <span className="text-xs text-muted-foreground capitalize">{folder.projectType} project</span>
+                    </div>
+                  )}
+                  
+                  <div className="mt-4 flex items-center gap-2 text-primary opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <RocketIcon className="w-4 h-4" />
+                    <span className="text-sm font-medium">Click to start coding</span>
+                  </div>
                 </div>
               </button>
             ))}
           </div>
         </div>
+      ) : (
+        <div className="mb-8 text-center py-12">
+          <div className="p-4 bg-muted/30 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+            <ClockIcon className="w-8 h-8 text-muted-foreground" />
+          </div>
+          <h3 className="text-lg font-semibold text-foreground mb-2">No Recent Projects</h3>
+          <p className="text-muted-foreground mb-6">Create your first workspace to see recent combinations here</p>
+        </div>
       )}
 
-      {/* Workspace Templates */}
-      <div className="mb-8">
-        <h2 className="text-xl font-semibold text-foreground mb-4">Project Templates</h2>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {WORKSPACE_TEMPLATES.map((template) => (
-            <button
-              key={template.id}
-              onClick={() => handleTemplateSelect(template)}
-              disabled={isCreating}
-              className="p-4 bg-background rounded-lg border border-border hover:border-primary/30 hover:bg-muted/50 transition-colors text-left group"
-            >
-              <div className="flex items-center gap-3 mb-2">
-                <div className="text-primary">{template.icon}</div>
-                <span className="font-medium text-foreground">{template.name}</span>
-              </div>
-              <p className="text-sm text-muted-foreground mb-3">{template.description}</p>
-              <div className="text-xs text-muted-foreground">
-                Default: {template.defaultModel.split("-").slice(0, 2).join("-")}
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
 
-      {/* Custom Creation */}
+
+      {/* Create New Workspace */}
       <div className="text-center">
-        <div className="mb-4">
-          <h2 className="text-xl font-semibold text-foreground mb-2">Custom Workspace</h2>
-          <p className="text-muted-foreground">Need something different? Create a custom workspace</p>
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-foreground mb-2">Create New Workspace</h2>
+          <p className="text-muted-foreground">Start a new project or work with a different folder</p>
         </div>
         <Button
-          variant="outline"
           onClick={() => setShowCustomCreation(true)}
           disabled={isCreating}
-          className="px-6 py-3"
+          size="lg"
+          className="px-8 py-4 text-lg"
         >
-          <FolderIcon className="w-4 h-4 mr-2" />
+          <FolderIcon className="w-5 h-5 mr-3" />
           Browse for Folder
         </Button>
       </div>
