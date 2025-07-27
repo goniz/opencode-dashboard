@@ -8,14 +8,12 @@ import { cn } from "@/lib/utils";
 interface MobileNavigationProps {
   currentView: "quick-start" | "workspaces" | "workspace-dashboard" | "chat";
   onNavigate: (view: "quick-start" | "workspaces" | "workspace-dashboard" | "chat") => void;
-  onBackToWorkspaces: () => void;
   className?: string;
 }
 
 export default function MobileNavigation({
   currentView,
   onNavigate,
-  onBackToWorkspaces,
   className
 }: MobileNavigationProps) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);

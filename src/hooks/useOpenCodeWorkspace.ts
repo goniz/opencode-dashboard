@@ -5,7 +5,6 @@ import { useState, useEffect, useCallback, useRef } from "react";
 export interface OpenCodeSessionConfig {
   folder: string;
   model: string;
-  port?: number;
 }
 
 export interface OpenCodeSession {
