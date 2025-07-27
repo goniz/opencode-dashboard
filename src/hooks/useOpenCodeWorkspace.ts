@@ -175,14 +175,14 @@ export function useOpenCodeSession(): UseOpenCodeSessionReturn {
         status: sessionData.status,
       };
       
-      // Set current session first, then refresh sessions list
+      // Refresh sessions list first to ensure consistency
+      await loadSessions();
+      
+      // Then set current session
       updateState({
         currentSession: session,
         isLoading: false,
       });
-      
-      // Refresh sessions list in the background
-      loadSessions();
       
       return session;
     } catch (error) {

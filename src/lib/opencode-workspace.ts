@@ -179,7 +179,7 @@ class OpenCodeWorkspaceManager {
         }, 30000);
 
         const checkStatus = () => {
-          if (workspace.status === "running") {
+          if (workspace.status === "running" && workspace.port > 0) {
             clearTimeout(timeout);
             resolve(workspace);
           } else if (workspace.status === "error") {
