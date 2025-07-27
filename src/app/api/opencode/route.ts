@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       workspaceId: workspace.id,
-      sessionId: session.id,
+      id: session.id,
       port: workspace.port,
       status: workspace.status
     });

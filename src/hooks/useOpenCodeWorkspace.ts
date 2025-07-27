@@ -135,7 +135,7 @@ export function useOpenCodeSession(): UseOpenCodeSessionReturn {
       // Preserve currentSession if it still exists in the updated sessions list
       const currentSessionId = state.currentSession?.id;
       const updatedCurrentSession = currentSessionId 
-        ? sessions.find((s: OpenCodeSession) => s.id === currentSessionId) || state.currentSession
+        ? sessions.find((s: OpenCodeSession) => s.id === currentSessionId) || null
         : null;
       
       updateState({
