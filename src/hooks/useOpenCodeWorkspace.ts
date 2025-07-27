@@ -135,7 +135,7 @@ export function useOpenCodeSession(): UseOpenCodeSessionReturn {
       // Preserve currentSession if it still exists in the updated sessions list
       const currentSessionId = state.currentSession?.id;
       const updatedCurrentSession = currentSessionId 
-        ? sessions.find((s: OpenCodeSession) => s.id === currentSessionId) || null
+        ? sessions.find((s: OpenCodeSession) => s.id === currentSessionId) || state.currentSession
         : null;
       
       updateState({
@@ -168,19 +168,21 @@ export function useOpenCodeSession(): UseOpenCodeSessionReturn {
       
       const sessionData = await response.json();
       const session: OpenCodeSession = {
-        id: sessionData.sessionId,
+        id: sessionData.id,
         folder: config.folder,
         model: config.model,
         port: sessionData.port,
         status: sessionData.status,
       };
       
-      // Refresh sessions list
-      await loadSessions();
+      // Set current session first, then refresh sessions list
       updateState({
         currentSession: session,
         isLoading: false,
       });
+      
+      // Refresh sessions list in the background
+      loadSessions();
       
       return session;
     } catch (error) {
