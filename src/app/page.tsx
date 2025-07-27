@@ -347,7 +347,10 @@ export default function Home() {
         </div>
         
         <div className="py-8 mt-16 md:mt-0">
-          <QuickStart onWorkspaceCreated={handleQuickStartWorkspaceCreated} />
+          <QuickStart 
+            onWorkspaceCreated={handleQuickStartWorkspaceCreated}
+            onWorkspaceOpen={handleOpenWorkspace}
+          />
         </div>
       </div>
     );

@@ -3,9 +3,10 @@
 import { useState, useEffect } from "react";
 import { Button } from "../../button";
 import { cn } from "@/lib/utils";
-import { FolderIcon, BrainIcon, ClockIcon, RocketIcon } from "lucide-react";
+import { FolderIcon, BrainIcon, ClockIcon, RocketIcon, PlayIcon, Square } from "lucide-react";
 import FolderSelector from "./folder-selector";
 import ModelSelector from "./model-selector";
+import { useOpenCodeSessionContext } from "@/contexts/OpenCodeWorkspaceContext";
 
 interface RecentFolder {
   path: string;
@@ -19,12 +20,14 @@ interface RecentFolder {
 
 interface QuickStartProps {
   onWorkspaceCreated: (workspaceData: { folder: string; model: string; autoOpenChat?: boolean }) => void;
+  onWorkspaceOpen?: (workspaceId: string) => void;
   className?: string;
 }
 
 
 
-export default function QuickStart({ onWorkspaceCreated, className }: QuickStartProps) {
+export default function QuickStart({ onWorkspaceCreated, onWorkspaceOpen, className }: QuickStartProps) {
+  const { sessions, switchToSession, stopSession } = useOpenCodeSessionContext();
   const [recentFolders, setRecentFolders] = useState<RecentFolder[]>([]);
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
@@ -229,6 +232,20 @@ export default function QuickStart({ onWorkspaceCreated, className }: QuickStart
     );
   }
 
+  const runningWorkspaces = sessions.filter(session => session.status === "running");
+
+  const handleOpenWorkspace = async (sessionId: string) => {
+    await switchToSession(sessionId);
+    if (onWorkspaceOpen) {
+      onWorkspaceOpen(sessionId);
+    }
+  };
+
+  const handleStopWorkspace = async (sessionId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    await stopSession(sessionId);
+  };
+
   return (
     <div className={cn("w-full max-w-5xl mx-auto px-4", className)}>
       <div className="text-center mb-12">
@@ -237,6 +254,73 @@ export default function QuickStart({ onWorkspaceCreated, className }: QuickStart
           Get coding in seconds with your recent folder + model combinations
         </p>
       </div>
+
+      {/* Running Workspaces */}
+      {runningWorkspaces.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-6">
+            <PlayIcon className="w-6 h-6 text-green-500" />
+            <div>
+              <h2 className="text-2xl font-bold text-foreground">Running Workspaces</h2>
+              <p className="text-muted-foreground">Continue working on your active projects</p>
+            </div>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {runningWorkspaces.map((workspace) => (
+              <div
+                key={workspace.id}
+                className="p-6 bg-background rounded-xl border border-border hover:border-green-500/30 hover:bg-muted/50 hover:shadow-md transition-all duration-200 text-left group relative overflow-hidden cursor-pointer"
+                onClick={() => handleOpenWorkspace(workspace.id)}
+              >
+                {/* Background gradient */}
+                <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+                
+                <div className="relative">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-green-500/10 rounded-lg">
+                        <FolderIcon className="w-5 h-5 text-green-500" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-semibold text-foreground truncate text-lg">
+                          {workspace.folder.split("/").pop() || workspace.folder}
+                        </h3>
+                        <p className="text-sm text-muted-foreground truncate">{workspace.folder}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                      <div
+                        onClick={(e) => handleStopWorkspace(workspace.id, e)}
+                        className="p-1 hover:bg-red-500/10 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                        title="Stop workspace"
+                      >
+                        <Square className="w-4 h-4 text-red-500" />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
+                    <BrainIcon className="w-4 h-4 text-green-500 flex-shrink-0" />
+                    <span className="text-sm font-medium text-foreground truncate">{workspace.model}</span>
+                  </div>
+                  
+                  <div className="mt-3 flex items-center gap-2">
+                    <div className="text-xs text-green-600 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded-full">
+                      Port {workspace.port}
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 flex items-center gap-2 text-green-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <RocketIcon className="w-4 h-4" />
+                    <span className="text-sm font-medium">Click to open chat</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Recent Folder+Model Combinations */}
       {recentFolders.length > 0 ? (
