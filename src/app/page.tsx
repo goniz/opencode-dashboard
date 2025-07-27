@@ -192,7 +192,7 @@ export default function Home() {
         <MobileNavigation
           currentView={viewState}
           onNavigate={setViewState}
-
+          onBackToWorkspaces={handleBackToWorkspaces}
         />
         
         <div className="hidden md:block border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -257,7 +257,7 @@ export default function Home() {
         <MobileNavigation
           currentView={viewState}
           onNavigate={setViewState}
-
+          onBackToWorkspaces={handleBackToWorkspaces}
         />
         
         <div className="hidden md:block border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -314,7 +314,7 @@ export default function Home() {
         <MobileNavigation
           currentView={viewState}
           onNavigate={setViewState}
-
+          onBackToWorkspaces={handleBackToWorkspaces}
         />
         
         <div className="hidden md:block border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -360,7 +360,7 @@ export default function Home() {
         <MobileNavigation
           currentView={viewState}
           onNavigate={setViewState}
-
+          onBackToWorkspaces={handleBackToWorkspaces}
         />
         
         <div className="hidden md:block border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">

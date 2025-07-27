@@ -2,18 +2,20 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "../../button";
-import { MenuIcon, XIcon, HomeIcon, FolderIcon, MessageSquareIcon, SettingsIcon } from "lucide-react";
+import { MenuIcon, XIcon, HomeIcon, FolderIcon, MessageSquareIcon, SettingsIcon, ArrowLeftIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface MobileNavigationProps {
   currentView: "quick-start" | "workspaces" | "workspace-dashboard" | "chat";
   onNavigate: (view: "quick-start" | "workspaces" | "workspace-dashboard" | "chat") => void;
+  onBackToWorkspaces: () => void;
   className?: string;
 }
 
 export default function MobileNavigation({
   currentView,
   onNavigate,
+  onBackToWorkspaces,
   className
 }: MobileNavigationProps) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -97,15 +99,28 @@ export default function MobileNavigation({
         isHeaderVisible ? "translate-y-0" : "-translate-y-full",
         className
       )}>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setIsDrawerOpen(true)}
-          className="flex items-center gap-2 min-h-[44px] min-w-[44px]"
-          aria-label="Open navigation menu"
-        >
-          <MenuIcon className="w-5 h-5" />
-        </Button>
+        {/* Left side - Back button or Menu */}
+        {(currentView === "workspace-dashboard" || currentView === "chat") ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onBackToWorkspaces}
+            className="flex items-center gap-2 min-h-[44px] min-w-[44px]"
+            aria-label="Back to workspaces"
+          >
+            <ArrowLeftIcon className="w-5 h-5" />
+          </Button>
+        ) : (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsDrawerOpen(true)}
+            className="flex items-center gap-2 min-h-[44px] min-w-[44px]"
+            aria-label="Open navigation menu"
+          >
+            <MenuIcon className="w-5 h-5" />
+          </Button>
+        )}
 
         <div className="flex-1 text-center">
           <h1 className="text-lg font-semibold text-foreground">
@@ -116,7 +131,20 @@ export default function MobileNavigation({
           </h1>
         </div>
 
-        <div className="w-[44px]" /> {/* Spacer for centering */}
+        {/* Right side - Menu button when showing back button, spacer otherwise */}
+        {(currentView === "workspace-dashboard" || currentView === "chat") ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsDrawerOpen(true)}
+            className="flex items-center gap-2 min-h-[44px] min-w-[44px]"
+            aria-label="Open navigation menu"
+          >
+            <MenuIcon className="w-5 h-5" />
+          </Button>
+        ) : (
+          <div className="w-[44px]" /> /* Spacer for centering */
+        )}
       </div>
 
       {/* Overlay */}
