@@ -4,17 +4,19 @@ import { useState, useEffect } from "react";
 import WorkspaceManager from "@/components/workspace-manager";
 import WorkspaceDashboard from "@/components/workspace-dashboard";
 import OpenCodeChatInterface from "@/components/opencode-chat-interface";
+import QuickStart from "@/components/quick-start";
 import MobileNavigation from "@/components/mobile-navigation";
 import { useOpenCodeSessionContext } from "@/contexts/OpenCodeWorkspaceContext";
 import { Button } from "../../button";
-import { ArrowLeftIcon } from "lucide-react";
+import { ArrowLeftIcon, SettingsIcon } from "lucide-react";
 
-type ViewState = "workspaces" | "workspace-dashboard" | "chat";
+type ViewState = "quick-start" | "workspaces" | "workspace-dashboard" | "chat";
 
 export default function Home() {
-  const { currentSession, sessions: workspaces, switchToSession } = useOpenCodeSessionContext();
-  const [viewState, setViewState] = useState<ViewState>("workspaces");
+  const { currentSession, sessions: workspaces, switchToSession, createSession } = useOpenCodeSessionContext();
+  const [viewState, setViewState] = useState<ViewState>("quick-start");
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null);
+  const [showAdvancedView, setShowAdvancedView] = useState(false);
 
   const handleOpenWorkspace = (workspaceId: string) => {
     console.log("🎯 handleOpenWorkspace called for workspace:", workspaceId);
@@ -98,7 +100,35 @@ export default function Home() {
   };
 
   const handleBackToWorkspaces = () => {
-    setViewState("workspaces");
+    setViewState(showAdvancedView ? "workspaces" : "quick-start");
+  };
+
+  const handleQuickStartWorkspaceCreated = async (workspaceData: { folder: string; model: string; autoOpenChat?: boolean }) => {
+    console.log("🚀 Quick Start workspace creation requested:", workspaceData);
+    
+    try {
+      // Create the workspace using the session context
+      const session = await createSession({
+        folder: workspaceData.folder,
+        model: workspaceData.model
+      });
+      
+      console.log("✅ Workspace created successfully:", session.id);
+      
+      // If auto-chat is enabled, go directly to chat
+      if (workspaceData.autoOpenChat) {
+        console.log("🎯 Auto-opening chat for session:", session.id);
+        setSelectedWorkspaceId(session.id);
+        setViewState("chat");
+      } else {
+        // Otherwise go to workspace dashboard
+        setSelectedWorkspaceId(session.id);
+        setViewState("workspace-dashboard");
+      }
+    } catch (error) {
+      console.error("❌ Failed to create workspace:", error);
+      // Stay on quick start view to show error
+    }
   };
 
   // Handle case where chat view is requested but no session is available
@@ -277,26 +307,96 @@ export default function Home() {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-background py-8 pb-16 md:pb-8">
-      <MobileNavigation
-        currentView={viewState}
-        onNavigate={setViewState}
-        onBackToWorkspaces={handleBackToWorkspaces}
-      />
-      
-      <div className="container mx-auto px-4">
-        <div className="text-center mb-8 mt-16 md:mt-0">
-          <h1 className="text-4xl font-bold text-foreground mb-2">
-            OpenCode Dashboard
-          </h1>
-          <p className="text-lg text-muted-foreground">
-            Manage your OpenCode workspaces
-          </p>
+  // Quick Start view
+  if (viewState === "quick-start") {
+    return (
+      <div className="min-h-screen bg-background py-8 pb-16 md:pb-8">
+        <MobileNavigation
+          currentView={viewState}
+          onNavigate={setViewState}
+          onBackToWorkspaces={handleBackToWorkspaces}
+        />
+        
+        <div className="hidden md:block border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="container mx-auto px-4 py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div>
+                  <h1 className="text-lg font-semibold text-foreground">
+                    OpenCode Dashboard
+                  </h1>
+                  <p className="text-sm text-muted-foreground">
+                    Quick Start - Get coding in seconds
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setShowAdvancedView(true);
+                  setViewState("workspaces");
+                }}
+                className="flex items-center gap-2"
+              >
+                <SettingsIcon className="w-4 h-4" />
+                Advanced View
+              </Button>
+            </div>
+          </div>
         </div>
         
-        <WorkspaceManager onOpenWorkspace={handleOpenWorkspace} />
+        <div className="py-8 mt-16 md:mt-0">
+          <QuickStart onWorkspaceCreated={handleQuickStartWorkspaceCreated} />
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  // Advanced workspaces view
+  if (viewState === "workspaces") {
+    return (
+      <div className="min-h-screen bg-background py-8 pb-16 md:pb-8">
+        <MobileNavigation
+          currentView={viewState}
+          onNavigate={setViewState}
+          onBackToWorkspaces={handleBackToWorkspaces}
+        />
+        
+        <div className="hidden md:block border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="container mx-auto px-4 py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setShowAdvancedView(false);
+                    setViewState("quick-start");
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  <ArrowLeftIcon className="w-4 h-4" />
+                  Back to Quick Start
+                </Button>
+                <div className="h-4 w-px bg-border" />
+                <div>
+                  <h1 className="text-lg font-semibold text-foreground">
+                    Advanced Workspace Management
+                  </h1>
+                  <p className="text-sm text-muted-foreground">
+                    Full workspace control and management
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="container mx-auto px-4 py-8 mt-16 md:mt-0">
+          <WorkspaceManager onOpenWorkspace={handleOpenWorkspace} />
+        </div>
+      </div>
+    );
+  }
 }

@@ -6,8 +6,8 @@ import { MenuIcon, XIcon, HomeIcon, FolderIcon, MessageSquareIcon, SettingsIcon 
 import { cn } from "@/lib/utils";
 
 interface MobileNavigationProps {
-  currentView: "workspaces" | "workspace-dashboard" | "chat";
-  onNavigate: (view: "workspaces" | "workspace-dashboard" | "chat") => void;
+  currentView: "quick-start" | "workspaces" | "workspace-dashboard" | "chat";
+  onNavigate: (view: "quick-start" | "workspaces" | "workspace-dashboard" | "chat") => void;
   onBackToWorkspaces: () => void;
   className?: string;
 }
@@ -63,24 +63,30 @@ export default function MobileNavigation({
 
   const navigationItems = [
     {
+      id: "quick-start",
+      label: "Quick Start",
+      icon: HomeIcon,
+      action: () => onNavigate("quick-start"),
+    },
+    {
       id: "workspaces",
       label: "Workspaces",
-      icon: HomeIcon,
-      action: () => onBackToWorkspaces(),
+      icon: FolderIcon,
+      action: () => onNavigate("workspaces"),
     },
     {
       id: "workspace-dashboard",
       label: "Dashboard",
       icon: FolderIcon,
       action: () => onNavigate("workspace-dashboard"),
-      disabled: currentView === "workspaces",
+      disabled: currentView === "quick-start" || currentView === "workspaces",
     },
     {
       id: "chat",
       label: "Chat",
       icon: MessageSquareIcon,
       action: () => onNavigate("chat"),
-      disabled: currentView === "workspaces",
+      disabled: currentView === "quick-start" || currentView === "workspaces",
     },
   ];
 
@@ -105,6 +111,7 @@ export default function MobileNavigation({
 
         <div className="flex-1 text-center">
           <h1 className="text-lg font-semibold text-foreground">
+            {currentView === "quick-start" && "Quick Start"}
             {currentView === "workspaces" && "OpenCode Dashboard"}
             {currentView === "workspace-dashboard" && "Workspace"}
             {currentView === "chat" && "Chat"}
