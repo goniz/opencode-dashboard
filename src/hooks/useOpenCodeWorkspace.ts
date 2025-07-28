@@ -48,6 +48,7 @@ export interface UseOpenCodeSessionReturn {
   // Actions
   loadSessions: () => Promise<void>;
   createSession: (config: OpenCodeSessionConfig) => Promise<OpenCodeSession>;
+  createOpenCodeSession: (workspaceId: string, model: string) => Promise<string>;
   switchToSession: (sessionId: string) => Promise<void>;
   stopSession: (sessionId: string) => Promise<void>;
   refreshSession: (sessionId: string) => Promise<void>;
@@ -232,6 +233,35 @@ export function useOpenCodeSession(): UseOpenCodeSessionReturn {
     }
   }, [updateState, setError, loadSessions]);
 
+  const createOpenCodeSession = useCallback(async (workspaceId: string, model: string): Promise<string> => {
+    try {
+      const response = await fetch(`/api/workspaces/${workspaceId}/sessions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ model }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to create OpenCode session");
+      }
+      
+      const sessionData = await response.json();
+      
+      // Refresh sessions list to get updated workspace with new session
+      await loadSessions();
+      
+      return sessionData.id;
+    } catch (error) {
+      console.error("Failed to create OpenCode session:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to create OpenCode session";
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    }
+  }, [setError, loadSessions]);
+
   const switchToSession = useCallback(async (sessionId: string): Promise<void> => {
     console.log("🔄 switchToSession called with ID:", sessionId);
     console.log("📋 Available sessions:", state.sessions.map(s => ({ id: s.id, status: s.status })));
@@ -329,6 +359,7 @@ export function useOpenCodeSession(): UseOpenCodeSessionReturn {
     connectionStatus: getConnectionStatus(),
     loadSessions,
     createSession,
+    createOpenCodeSession,
     switchToSession,
     stopSession,
     refreshSession,

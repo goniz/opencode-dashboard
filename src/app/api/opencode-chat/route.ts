@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { workspaceManager } from "@/lib/opencode-workspace";
+import { workspaceManager, type OpenCodeWorkspace } from "@/lib/opencode-workspace";
 import { withOpenCodeErrorHandling } from "@/lib/opencode-client";
 import type Opencode from "@opencode-ai/sdk";
 
@@ -31,8 +31,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get the session from the session manager
-    const session = workspaceManager.getWorkspace(sessionId);
+    // Find the workspace that contains this session
+    let session: OpenCodeWorkspace | null = null;
+    
+    // Search through all workspaces to find the one containing this session
+    for (const ws of workspaceManager.getAllWorkspaces()) {
+      const chatSession = ws.sessions.get(sessionId);
+      if (chatSession) {
+        session = ws;
+        break;
+      }
+    }
+    
     if (!session) {
       return NextResponse.json(
         { error: `Session ${sessionId} not found` },
@@ -56,8 +66,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Ensure content is a string (handle array case for compatibility)
+    let messageContent: string;
+    if (Array.isArray(lastMessage.content)) {
+      messageContent = lastMessage.content.join(' ');
+    } else if (typeof lastMessage.content === 'string') {
+      messageContent = lastMessage.content;
+    } else {
+      messageContent = String(lastMessage.content || '');
+    }
+
+    if (!messageContent.trim()) {
+      return NextResponse.json(
+        { error: "Message content cannot be empty" },
+        { status: 400 }
+      );
+    }
+
     // Generate a unique message ID
     const messageID = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+
+    console.log(`🔍 Chat request - SessionID: ${sessionId}, Model: ${model}, Provider: ${provider}, MessageID: ${messageID}`);
+    console.log(`📝 Message content length: ${messageContent.length}`);
 
     // Prepare the chat parameters according to OpenCode SDK
     const chatParams: Opencode.SessionChatParams = {
@@ -70,11 +100,13 @@ export async function POST(request: NextRequest) {
           id: `part_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
           messageID,
           sessionID: sessionId,
-          text: lastMessage.content,
+          text: messageContent,
           type: "text" as const
         }
       ]
     };
+
+    console.log(`🚀 Chat params prepared:`, JSON.stringify(chatParams, null, 2));
 
     if (stream) {
       // Handle streaming response using Server-Sent Events
@@ -173,16 +205,39 @@ export async function POST(request: NextRequest) {
       });
     } else {
       // Handle non-streaming response
-      const response = await withOpenCodeErrorHandling(
-        () => session.client!.session.chat(sessionId, chatParams),
-        { operation: "session.chat", sessionId, messageLength: lastMessage.content.length }
-      );
+      try {
+        // First, verify the session exists on the OpenCode server
+        await withOpenCodeErrorHandling(
+          () => session.client!.session.messages(sessionId),
+          { operation: "session.messages", sessionId }
+        );
+        
+        const response = await withOpenCodeErrorHandling(
+          () => session.client!.session.chat(sessionId, chatParams),
+          { operation: "session.chat", sessionId, messageLength: messageContent.length }
+        );
 
-      return NextResponse.json({
-        message: response,
-        sessionId: sessionId,
-        timestamp: new Date().toISOString()
-      });
+        return NextResponse.json({
+          message: response,
+          sessionId: sessionId,
+          timestamp: new Date().toISOString()
+        });
+      } catch (error) {
+        console.error("Session chat error:", error);
+        
+        // If session doesn't exist, try to recreate it
+        if (error instanceof Error && error.message.includes("not found")) {
+          return NextResponse.json(
+            { 
+              error: "Session not found on OpenCode server. Please create a new session.",
+              code: "SESSION_NOT_FOUND"
+            },
+            { status: 404 }
+          );
+        }
+        
+        throw error;
+      }
     }
 
   } catch (error) {
@@ -232,8 +287,18 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get the session from the session manager
-    const session = workspaceManager.getWorkspace(sessionId);
+    // Find the workspace that contains this session
+    let session: OpenCodeWorkspace | null = null;
+    
+    // Search through all workspaces to find the one containing this session
+    for (const ws of workspaceManager.getAllWorkspaces()) {
+      const chatSession = ws.sessions.get(sessionId);
+      if (chatSession) {
+        session = ws;
+        break;
+      }
+    }
+    
     if (!session) {
       return NextResponse.json(
         { error: `Session ${sessionId} not found` },

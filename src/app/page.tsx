@@ -13,7 +13,7 @@ import { ArrowLeftIcon, SettingsIcon } from "lucide-react";
 type ViewState = "quick-start" | "workspaces" | "workspace-dashboard" | "chat";
 
 export default function Home() {
-  const { currentSession, sessions: workspaces, switchToSession, createSession } = useOpenCodeSessionContext();
+  const { currentSession, sessions: workspaces, switchToSession, createSession, createOpenCodeSession } = useOpenCodeSessionContext();
   const [viewState, setViewState] = useState<ViewState>("quick-start");
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null);
   const [showAdvancedView, setShowAdvancedView] = useState(false);
@@ -108,21 +108,34 @@ export default function Home() {
     
     try {
       // Create the workspace using the session context
-      const session = await createSession({
+      const workspace = await createSession({
         folder: workspaceData.folder,
         model: workspaceData.model
       });
       
-      console.log("✅ Workspace created successfully:", session.id);
+      console.log("✅ Workspace created successfully:", workspace.id);
       
-      // If auto-chat is enabled, go directly to chat
+      // If auto-chat is enabled, create an OpenCode session and go directly to chat
       if (workspaceData.autoOpenChat) {
-        console.log("🎯 Auto-opening chat for session:", session.id);
-        setSelectedWorkspaceId(session.id);
-        setViewState("chat");
+        console.log("🎯 Auto-opening chat - creating OpenCode session for workspace:", workspace.id);
+        
+        try {
+          const sessionId = await createOpenCodeSession(workspace.id, workspaceData.model);
+          console.log("✅ OpenCode session created successfully:", sessionId);
+          
+          // Switch to the workspace (which now contains the session)
+          await switchToSession(workspace.id);
+          setSelectedWorkspaceId(workspace.id);
+          setViewState("chat");
+        } catch (sessionError) {
+          console.error("❌ Failed to create OpenCode session:", sessionError);
+          // Fall back to workspace dashboard if session creation fails
+          setSelectedWorkspaceId(workspace.id);
+          setViewState("workspace-dashboard");
+        }
       } else {
         // Otherwise go to workspace dashboard
-        setSelectedWorkspaceId(session.id);
+        setSelectedWorkspaceId(workspace.id);
         setViewState("workspace-dashboard");
       }
     } catch (error) {

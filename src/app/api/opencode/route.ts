@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     }
 
     const workspace = await workspaceManager.startWorkspace({ folder, model });
-    const session = workspaceManager.createSession(workspace.id, model);
+    const session = await workspaceManager.createSession(workspace.id, model);
 
     return NextResponse.json({
       workspaceId: workspace.id,

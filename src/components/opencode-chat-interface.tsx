@@ -6,7 +6,7 @@ import { useChatRuntime } from "@assistant-ui/react-ai-sdk";
 import { Button } from "../../button";
 import { Thread } from "../../thread";
 import { useOpenCodeSessionContext } from "@/contexts/OpenCodeWorkspaceContext";
-import { cn } from "@/lib/utils";
+import { cn, parseModelString } from "@/lib/utils";
 import { PlusIcon, PlayIcon, StopCircleIcon, FolderIcon, BrainIcon, ServerIcon, RotateCwIcon, AlertTriangleIcon } from "lucide-react";
 import type { OpenCodeSession } from "@/hooks/useOpenCodeWorkspace";
 import { messageConverter } from "@/lib/message-converter";
@@ -30,6 +30,7 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
   } = useOpenCodeSessionContext();
 
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [selectedOpenCodeSessionId, setSelectedOpenCodeSessionId] = useState<string | null>(null);
 
   const [initialMessages, setInitialMessages] = useState<Array<UseChatMessage & { role: "user" | "assistant" | "system" }>>([]);
 
@@ -37,13 +38,13 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
   const [isSyncing, setIsSyncing] = useState(false);
 
   // Function to load messages directly from OpenCode API
-  const loadMessagesFromOpenCode = useCallback(async (sessionId: string) => {
-    if (!sessionId || !currentSession) return [];
+  const loadMessagesFromOpenCode = useCallback(async (openCodeSessionId: string) => {
+    if (!openCodeSessionId || !currentSession) return [];
     
     setIsSyncing(true);
     try {
-      // For now, use the old endpoint until we have proper workspace/session separation
-      const response = await fetch(`/api/opencode-chat?sessionId=${sessionId}`);
+      // Use the OpenCode session ID instead of workspace ID
+      const response = await fetch(`/api/opencode-chat?sessionId=${openCodeSessionId}`);
       if (!response.ok) {
         throw new Error("Failed to fetch messages from OpenCode");
       }
@@ -60,7 +61,7 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
       
       return convertedMessages;
     } catch (error) {
-      console.warn(`Error loading messages from OpenCode session ${sessionId}:`, error);
+      console.warn(`Error loading messages from OpenCode session ${openCodeSessionId}:`, error);
       return [];
     } finally {
       setIsSyncing(false);
@@ -73,24 +74,60 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
   useEffect(() => {
     if (currentSession) {
       setSelectedSessionId(currentSession.id);
+      
+      // Find the first available OpenCode session within this workspace
+      const firstOpenCodeSession = currentSession.sessions?.[0];
+      if (firstOpenCodeSession) {
+        setSelectedOpenCodeSessionId(firstOpenCodeSession.id);
+      } else {
+        setSelectedOpenCodeSessionId(null);
+      }
     }
   }, [currentSession]);
 
   // Load messages when session changes (always from OpenCode)
   useEffect(() => {
-    if (selectedSessionId && currentSession?.status === "running") {
-      loadMessagesFromOpenCode(selectedSessionId).then(messages => {
+    if (selectedOpenCodeSessionId && currentSession?.status === "running") {
+      loadMessagesFromOpenCode(selectedOpenCodeSessionId).then(messages => {
         setInitialMessages(messages);
       });
     } else {
       setInitialMessages([]);
     }
-  }, [selectedSessionId, currentSession?.status, loadMessagesFromOpenCode]);
+  }, [selectedOpenCodeSessionId, currentSession?.status, loadMessagesFromOpenCode]);
 
-  // Create chat runtime for the selected session
-  // Use a placeholder sessionId if none is selected to avoid hook rule violations
+  // Validate mandatory fields - no fallbacks allowed
+  let validationError: string | null = null;
+  let parsedModel: { modelID: string; providerID: string } | null = null;
+
+  if (!selectedOpenCodeSessionId) {
+    validationError = "OpenCode session ID is required";
+  } else if (!currentSession?.model) {
+    validationError = "Session model is required";
+  } else {
+    try {
+      const parsed = parseModelString(currentSession.model);
+      if (!parsed.modelID) {
+        validationError = "Valid model ID is required";
+      } else if (!parsed.providerID) {
+        validationError = "Valid provider ID is required";
+      } else {
+        parsedModel = parsed;
+      }
+    } catch (error) {
+      validationError = `Invalid model format: ${error instanceof Error ? error.message : 'Unknown error'}`;
+    }
+  }
+
+  // Create chat runtime - hooks must be called unconditionally
   const runtime = useChatRuntime({
-    api: `/api/opencode-chat?sessionId=${selectedSessionId || 'placeholder'}`,
+    api: "/api/opencode-chat",
+    body: {
+      sessionId: selectedOpenCodeSessionId || '',
+      model: parsedModel?.modelID || '',
+      provider: parsedModel?.providerID || '',
+      stream: false
+    },
     initialMessages: initialMessages.length > 0 ? initialMessages : undefined,
   });
 
@@ -106,14 +143,34 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
     );
   }
 
+  // Show message if no OpenCode session is available
+  if (!selectedOpenCodeSessionId) {
+    return (
+      <div className={cn("flex h-full bg-background items-center justify-center", className)}>
+        <div className="text-center">
+          <div className="p-4 bg-muted/30 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+            <BrainIcon className="w-8 h-8 text-muted-foreground" />
+          </div>
+          <h3 className="text-lg font-semibold text-foreground mb-2">No OpenCode Session</h3>
+          <p className="text-muted-foreground mb-4">This workspace doesn&apos;t have an active OpenCode session yet.</p>
+          <p className="text-sm text-muted-foreground">Go to the workspace dashboard to create a new session.</p>
+        </div>
+      </div>
+    );
+  }
+
   const handleSessionSelect = async (session: OpenCodeSession) => {
     setSelectedSessionId(session.id);
     await switchToSession(session.id);
     
     // Load messages from OpenCode (the authoritative source)
     if (session.status === "running") {
-      const messages = await loadMessagesFromOpenCode(session.id);
-      setInitialMessages(messages);
+      const firstOpenCodeSession = session.sessions?.[0];
+      if (firstOpenCodeSession) {
+        const messages = await loadMessagesFromOpenCode(firstOpenCodeSession.id);
+        setInitialMessages(messages);
+        setSelectedOpenCodeSessionId(firstOpenCodeSession.id);
+      }
     }
   };
 
@@ -201,7 +258,22 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
 
       {/* Chat Area */}
       <div className="flex-1 flex flex-col">
-        {selectedSessionId && currentSession ? (
+        {validationError ? (
+          <div className="flex-1 flex items-center justify-center bg-muted/10 p-4">
+            <div className="text-center max-w-sm">
+              <AlertTriangleIcon className="h-12 w-12 md:h-16 md:w-16 mx-auto mb-4 text-destructive/50" />
+              <h3 className="text-base md:text-lg font-medium text-destructive mb-2">
+                Configuration Error
+              </h3>
+              <p className="text-sm md:text-base text-destructive/80 mb-4">
+                {validationError}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Please check the session configuration and try again.
+              </p>
+            </div>
+          </div>
+        ) : selectedSessionId && selectedOpenCodeSessionId && currentSession ? (
           <AssistantRuntimeProvider runtime={runtime}>
             {/* Chat Header */}
             <div className="border-b border-border p-3 md:p-4 bg-background">
@@ -223,8 +295,8 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
                     variant="ghost"
                     className="h-8 px-2 text-xs min-h-[44px] lg:min-h-0"
                     onClick={async () => {
-                      if (currentSession && selectedSessionId) {
-                        const messages = await loadMessagesFromOpenCode(selectedSessionId);
+                      if (currentSession && selectedOpenCodeSessionId) {
+                        const messages = await loadMessagesFromOpenCode(selectedOpenCodeSessionId);
                         setInitialMessages(messages);
                       }
                     }}
