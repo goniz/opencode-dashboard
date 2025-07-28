@@ -6,15 +6,23 @@
 const fs = require('fs')
 const path = require('path')
 
+// Set up environment variables for testing
+process.env.NODE_ENV = 'test'
+process.env.NEXT_RUNTIME = 'nodejs'
+
+// Fix global exports issue for ESM compatibility
+if (typeof global.exports === 'undefined') {
+  global.exports = {}
+}
+
+// Mock Next.js dynamic imports for ESM compatibility
+global.require = require
+
 // Global test setup
 beforeEach(() => {
   // Reset any mocks before each test
   jest.clearAllMocks()
 })
-
-// Set up environment variables for testing
-process.env.NODE_ENV = 'test'
-process.env.NEXT_RUNTIME = 'nodejs'
 
 // Global setup to create test directories
 beforeAll(() => {
@@ -27,7 +35,18 @@ beforeAll(() => {
       console.warn('Could not create /tmp directory:', error.message)
     }
   }
+  
+  // Suppress console warnings for cleaner test output
+  const originalWarn = console.warn
+  console.warn = (...args) => {
+    const message = args.join(' ')
+    // Filter out known harmless warnings
+    if (
+      message.includes('webpack.cache.PackFileCacheStrategy') ||
+      message.includes('ExperimentalWarning: VM Modules')
+    ) {
+      return
+    }
+    originalWarn.apply(console, args)
+  }
 })
-
-// Mock Next.js dynamic imports for ESM compatibility
-global.require = require

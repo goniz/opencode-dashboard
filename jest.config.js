@@ -24,6 +24,10 @@ const customJestConfig = {
     '<rootDir>/node_modules/',
     '<rootDir>/__tests__/setup/',
   ],
+  // Handle Next.js 15 ESM compatibility
+  transformIgnorePatterns: [
+    'node_modules/(?!(next/.*|@next/.*|@opencode-ai/.*)/)',
+  ],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '\\.(css|less|scss|sass)$': '<rootDir>/__mocks__/next-css.js',

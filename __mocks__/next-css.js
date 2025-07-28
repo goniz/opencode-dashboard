@@ -1,8 +1,18 @@
 // Mock CSS imports and exports for Jest testing
-module.exports = {
+const mockCss = {
   __esModule: true,
   default: {},
+};
+
+// Support both CommonJS and ESM
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = mockCss;
 }
 
-// Mock CSS with exports
-module.exports.exports = {}
+if (typeof exports !== 'undefined') {
+  Object.assign(exports, mockCss);
+  // Prevent "exports is not defined" errors
+  if (typeof global !== 'undefined') {
+    global.exports = exports;
+  }
+}
