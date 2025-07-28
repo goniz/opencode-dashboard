@@ -30,6 +30,9 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Install OpenCode
+        run: npm install -g opencode-ai@latest
+
       - name: Run Claude Code
         id: claude
         uses: anthropics/claude-code-action@beta
