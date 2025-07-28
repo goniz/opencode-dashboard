@@ -88,17 +88,37 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
   }, [selectedSessionId, currentSession?.status, loadMessagesFromOpenCode]);
 
   // Create chat runtime for the selected session
-  // Use a placeholder sessionId if none is selected to avoid hook rule violations
-  const runtime = useChatRuntime({
-    api: "/api/opencode-chat",
-    body: {
-      sessionId: selectedSessionId || 'placeholder',
-      model: currentSession?.model ? parseModelString(currentSession.model).modelID : 'gpt-4',
-      provider: currentSession?.model ? parseModelString(currentSession.model).providerID : 'openai',
-      stream: false
-    },
-    initialMessages: initialMessages.length > 0 ? initialMessages : undefined,
-  });
+  // Validate mandatory fields - no fallbacks allowed
+  let runtime;
+  let validationError: string | null = null;
+
+  if (!selectedSessionId) {
+    validationError = "Session ID is required";
+  } else if (!currentSession?.model) {
+    validationError = "Session model is required";
+  } else {
+    try {
+      const parsedModel = parseModelString(currentSession.model);
+      if (!parsedModel.modelID) {
+        validationError = "Valid model ID is required";
+      } else if (!parsedModel.providerID) {
+        validationError = "Valid provider ID is required";
+      } else {
+        runtime = useChatRuntime({
+          api: "/api/opencode-chat",
+          body: {
+            sessionId: selectedSessionId,
+            model: parsedModel.modelID,
+            provider: parsedModel.providerID,
+            stream: false
+          },
+          initialMessages: initialMessages.length > 0 ? initialMessages : undefined,
+        });
+      }
+    } catch (error) {
+      validationError = `Invalid model format: ${error instanceof Error ? error.message : 'Unknown error'}`;
+    }
+  }
 
   // Show loading state if no session is selected yet
   if (!selectedSessionId) {
@@ -207,7 +227,22 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
 
       {/* Chat Area */}
       <div className="flex-1 flex flex-col">
-        {selectedSessionId && currentSession ? (
+        {validationError ? (
+          <div className="flex-1 flex items-center justify-center bg-muted/10 p-4">
+            <div className="text-center max-w-sm">
+              <AlertTriangleIcon className="h-12 w-12 md:h-16 md:w-16 mx-auto mb-4 text-destructive/50" />
+              <h3 className="text-base md:text-lg font-medium text-destructive mb-2">
+                Configuration Error
+              </h3>
+              <p className="text-sm md:text-base text-destructive/80 mb-4">
+                {validationError}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Please check the session configuration and try again.
+              </p>
+            </div>
+          </div>
+        ) : selectedSessionId && currentSession && runtime ? (
           <AssistantRuntimeProvider runtime={runtime}>
             {/* Chat Header */}
             <div className="border-b border-border p-3 md:p-4 bg-background">
