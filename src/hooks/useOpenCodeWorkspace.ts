@@ -62,6 +62,7 @@ export function useOpenCodeSession(): UseOpenCodeSessionReturn {
   });
 
   const mountedRef = useRef(true);
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     return () => {
@@ -277,16 +278,60 @@ export function useOpenCodeSession(): UseOpenCodeSessionReturn {
     loadSessions();
   }, [loadSessions]);
 
-  // Set up polling for session status updates
+  // Set up intelligent polling for session status updates
   useEffect(() => {
-    const interval = setInterval(() => {
-      if (!state.isLoading) {
-        loadSessions();
-      }
-    }, 5000); // Poll every 5 seconds
+    let currentInterval = 5000; // Start with 5 seconds
+    const maxInterval = 60000; // Maximum 60 seconds
+    const backoffMultiplier = 2;
 
-    return () => clearInterval(interval);
-  }, [loadSessions, state.isLoading]);
+    const scheduleNextPoll = () => {
+      if (pollIntervalRef.current) {
+        clearTimeout(pollIntervalRef.current);
+      }
+
+      pollIntervalRef.current = setTimeout(() => {
+        if (!state.isLoading && mountedRef.current) {
+          // Check if we have sessions in transitional states
+          const hasTransitionalSessions = state.sessions.some(
+            (session) => session.status === "starting" || session.status === "error"
+          );
+
+          // Determine polling interval based on session states
+          if (state.sessions.length === 0) {
+            // No sessions: poll less frequently
+            currentInterval = Math.min(30000, maxInterval);
+          } else if (hasTransitionalSessions) {
+            // Active transitions: poll more frequently
+            currentInterval = 5000;
+          } else {
+            // All sessions stable: use exponential backoff
+            currentInterval = Math.min(currentInterval * backoffMultiplier, maxInterval);
+          }
+
+          loadSessions().then(() => {
+            // Schedule next poll after this one completes
+            scheduleNextPoll();
+          }).catch(() => {
+            // On error, reset to shorter interval
+            currentInterval = 10000;
+            scheduleNextPoll();
+          });
+        } else {
+          // If loading or unmounted, try again with same interval
+          scheduleNextPoll();
+        }
+      }, currentInterval);
+    };
+
+    // Start polling
+    scheduleNextPoll();
+
+    return () => {
+      if (pollIntervalRef.current) {
+        clearTimeout(pollIntervalRef.current);
+      }
+    };
+  }, [loadSessions, state.isLoading, state.sessions]);
 
   // Cleanup on unmount
   useEffect(() => {
