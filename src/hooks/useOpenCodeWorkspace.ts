@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useSSEConnection, type SSEMessage } from "./useSSEConnection";
 
 export interface OpenCodeSessionConfig {
   folder: string;
@@ -41,6 +42,8 @@ export interface UseOpenCodeSessionReturn {
   currentSession: OpenCodeSession | null;
   isLoading: boolean;
   error: SessionError | null;
+  isConnected: boolean;
+  connectionStatus: "connecting" | "connected" | "disconnected" | "error";
 
   // Actions
   loadSessions: () => Promise<void>;
@@ -50,6 +53,7 @@ export interface UseOpenCodeSessionReturn {
   refreshSession: (sessionId: string) => Promise<void>;
   loadSessionMessages: (sessionId: string) => Promise<unknown[]>;
   clearError: () => void;
+  reconnectSSE: () => void;
 }
 
 export function useOpenCodeSession(): UseOpenCodeSessionReturn {
@@ -100,6 +104,41 @@ export function useOpenCodeSession(): UseOpenCodeSessionReturn {
       updateState({ error: sessionError, isLoading: false });
     },
     [updateState]
+  );
+
+  // Handle SSE messages
+  const handleSSEMessage = useCallback((message: SSEMessage) => {
+    if (message.type === "workspace_update" && message.data) {
+      const sessions = message.data as OpenCodeSession[];
+      
+      setState((prevState) => {
+        // Preserve currentSession if it still exists in the updated sessions list
+        const currentSessionId = prevState.currentSession?.id;
+        const updatedCurrentSession = currentSessionId 
+          ? sessions.find((s: OpenCodeSession) => s.id === currentSessionId) || null
+          : null;
+        
+        return {
+          ...prevState,
+          sessions,
+          currentSession: updatedCurrentSession,
+          isLoading: false,
+        };
+      });
+    } else if (message.type === "error") {
+      setError(message.error || "SSE connection error");
+    }
+  }, [setError]);
+
+  // Set up SSE connection
+  const { connectionState, reconnect } = useSSEConnection(
+    "/api/workspaces/stream",
+    handleSSEMessage,
+    {
+      autoConnect: true,
+      reconnectInterval: 3000,
+      maxReconnectAttempts: 5,
+    }
   );
 
   const clearError = useCallback(() => {
@@ -273,35 +312,21 @@ export function useOpenCodeSession(): UseOpenCodeSessionReturn {
     }
   }, [state.sessions]);
 
-  // Load sessions on mount
-  useEffect(() => {
-    loadSessions();
-  }, [loadSessions]);
-
-  // Set up polling for session status updates
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (!state.isLoading) {
-        loadSessions();
-      }
-    }, 5000); // Poll every 5 seconds
-
-    return () => clearInterval(interval);
-  }, [loadSessions, state.isLoading]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      // Note: We don't automatically stop all sessions on unmount
-      // as they might be used by other components or persist across page reloads
-    };
-  }, []);
+  // Determine connection status based on SSE state
+  const getConnectionStatus = (): "connecting" | "connected" | "disconnected" | "error" => {
+    if (connectionState.error) return "error";
+    if (connectionState.isConnecting) return "connecting";
+    if (connectionState.isConnected) return "connected";
+    return "disconnected";
+  };
 
   return {
     sessions: state.sessions,
     currentSession: state.currentSession,
     isLoading: state.isLoading,
     error: state.error,
+    isConnected: connectionState.isConnected,
+    connectionStatus: getConnectionStatus(),
     loadSessions,
     createSession,
     switchToSession,
@@ -309,5 +334,6 @@ export function useOpenCodeSession(): UseOpenCodeSessionReturn {
     refreshSession,
     loadSessionMessages,
     clearError,
+    reconnectSSE: reconnect,
   };
 }
