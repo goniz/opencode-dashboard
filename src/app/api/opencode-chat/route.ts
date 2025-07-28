@@ -56,6 +56,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Ensure content is a string (handle array case for compatibility)
+    let messageContent: string;
+    if (Array.isArray(lastMessage.content)) {
+      messageContent = lastMessage.content.join(' ');
+    } else if (typeof lastMessage.content === 'string') {
+      messageContent = lastMessage.content;
+    } else {
+      messageContent = String(lastMessage.content || '');
+    }
+
+    if (!messageContent.trim()) {
+      return NextResponse.json(
+        { error: "Message content cannot be empty" },
+        { status: 400 }
+      );
+    }
+
     // Generate a unique message ID
     const messageID = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 
@@ -70,7 +87,7 @@ export async function POST(request: NextRequest) {
           id: `part_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
           messageID,
           sessionID: sessionId,
-          text: lastMessage.content,
+          text: messageContent,
           type: "text" as const
         }
       ]
