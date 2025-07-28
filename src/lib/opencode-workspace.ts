@@ -41,6 +41,15 @@ export class OpenCodeWorkspaceError extends Error {
 
 class OpenCodeWorkspaceManager {
   private workspaces: Map<string, OpenCodeWorkspace> = new Map();
+  private lastModified: number = Date.now();
+
+  private markModified(): void {
+    this.lastModified = Date.now();
+  }
+
+  getLastModified(): number {
+    return this.lastModified;
+  }
 
   // Session management methods
   createSession(workspaceId: string, model: string): ChatSession {
@@ -60,6 +69,7 @@ class OpenCodeWorkspaceManager {
     };
 
     workspace.sessions.set(sessionId, session);
+    this.markModified();
     return session;
   }
 
@@ -72,6 +82,7 @@ class OpenCodeWorkspaceManager {
     const workspace = this.workspaces.get(workspaceId);
     if (workspace) {
       workspace.sessions.delete(sessionId);
+      this.markModified();
     }
   }
 
@@ -84,6 +95,7 @@ class OpenCodeWorkspaceManager {
     const session = this.getSession(workspaceId, sessionId);
     if (session) {
       session.lastActivity = new Date();
+      this.markModified();
     }
   }
 
@@ -122,6 +134,7 @@ class OpenCodeWorkspaceManager {
           error,
           "Ensure the 'opencode' command is installed and accessible in your system's PATH."
         );
+        this.markModified();
       });
 
       process.on("exit", (code) => {
@@ -137,6 +150,7 @@ class OpenCodeWorkspaceManager {
           workspace.status = "stopped";
         }
         this.workspaces.delete(workspaceId);
+        this.markModified();
       });
 
       process.stdout?.on("data", (data) => {
@@ -152,6 +166,7 @@ class OpenCodeWorkspaceManager {
           workspace.client = new Opencode({
             baseURL: `http://localhost:${actualPort}`,
           });
+          this.markModified();
         }
       });
 
@@ -163,9 +178,11 @@ class OpenCodeWorkspaceManager {
           data.toString(),
           "Review the OpenCode logs for details."
         );
+        this.markModified();
       });
 
       this.workspaces.set(workspaceId, workspace);
+      this.markModified();
 
       await new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
@@ -208,6 +225,7 @@ class OpenCodeWorkspaceManager {
               "An unexpected error occurred while starting the workspace.",
               error
             );
+      this.markModified();
       throw workspace.error;
     }
   }
@@ -236,6 +254,7 @@ class OpenCodeWorkspaceManager {
 
     workspace.status = "stopped";
     this.workspaces.delete(workspaceId);
+    this.markModified();
   }
 
   getWorkspace(workspaceId: string): OpenCodeWorkspace | undefined {

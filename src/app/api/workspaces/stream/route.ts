@@ -13,12 +13,20 @@ export async function GET(request: NextRequest) {
 
   const encoder = new TextEncoder();
   let isAlive = true;
+  let lastSentTimestamp = 0;
 
   const stream = new ReadableStream({
     start(controller) {
-      // Send initial workspace data
-      const sendWorkspaceUpdate = () => {
+      // Send workspace data only if changes detected
+      const sendWorkspaceUpdate = (force = false) => {
         if (!isAlive) return;
+        
+        const currentTimestamp = workspaceManager.getLastModified();
+        
+        // Only send update if data has changed since last send or forced
+        if (!force && currentTimestamp <= lastSentTimestamp) {
+          return;
+        }
         
         try {
           const workspaces = workspaceManager.getAllWorkspaces();
@@ -38,6 +46,7 @@ export async function GET(request: NextRequest) {
           })}\n\n`;
 
           controller.enqueue(encoder.encode(message));
+          lastSentTimestamp = currentTimestamp;
         } catch (error) {
           console.error("Error sending workspace update:", error);
           const errorMessage = `data: ${JSON.stringify({
@@ -49,8 +58,8 @@ export async function GET(request: NextRequest) {
         }
       };
 
-      // Send initial data
-      sendWorkspaceUpdate();
+      // Send initial data (forced)
+      sendWorkspaceUpdate(true);
 
       // Send heartbeat every 30 seconds to keep connection alive
       const heartbeatInterval = setInterval(() => {
@@ -73,14 +82,14 @@ export async function GET(request: NextRequest) {
         }
       }, 30000);
 
-      // Send workspace updates every 2 seconds (reduced from 5s polling)
+      // Check for changes every 500ms, but only send updates when data changes
       const updateInterval = setInterval(() => {
         if (!isAlive) {
           clearInterval(updateInterval);
           return;
         }
         sendWorkspaceUpdate();
-      }, 2000);
+      }, 500);
 
       // Handle client disconnect
       request.signal.addEventListener("abort", () => {
