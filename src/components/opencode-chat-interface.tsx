@@ -6,7 +6,7 @@ import { useChatRuntime } from "@assistant-ui/react-ai-sdk";
 import { Button } from "../../button";
 import { Thread } from "../../thread";
 import { useOpenCodeSessionContext } from "@/contexts/OpenCodeWorkspaceContext";
-import { cn } from "@/lib/utils";
+import { cn, parseModelString } from "@/lib/utils";
 import { PlusIcon, PlayIcon, StopCircleIcon, FolderIcon, BrainIcon, ServerIcon, RotateCwIcon, AlertTriangleIcon } from "lucide-react";
 import type { OpenCodeSession } from "@/hooks/useOpenCodeWorkspace";
 import { messageConverter } from "@/lib/message-converter";
@@ -90,7 +90,13 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
   // Create chat runtime for the selected session
   // Use a placeholder sessionId if none is selected to avoid hook rule violations
   const runtime = useChatRuntime({
-    api: `/api/opencode-chat?sessionId=${selectedSessionId || 'placeholder'}`,
+    api: "/api/opencode-chat",
+    body: {
+      sessionId: selectedSessionId || 'placeholder',
+      model: currentSession?.model ? parseModelString(currentSession.model).modelID : 'gpt-4',
+      provider: currentSession?.model ? parseModelString(currentSession.model).providerID : 'openai',
+      stream: false
+    },
     initialMessages: initialMessages.length > 0 ? initialMessages : undefined,
   });
 
