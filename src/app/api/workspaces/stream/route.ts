@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
   const encoder = new TextEncoder();
   let isAlive = true;
   let lastSentTimestamp = 0;
+  let removeChangeListener: (() => void) | null = null;
 
   const stream = new ReadableStream({
     start(controller) {
@@ -82,20 +83,20 @@ export async function GET(request: NextRequest) {
         }
       }, 30000);
 
-      // Check for changes every 500ms, but only send updates when data changes
-      const updateInterval = setInterval(() => {
-        if (!isAlive) {
-          clearInterval(updateInterval);
-          return;
+      // Register change listener for instant updates instead of polling
+      removeChangeListener = workspaceManager.addChangeListener(() => {
+        if (isAlive) {
+          sendWorkspaceUpdate();
         }
-        sendWorkspaceUpdate();
-      }, 500);
+      });
 
       // Handle client disconnect
       request.signal.addEventListener("abort", () => {
         isAlive = false;
         clearInterval(heartbeatInterval);
-        clearInterval(updateInterval);
+        if (removeChangeListener) {
+          removeChangeListener(); // Clean up change listener
+        }
         try {
           controller.close();
         } catch {
@@ -106,6 +107,9 @@ export async function GET(request: NextRequest) {
 
     cancel() {
       isAlive = false;
+      if (removeChangeListener) {
+        removeChangeListener(); // Clean up change listener
+      }
     },
   });
 

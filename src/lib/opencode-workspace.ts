@@ -42,13 +42,31 @@ export class OpenCodeWorkspaceError extends Error {
 class OpenCodeWorkspaceManager {
   private workspaces: Map<string, OpenCodeWorkspace> = new Map();
   private lastModified: number = Date.now();
+  private changeListeners: Set<(workspaces: OpenCodeWorkspace[]) => void> = new Set();
 
   private markModified(): void {
     this.lastModified = Date.now();
+    this.notifyChange();
   }
 
   getLastModified(): number {
     return this.lastModified;
+  }
+
+  addChangeListener(callback: (workspaces: OpenCodeWorkspace[]) => void): () => void {
+    this.changeListeners.add(callback);
+    return () => this.changeListeners.delete(callback);
+  }
+
+  private notifyChange(): void {
+    const workspaces = this.getAllWorkspaces();
+    this.changeListeners.forEach(callback => {
+      try {
+        callback(workspaces);
+      } catch (error) {
+        console.error('Change listener error:', error);
+      }
+    });
   }
 
   // Session management methods
