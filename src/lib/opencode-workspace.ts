@@ -1,12 +1,10 @@
 import { spawn, ChildProcess } from "child_process";
 import Opencode from "@opencode-ai/sdk";
-import { findAvailablePort } from "./port-utils";
 import { OpenCodeError } from "./opencode-client";
 
 export interface OpenCodeWorkspaceConfig {
   folder: string;
   model: string;
-  port?: number;
 }
 
 export interface ChatSession {
@@ -90,7 +88,6 @@ class OpenCodeWorkspaceManager {
   }
 
   async startWorkspace(config: OpenCodeWorkspaceConfig): Promise<OpenCodeWorkspace> {
-    const port = config.port || (await findAvailablePort());
     const workspaceId = `${Date.now()}-${Math.random()
       .toString(36)
       .substring(2, 11)}`;
@@ -99,7 +96,7 @@ class OpenCodeWorkspaceManager {
       id: workspaceId,
       folder: config.folder,
       model: config.model,
-      port,
+      port: 0, // Will be set when we parse the actual port from stdout
       process: undefined,
       client: undefined,
       status: "starting",
@@ -110,7 +107,7 @@ class OpenCodeWorkspaceManager {
       // Check if opencode command exists
       await this.checkOpenCodeCommand();
 
-      const process = spawn("opencode", ["serve", "--port", port.toString()], {
+      const process = spawn("opencode", ["serve", "--port=0"], {
         cwd: config.folder,
         stdio: ["pipe", "pipe", "pipe"],
       });
@@ -144,10 +141,16 @@ class OpenCodeWorkspaceManager {
 
       process.stdout?.on("data", (data) => {
         console.log(`OpenCode stdout: ${data}`);
-        if (data.toString().includes("server listening")) {
+        const output = data.toString();
+        
+        // Parse port from output like "opencode server listening on http://127.0.0.1:54857"
+        const portMatch = output.match(/server listening on http:\/\/127\.0\.0\.1:(\d+)/);
+        if (portMatch) {
+          const actualPort = parseInt(portMatch[1], 10);
+          workspace.port = actualPort;
           workspace.status = "running";
           workspace.client = new Opencode({
-            baseURL: `http://localhost:${port}`,
+            baseURL: `http://localhost:${actualPort}`,
           });
         }
       });
@@ -176,7 +179,7 @@ class OpenCodeWorkspaceManager {
         }, 30000);
 
         const checkStatus = () => {
-          if (workspace.status === "running") {
+          if (workspace.status === "running" && workspace.port > 0) {
             clearTimeout(timeout);
             resolve(workspace);
           } else if (workspace.status === "error") {

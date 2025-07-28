@@ -31,6 +31,7 @@ export async function POST(
       id: session.id,
       workspaceId: session.workspaceId,
       model: session.model,
+      port: workspace.port,
       createdAt: session.createdAt,
       lastActivity: session.lastActivity,
       status: session.status,

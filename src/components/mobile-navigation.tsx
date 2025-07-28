@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "../../button";
-import { MenuIcon, XIcon, HomeIcon, FolderIcon, MessageSquareIcon, SettingsIcon } from "lucide-react";
+import { MenuIcon, XIcon, HomeIcon, FolderIcon, MessageSquareIcon, SettingsIcon, ArrowLeftIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface MobileNavigationProps {
-  currentView: "workspaces" | "workspace-dashboard" | "chat";
-  onNavigate: (view: "workspaces" | "workspace-dashboard" | "chat") => void;
+  currentView: "quick-start" | "workspaces" | "workspace-dashboard" | "chat";
+  onNavigate: (view: "quick-start" | "workspaces" | "workspace-dashboard" | "chat") => void;
   onBackToWorkspaces: () => void;
   className?: string;
 }
@@ -63,24 +63,30 @@ export default function MobileNavigation({
 
   const navigationItems = [
     {
+      id: "quick-start",
+      label: "Quick Start",
+      icon: HomeIcon,
+      action: () => onNavigate("quick-start"),
+    },
+    {
       id: "workspaces",
       label: "Workspaces",
-      icon: HomeIcon,
-      action: () => onBackToWorkspaces(),
+      icon: FolderIcon,
+      action: () => onNavigate("workspaces"),
     },
     {
       id: "workspace-dashboard",
       label: "Dashboard",
       icon: FolderIcon,
       action: () => onNavigate("workspace-dashboard"),
-      disabled: currentView === "workspaces",
+      disabled: currentView === "quick-start" || currentView === "workspaces",
     },
     {
       id: "chat",
       label: "Chat",
       icon: MessageSquareIcon,
       action: () => onNavigate("chat"),
-      disabled: currentView === "workspaces",
+      disabled: currentView === "quick-start" || currentView === "workspaces",
     },
   ];
 
@@ -93,25 +99,52 @@ export default function MobileNavigation({
         isHeaderVisible ? "translate-y-0" : "-translate-y-full",
         className
       )}>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setIsDrawerOpen(true)}
-          className="flex items-center gap-2 min-h-[44px] min-w-[44px]"
-          aria-label="Open navigation menu"
-        >
-          <MenuIcon className="w-5 h-5" />
-        </Button>
+        {/* Left side - Back button or Menu */}
+        {(currentView === "workspace-dashboard" || currentView === "chat") ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onBackToWorkspaces}
+            className="flex items-center gap-2 min-h-[44px] min-w-[44px]"
+            aria-label="Back to workspaces"
+          >
+            <ArrowLeftIcon className="w-5 h-5" />
+          </Button>
+        ) : (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsDrawerOpen(true)}
+            className="flex items-center gap-2 min-h-[44px] min-w-[44px]"
+            aria-label="Open navigation menu"
+          >
+            <MenuIcon className="w-5 h-5" />
+          </Button>
+        )}
 
         <div className="flex-1 text-center">
           <h1 className="text-lg font-semibold text-foreground">
+            {currentView === "quick-start" && "Quick Start"}
             {currentView === "workspaces" && "OpenCode Dashboard"}
             {currentView === "workspace-dashboard" && "Workspace"}
             {currentView === "chat" && "Chat"}
           </h1>
         </div>
 
-        <div className="w-[44px]" /> {/* Spacer for centering */}
+        {/* Right side - Menu button when showing back button, spacer otherwise */}
+        {(currentView === "workspace-dashboard" || currentView === "chat") ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsDrawerOpen(true)}
+            className="flex items-center gap-2 min-h-[44px] min-w-[44px]"
+            aria-label="Open navigation menu"
+          >
+            <MenuIcon className="w-5 h-5" />
+          </Button>
+        ) : (
+          <div className="w-[44px]" /> /* Spacer for centering */
+        )}
       </div>
 
       {/* Overlay */}

@@ -5,7 +5,6 @@ import { useState, useEffect, useCallback, useRef } from "react";
 export interface OpenCodeSessionConfig {
   folder: string;
   model: string;
-  port?: number;
 }
 
 export interface OpenCodeSession {
@@ -169,15 +168,17 @@ export function useOpenCodeSession(): UseOpenCodeSessionReturn {
       
       const sessionData = await response.json();
       const session: OpenCodeSession = {
-        id: sessionData.sessionId,
+        id: sessionData.id,
         folder: config.folder,
         model: config.model,
         port: sessionData.port,
         status: sessionData.status,
       };
       
-      // Refresh sessions list
+      // Refresh sessions list first to ensure consistency
       await loadSessions();
+      
+      // Then set current session
       updateState({
         currentSession: session,
         isLoading: false,
