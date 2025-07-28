@@ -87,10 +87,9 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
     }
   }, [selectedSessionId, currentSession?.status, loadMessagesFromOpenCode]);
 
-  // Create chat runtime for the selected session
   // Validate mandatory fields - no fallbacks allowed
-  let runtime;
   let validationError: string | null = null;
+  let parsedModel: { modelID: string; providerID: string } | null = null;
 
   if (!selectedSessionId) {
     validationError = "Session ID is required";
@@ -98,27 +97,30 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
     validationError = "Session model is required";
   } else {
     try {
-      const parsedModel = parseModelString(currentSession.model);
-      if (!parsedModel.modelID) {
+      const parsed = parseModelString(currentSession.model);
+      if (!parsed.modelID) {
         validationError = "Valid model ID is required";
-      } else if (!parsedModel.providerID) {
+      } else if (!parsed.providerID) {
         validationError = "Valid provider ID is required";
       } else {
-        runtime = useChatRuntime({
-          api: "/api/opencode-chat",
-          body: {
-            sessionId: selectedSessionId,
-            model: parsedModel.modelID,
-            provider: parsedModel.providerID,
-            stream: false
-          },
-          initialMessages: initialMessages.length > 0 ? initialMessages : undefined,
-        });
+        parsedModel = parsed;
       }
     } catch (error) {
       validationError = `Invalid model format: ${error instanceof Error ? error.message : 'Unknown error'}`;
     }
   }
+
+  // Create chat runtime - hooks must be called unconditionally
+  const runtime = useChatRuntime({
+    api: "/api/opencode-chat",
+    body: {
+      sessionId: selectedSessionId || '',
+      model: parsedModel?.modelID || '',
+      provider: parsedModel?.providerID || '',
+      stream: false
+    },
+    initialMessages: initialMessages.length > 0 ? initialMessages : undefined,
+  });
 
   // Show loading state if no session is selected yet
   if (!selectedSessionId) {
@@ -242,7 +244,7 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
               </p>
             </div>
           </div>
-        ) : selectedSessionId && currentSession && runtime ? (
+        ) : selectedSessionId && currentSession ? (
           <AssistantRuntimeProvider runtime={runtime}>
             {/* Chat Header */}
             <div className="border-b border-border p-3 md:p-4 bg-background">
