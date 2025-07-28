@@ -1,4 +1,17 @@
 import request from 'supertest'
+import fs from 'fs'
+import path from 'path'
+
+// Ensure test directories exist
+function ensureTestDirectory(dirPath: string): void {
+  try {
+    if (!fs.existsSync(dirPath)) {
+      fs.mkdirSync(dirPath, { recursive: true, mode: 0o755 })
+    }
+  } catch (error) {
+    console.warn(`Could not create test directory ${dirPath}:`, error)
+  }
+}
 
 // Mock data for testing
 export const mockWorkspaceData = {
@@ -22,6 +35,9 @@ export const mockChatMessage = {
 
 // Helper function to create a workspace and return its ID
 export async function createTestWorkspace(baseURL: string): Promise<string> {
+  // Ensure the test directory exists before creating workspace
+  ensureTestDirectory(mockWorkspaceData.folder)
+  
   const response = await request(baseURL)
     .post('/api/workspaces')
     .send(mockWorkspaceData)
@@ -73,4 +89,9 @@ export async function waitFor(
 // Helper to generate unique test identifiers
 export function generateTestId(): string {
   return `test_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`
+}
+
+// Helper function to ensure workspace directory exists
+export function ensureWorkspaceDirectory(folderPath: string): void {
+  ensureTestDirectory(folderPath)
 }

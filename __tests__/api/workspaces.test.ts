@@ -1,6 +1,6 @@
 import request from 'supertest'
 import { startTestServer, stopTestServer } from '../setup/test-server'
-import { mockWorkspaceData, cleanupWorkspace, generateTestId } from '../setup/test-utils'
+import { mockWorkspaceData, cleanupWorkspace, generateTestId, ensureWorkspaceDirectory } from '../setup/test-utils'
 
 describe('/api/workspaces', () => {
   let baseURL: string
@@ -32,6 +32,9 @@ describe('/api/workspaces', () => {
         ...mockWorkspaceData,
         folder: `/tmp/test-workspace-${generateTestId()}`
       }
+
+      // Ensure the test directory exists before creating workspace
+      ensureWorkspaceDirectory(testData.folder)
 
       const response = await request(baseURL)
         .post('/api/workspaces')
@@ -102,6 +105,9 @@ describe('/api/workspaces', () => {
         ...mockWorkspaceData,
         folder: `/tmp/test-workspace-${generateTestId()}`
       }
+
+      // Ensure the test directory exists before creating workspace
+      ensureWorkspaceDirectory(testData.folder)
 
       const createResponse = await request(baseURL)
         .post('/api/workspaces')

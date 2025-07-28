@@ -26,7 +26,10 @@ const customJestConfig = {
   ],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
-    '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
+    '\\.(css|less|scss|sass)$': '<rootDir>/__mocks__/next-css.js',
+    // Mock Next.js font imports to resolve ESM issues
+    'next/font/google': '<rootDir>/__mocks__/next-font.js',
+    'next/font/local': '<rootDir>/__mocks__/next-font.js',
   },
   testTimeout: 30000,
 }
