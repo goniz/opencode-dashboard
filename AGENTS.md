@@ -5,7 +5,10 @@
 - `npm run build` - Build for production
 - `npm run start` - Start production server
 - `npm run lint` - Run ESLint
-- **Note**: No test framework configured - add tests if needed
+- `npm run test` - Run tests in watch mode with Vitest
+- `npm run test:run` - Run tests once
+- `npm run test:ui` - Run tests with Vitest UI
+- `npm run test:coverage` - Run tests with coverage report
 
 ## Code Style Guidelines
 - **Framework**: Next.js 15 with App Router, React 19, TypeScript
@@ -29,8 +32,17 @@
 - `src/contexts/` - React context providers
 - `src/hooks/` - Custom React hooks
 - `src/lib/` - Utility functions and shared logic
+- `src/test/` - Test utilities and setup files
 - `public/` - Static assets
 - TypeScript strict mode enabled with path aliases configured
+
+## Testing
+- **Framework**: Vitest with jsdom environment for React component testing
+- **Libraries**: @testing-library/react, @testing-library/jest-dom, @testing-library/user-event
+- **Setup**: Global test setup in `src/test/setup.ts`
+- **Integration Tests**: Test utilities for starting real opencode servers in `src/test/opencode-server.ts`
+- **Coverage**: Available via `npm run test:coverage`
+- **UI**: Interactive test UI available via `npm run test:ui`
 
 ## Additional Notes
 - No Cursor or Copilot rules found in the repository.
