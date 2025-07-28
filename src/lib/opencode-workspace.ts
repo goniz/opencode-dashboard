@@ -1,6 +1,7 @@
 import { spawn, ChildProcess } from "child_process";
 import Opencode from "@opencode-ai/sdk";
 import { OpenCodeError } from "./opencode-client";
+import { parseModelString } from "./utils";
 
 export interface OpenCodeWorkspaceConfig {
   folder: string;
@@ -70,25 +71,49 @@ class OpenCodeWorkspaceManager {
   }
 
   // Session management methods
-  createSession(workspaceId: string, model: string): ChatSession {
+  async createSession(workspaceId: string, model: string): Promise<ChatSession> {
     const workspace = this.workspaces.get(workspaceId);
     if (!workspace) {
       throw new OpenCodeWorkspaceError(`Workspace ${workspaceId} not found`);
     }
 
-    const sessionId = `session-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
-    const session: ChatSession = {
-      id: sessionId,
-      workspaceId,
-      model,
-      createdAt: new Date(),
-      lastActivity: new Date(),
-      status: "active",
-    };
+    if (workspace.status !== "running" || !workspace.client) {
+      throw new OpenCodeWorkspaceError(`Workspace ${workspaceId} is not running or client not available`);
+    }
 
-    workspace.sessions.set(sessionId, session);
-    this.markModified();
-    return session;
+    try {
+      // Create an actual OpenCode session using the SDK
+      const openCodeSession = await workspace.client.session.create();
+      
+      // Initialize the session with required parameters
+      const initMessageID = `init_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+      const { modelID, providerID } = parseModelString(model);
+      await workspace.client.session.init(openCodeSession.id, {
+        messageID: initMessageID,
+        modelID,
+        providerID
+      });
+      
+      const session: ChatSession = {
+        id: openCodeSession.id,
+        workspaceId,
+        model,
+        createdAt: new Date(),
+        lastActivity: new Date(),
+        status: "active",
+      };
+
+      workspace.sessions.set(openCodeSession.id, session);
+      this.markModified();
+      return session;
+    } catch (error) {
+      console.error("Failed to create OpenCode session:", error);
+      throw new OpenCodeWorkspaceError(
+        "Failed to create OpenCode session",
+        error,
+        "Ensure the OpenCode server is running and accessible"
+      );
+    }
   }
 
   getSession(workspaceId: string, sessionId: string): ChatSession | undefined {

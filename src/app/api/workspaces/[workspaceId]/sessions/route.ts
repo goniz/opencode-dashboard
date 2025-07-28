@@ -25,7 +25,7 @@ export async function POST(
       );
     }
 
-    const session = workspaceManager.createSession(workspaceId, model);
+    const session = await workspaceManager.createSession(workspaceId, model);
 
     return NextResponse.json({
       id: session.id,
