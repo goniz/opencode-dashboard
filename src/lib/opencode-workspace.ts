@@ -162,16 +162,16 @@ class OpenCodeWorkspaceManager {
 
       workspace.process = process;
 
-      //process.on("error", (error) => {
-        //console.error(`OpenCode process error:`, error);
-        //workspace.status = "error";
-        //workspace.error = new OpenCodeWorkspaceError(
-          //"Failed to start OpenCode process.",
-          //error,
-          //"Ensure the 'opencode' command is installed and accessible in your system's PATH."
-        //);
-        //this.markModified();
-      //});
+      process.on("error", (error) => {
+        console.error(`OpenCode process error:`, error);
+        workspace.status = "error";
+        workspace.error = new OpenCodeWorkspaceError(
+          "Failed to start OpenCode process.",
+          error,
+          "Ensure the 'opencode' command is installed and accessible in your system's PATH."
+        );
+        this.markModified();
+      });
 
       process.on("exit", (code) => {
         console.log(`OpenCode process exited with code ${code}`);
@@ -204,17 +204,6 @@ class OpenCodeWorkspaceManager {
           });
           this.markModified();
         }
-      });
-
-      process.stderr?.on("data", (data) => {
-        console.error(`OpenCode stderr: ${data}`);
-        workspace.status = "error";
-        workspace.error = new OpenCodeWorkspaceError(
-          "An error occurred in the OpenCode process.",
-          data.toString(),
-          "Review the OpenCode logs for details."
-        );
-        this.markModified();
       });
 
       this.workspaces.set(workspaceId, workspace);
