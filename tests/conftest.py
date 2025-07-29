@@ -143,7 +143,7 @@ def test_folder(server_manager: TestServerManager) -> str:
 @pytest.fixture
 def test_model() -> str:
     """Default model to use in tests."""
-    return "openai/gpt-4o-mini"
+    return "anthropic/claude-3-5-haiku-20241022"
 
 
 @pytest.fixture
