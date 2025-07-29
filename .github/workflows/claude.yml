@@ -61,13 +61,11 @@ jobs:
           #assignee_trigger: "claude"
           
           # Allow Claude to run specific commands
-          allowed_tools: "Bash(npm:*),Bash(gh:*)"
+          allowed_tools: "Bash(npm:*),Bash(gh:*),Bash(uv:*)"
           
-          # Optional: Add custom instructions for Claude to customize its behavior for your project
-          # custom_instructions: |
-          #   Follow our coding standards
-          #   Ensure all new code has tests
-          #   Use TypeScript for new files
+          # Add custom instructions for Claude to customize its behavior for your project
+          custom_instructions: |
+            read AGENTS.md for development guidelines
           
           # Optional: Custom environment variables for Claude
           # claude_env: |
