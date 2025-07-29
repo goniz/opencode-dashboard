@@ -11,12 +11,8 @@ import shutil
 
 def find_free_port() -> int:
     """Find a free port to run the test server on."""
-    import socket
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind(('', 0))
-        s.listen(1)
-        port = s.getsockname()[1]
-    return port
+    import portpicker
+    return portpicker.pick_unused_port()
 
 
 class TestServerManager:
