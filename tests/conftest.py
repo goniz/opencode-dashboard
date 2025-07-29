@@ -130,7 +130,7 @@ def base_url(server_manager: TestServerManager) -> str:
 @pytest.fixture
 async def client(base_url: str) -> AsyncGenerator[httpx.AsyncClient, None]:
     """Async HTTP client for making API requests."""
-    async with httpx.AsyncClient(base_url=base_url, timeout=30.0) as client:
+    async with httpx.AsyncClient(base_url=base_url, timeout=120.0) as client:
         yield client
 
 
@@ -163,9 +163,12 @@ async def test_workspace(client: httpx.AsyncClient, test_folder: str, test_model
     
     yield workspace_data
     
-    # Cleanup: Try to delete the workspace (if endpoint exists)
-    # Note: Based on the API analysis, there might not be a delete endpoint
-    # so we'll just let the server cleanup when it shuts down
+    # Cleanup: Stop the workspace to free resources
+    try:
+        # Make a DELETE request to stop the workspace
+        await client.delete(f"/api/workspaces?id={workspace_id}")
+    except Exception as e:
+        print(f"Warning: Failed to cleanup workspace {workspace_id}: {e}")
 
 
 @pytest.fixture

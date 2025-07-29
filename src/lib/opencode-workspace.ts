@@ -82,17 +82,21 @@ class OpenCodeWorkspaceManager {
     }
 
     try {
+      console.log(`Creating OpenCode session for workspace ${workspaceId} with model ${model}`);
       // Create an actual OpenCode session using the SDK
       const openCodeSession = await workspace.client.session.create();
+      console.log(`Created OpenCode session ${openCodeSession.id}`);
       
       // Initialize the session with required parameters
       const initMessageID = `init_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
       const { modelID, providerID } = parseModelString(model);
+      console.log(`Initializing session ${openCodeSession.id} with model ${modelID}/${providerID}`);
       await workspace.client.session.init(openCodeSession.id, {
         messageID: initMessageID,
         modelID,
         providerID
       });
+      console.log(`Initialized session ${openCodeSession.id}`);
       
       const session: ChatSession = {
         id: openCodeSession.id,
