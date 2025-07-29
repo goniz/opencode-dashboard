@@ -157,7 +157,7 @@ class OpenCodeWorkspaceManager {
 
       const process = spawn("opencode", ["serve", "--port=0"], {
         cwd: config.folder,
-        stdio: ["pipe", "pipe", "pipe"],
+        stdio: ["pipe", "pipe", "inherit"],
       });
 
       workspace.process = process;
