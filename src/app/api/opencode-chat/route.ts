@@ -97,9 +97,6 @@ export async function POST(request: NextRequest) {
       providerID: provider,
       parts: [
         {
-          id: `part_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
-          messageID,
-          sessionID: sessionId,
           text: messageContent,
           type: "text" as const
         }
