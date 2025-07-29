@@ -155,7 +155,7 @@ class OpenCodeWorkspaceManager {
       // Check if opencode command exists
       await this.checkOpenCodeCommand();
 
-      const process = spawn("opencode", ["serve", "--port=0"], {
+      const process = spawn("opencode", ["serve", "--port=0", "--print-logs"], {
         cwd: config.folder,
         stdio: ["pipe", "pipe", "inherit"],
       });
