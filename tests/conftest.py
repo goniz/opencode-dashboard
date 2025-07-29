@@ -43,7 +43,7 @@ class TestServerManager:
             ["npm", "run", "dev"],
             env=env,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            #stderr=subprocess.PIPE,
             text=True
         )
         
