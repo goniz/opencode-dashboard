@@ -162,16 +162,16 @@ class OpenCodeWorkspaceManager {
 
       workspace.process = process;
 
-      process.on("error", (error) => {
-        console.error(`OpenCode process error:`, error);
-        workspace.status = "error";
-        workspace.error = new OpenCodeWorkspaceError(
-          "Failed to start OpenCode process.",
-          error,
-          "Ensure the 'opencode' command is installed and accessible in your system's PATH."
-        );
-        this.markModified();
-      });
+      //process.on("error", (error) => {
+        //console.error(`OpenCode process error:`, error);
+        //workspace.status = "error";
+        //workspace.error = new OpenCodeWorkspaceError(
+          //"Failed to start OpenCode process.",
+          //error,
+          //"Ensure the 'opencode' command is installed and accessible in your system's PATH."
+        //);
+        //this.markModified();
+      //});
 
       process.on("exit", (code) => {
         console.log(`OpenCode process exited with code ${code}`);
