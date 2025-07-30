@@ -7,7 +7,15 @@ export async function POST(
 ) {
   try {
     const { workspaceId } = await params;
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch (jsonError) {
+      return NextResponse.json(
+        { error: "Invalid JSON in request body" },
+        { status: 400 }
+      );
+    }
     const { model } = body as { model: string };
 
     if (!model) {

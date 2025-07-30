@@ -82,17 +82,10 @@ class OpenCodeWorkspaceManager {
     }
 
     try {
+      console.log(`Creating OpenCode session for workspace ${workspaceId} with model ${model}`);
       // Create an actual OpenCode session using the SDK
       const openCodeSession = await workspace.client.session.create();
-      
-      // Initialize the session with required parameters
-      const initMessageID = `init_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-      const { modelID, providerID } = parseModelString(model);
-      await workspace.client.session.init(openCodeSession.id, {
-        messageID: initMessageID,
-        modelID,
-        providerID
-      });
+      console.log(`Created OpenCode session ${openCodeSession.id}`);
       
       const session: ChatSession = {
         id: openCodeSession.id,
@@ -162,9 +155,9 @@ class OpenCodeWorkspaceManager {
       // Check if opencode command exists
       await this.checkOpenCodeCommand();
 
-      const process = spawn("opencode", ["serve", "--port=0"], {
+      const process = spawn("opencode", ["serve", "--port=0", "--print-logs"], {
         cwd: config.folder,
-        stdio: ["pipe", "pipe", "pipe"],
+        stdio: ["pipe", "pipe", "inherit"],
       });
 
       workspace.process = process;
@@ -211,17 +204,6 @@ class OpenCodeWorkspaceManager {
           });
           this.markModified();
         }
-      });
-
-      process.stderr?.on("data", (data) => {
-        console.error(`OpenCode stderr: ${data}`);
-        workspace.status = "error";
-        workspace.error = new OpenCodeWorkspaceError(
-          "An error occurred in the OpenCode process.",
-          data.toString(),
-          "Review the OpenCode logs for details."
-        );
-        this.markModified();
       });
 
       this.workspaces.set(workspaceId, workspace);

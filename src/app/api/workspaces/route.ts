@@ -4,7 +4,15 @@ import type { OpenCodeWorkspaceConfig } from "@/lib/opencode-workspace";
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch (jsonError) {
+      return NextResponse.json(
+        { error: "Invalid JSON in request body" },
+        { status: 400 }
+      );
+    }
     const { folder, model } = body as { folder: string; model: string };
 
     if (!folder) {
@@ -41,6 +49,29 @@ export async function POST(request: NextRequest) {
   }
 }
 
+export async function DELETE(request: NextRequest) {
+  try {
+    const url = new URL(request.url);
+    const workspaceId = url.searchParams.get('id');
+    
+    if (!workspaceId) {
+      return NextResponse.json(
+        { error: "Workspace ID is required" },
+        { status: 400 }
+      );
+    }
+
+    await workspaceManager.stopWorkspace(workspaceId);
+    
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Failed to delete workspace:", error);
+    return NextResponse.json(
+      { error: "Failed to delete workspace" },
+      { status: 500 }
+    );
+  }
+}
 export async function GET() {
   try {
     const workspaces = workspaceManager.getAllWorkspaces();
