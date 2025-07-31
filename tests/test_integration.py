@@ -176,7 +176,8 @@ class TestOtherEndpoints:
 
     async def test_models_endpoint(self, client: httpx.AsyncClient):
         """Test the models endpoint if available."""
-        response = await client.get("/api/models")
+        test_folder = server_manager.get_test_folder_path("integration_test")
+        response = await client.get("/api/models?folder=" + test_folder)
         
         # This endpoint might or might not exist, accept various responses
         assert response.status_code in [200, 404, 405]
