@@ -135,21 +135,38 @@ export async function POST(request: NextRequest) {
             }
             
             // Start event listening in background if available
+            let eventStreamPromise: Promise<void> | null = null;
             if (eventStream) {
-              (async () => {
+              eventStreamPromise = (async () => {
                 try {
                   for await (const event of eventStream) {
                     // Filter events related to our session
                     if (event.type === "message.part.updated") {
-                      controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-                        type: "message_part_updated",
-                        part: event.properties.part
-                      })}\n\n`));
+                      try {
+                        const eventData = JSON.stringify({
+                          type: "message_part_updated",
+                          part: event.properties.part
+                        });
+                        controller.enqueue(encoder.encode(`data: ${eventData}\n\n`));
+                      } catch (jsonError) {
+                        console.error("Failed to serialize message.part.updated event:", jsonError);
+                      }
                     } else if (event.type === "message.updated") {
-                      controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-                        type: "message_updated",
-                        message: event.properties.info
-                      })}\n\n`));
+                      try {
+                        const eventData = JSON.stringify({
+                          type: "message_updated",
+                          message: event.properties.info
+                        });
+                        controller.enqueue(encoder.encode(`data: ${eventData}\n\n`));
+                      } catch (jsonError) {
+                        console.error("Failed to serialize message.updated event:", jsonError);
+                        // Send a simplified version if JSON serialization fails
+                        const fallbackData = JSON.stringify({
+                          type: "message_updated",
+                          message: { id: event.properties.info?.id || "unknown" }
+                        });
+                        controller.enqueue(encoder.encode(`data: ${fallbackData}\n\n`));
+                      }
                     }
                   }
                 } catch (error) {
@@ -161,13 +178,32 @@ export async function POST(request: NextRequest) {
             // Wait for the main chat request to complete
             const [chatResult] = await Promise.allSettled([chatPromise]);
 
+            // Wait a bit for any remaining events, then send final result
+            if (eventStreamPromise) {
+              // Give the event stream a small window to finish processing
+              await Promise.race([
+                eventStreamPromise,
+                new Promise(resolve => setTimeout(resolve, 1000)) // 1 second timeout
+              ]);
+            }
+
             // Send final result
             if (chatResult.status === "fulfilled") {
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-                type: "chat_completed",
-                message: chatResult.value,
-                sessionId
-              })}\n\n`));
+              try {
+                const finalData = JSON.stringify({
+                  type: "chat_completed",
+                  message: chatResult.value,
+                  sessionId
+                });
+                controller.enqueue(encoder.encode(`data: ${finalData}\n\n`));
+              } catch (jsonError) {
+                console.error("Failed to serialize final chat result:", jsonError);
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                  type: "chat_completed",
+                  sessionId,
+                  error: "Failed to serialize response"
+                })}\n\n`));
+              }
             } else {
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({
                 type: "error",
@@ -182,6 +218,10 @@ export async function POST(request: NextRequest) {
               error: error instanceof Error ? error.message : "Stream processing error"
             })}\n\n`));
           } finally {
+            // Send a final close event to signal end of stream
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+              type: "stream_end"
+            })}\n\n`));
             controller.close();
           }
         },
