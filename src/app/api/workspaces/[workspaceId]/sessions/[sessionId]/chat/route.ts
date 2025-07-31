@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { workspaceManager } from "@/lib/opencode-workspace";
 import { withOpenCodeErrorHandling } from "@/lib/opencode-client";
 import { parseModelString } from "@/lib/utils";
-import type Opencode from "@opencode-ai/sdk";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -67,7 +66,7 @@ export async function POST(
 
     // Prepare the chat parameters according to OpenCode SDK
     // Based on Zod validation error, these fields are required: providerID, modelID, parts
-    const chatParams: any = {
+    const chatParams = {
       providerID,
       modelID,
       parts: [

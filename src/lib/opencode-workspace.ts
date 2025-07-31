@@ -1,7 +1,6 @@
 import { spawn, ChildProcess } from "child_process";
 import Opencode from "@opencode-ai/sdk";
 import { OpenCodeError } from "./opencode-client";
-import { parseModelString } from "./utils";
 
 export interface OpenCodeWorkspaceConfig {
   folder: string;
