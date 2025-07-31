@@ -22,7 +22,7 @@
 		"ghcr.io/jsburckhardt/devcontainer-features/uv:1": {},
 		"ghcr.io/devcontainers-extra/features/devcontainers-cli:1": {},
 		"ghcr.io/devcontainers-extra/features/npm-packages:1": {
-			"packages": "@google/gemini-cli,opencode-ai@latest"
+			"packages": "@google/gemini-cli,opencode-ai,@openai/codex@native"
 		},
 		"ghcr.io/devcontainers/features/sshd:1": {
 			"version": "latest"
