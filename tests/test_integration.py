@@ -174,7 +174,7 @@ class TestOtherEndpoints:
             data = response.json()
             assert isinstance(data, (list, dict))
 
-    async def test_models_endpoint(self, client: httpx.AsyncClient):
+    async def test_models_endpoint(self, client: httpx.AsyncClient, server_manager):
         """Test the models endpoint if available."""
         test_folder = server_manager.get_test_folder_path("integration_test")
         response = await client.get("/api/models?folder=" + test_folder)
