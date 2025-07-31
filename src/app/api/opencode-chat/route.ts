@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { workspaceManager, type OpenCodeWorkspace } from "@/lib/opencode-workspace";
 import { withOpenCodeErrorHandling } from "@/lib/opencode-client";
-import type Opencode from "@opencode-ai/sdk";
+import { parseModelString } from "@/lib/utils";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
 export async function POST(request: NextRequest) {
   try {
-    const { sessionId, messages, model, provider = "openai", stream = false } = await request.json();
+    const { sessionId, messages, model, stream = false } = await request.json();
 
     if (!sessionId) {
       return NextResponse.json(
@@ -30,6 +30,9 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Parse model string to extract provider and model ID
+    const { providerID, modelID } = parseModelString(model);
 
     // Find the workspace that contains this session
     let session: OpenCodeWorkspace | null = null;
@@ -83,18 +86,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate a unique message ID
-    const messageID = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-
-    console.log(`🔍 Chat request - SessionID: ${sessionId}, Model: ${model}, Provider: ${provider}, MessageID: ${messageID}`);
+    console.log(`🔍 Chat request - SessionID: ${sessionId}, Model: ${model}, Provider: ${providerID}, ModelID: ${modelID}`);
     console.log(`📝 Message content length: ${messageContent.length}`);
 
     // Prepare the chat parameters according to OpenCode SDK
-    const chatParams: Opencode.SessionChatParams = {
-      messageID,
-      mode: "chat",
-      modelID: model,
-      providerID: provider,
+    // Based on Zod validation error, these fields are required: providerID, modelID, parts
+    const chatParams = {
+      providerID,
+      modelID,
       parts: [
         {
           text: messageContent,
@@ -121,7 +120,6 @@ export async function POST(request: NextRequest) {
             // Send initial message indicating chat started
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
               type: "chat_started", 
-              messageId: messageID,
               sessionId 
             })}\n\n`));
 
@@ -141,15 +139,13 @@ export async function POST(request: NextRequest) {
               (async () => {
                 try {
                   for await (const event of eventStream) {
-                    // Filter events related to our message or session
-                    if (event.type === "message.part.updated" && 
-                        event.properties.part.messageID === messageID) {
+                    // Filter events related to our session
+                    if (event.type === "message.part.updated") {
                       controller.enqueue(encoder.encode(`data: ${JSON.stringify({
                         type: "message_part_updated",
                         part: event.properties.part
                       })}\n\n`));
-                    } else if (event.type === "message.updated" && 
-                               event.properties.info.id === messageID) {
+                    } else if (event.type === "message.updated") {
                       controller.enqueue(encoder.encode(`data: ${JSON.stringify({
                         type: "message_updated",
                         message: event.properties.info
