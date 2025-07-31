@@ -30,6 +30,11 @@
       "resolved": "ghcr.io/devcontainers/features/python@sha256:cf9b6d879790a594b459845b207c5e1762a0c8f954bb8033ff396e497f9c301b",
       "integrity": "sha256:cf9b6d879790a594b459845b207c5e1762a0c8f954bb8033ff396e497f9c301b"
     },
+    "ghcr.io/devcontainers/features/sshd:1": {
+      "version": "1.0.10",
+      "resolved": "ghcr.io/devcontainers/features/sshd@sha256:6e98e1977a3629e4372c41691602311b3455b682aa0e5abf29d6c33e1ee2e6e1",
+      "integrity": "sha256:6e98e1977a3629e4372c41691602311b3455b682aa0e5abf29d6c33e1ee2e6e1"
+    },
     "ghcr.io/jsburckhardt/devcontainer-features/uv:1": {
       "version": "1.0.0",
       "resolved": "ghcr.io/jsburckhardt/devcontainer-features/uv@sha256:542a0bc2203205b3c696de650ba862f280b20af3543493cc232edd9ac35791f7",
