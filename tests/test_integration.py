@@ -174,9 +174,10 @@ class TestOtherEndpoints:
             data = response.json()
             assert isinstance(data, (list, dict))
 
-    async def test_models_endpoint(self, client: httpx.AsyncClient):
+    async def test_models_endpoint(self, client: httpx.AsyncClient, server_manager):
         """Test the models endpoint if available."""
-        response = await client.get("/api/models")
+        test_folder = server_manager.get_test_folder_path("integration_test")
+        response = await client.get("/api/models?folder=" + test_folder)
         
         # This endpoint might or might not exist, accept various responses
         assert response.status_code in [200, 404, 405]
@@ -195,12 +196,41 @@ class TestOtherEndpoints:
 
     async def test_opencode_chat_endpoint(self, client: httpx.AsyncClient):
         """Test the opencode-chat endpoint."""
-        # Try GET first
+        # Try GET without sessionId - should return 400
         get_response = await client.get("/api/opencode-chat")
-        assert get_response.status_code in [200, 404, 405, 500]
+        assert get_response.status_code == 400
+        data = get_response.json()
+        assert "error" in data
+        assert "session id" in data["error"].lower()
         
-        # Try POST with minimal payload
-        post_response = await client.post("/api/opencode-chat", json={
+        # Try GET with invalid sessionId - should return 404
+        get_response_invalid = await client.get("/api/opencode-chat?sessionId=invalid-session")
+        assert get_response_invalid.status_code == 404
+        
+        # Try POST with missing required fields - should return 400
+        post_response_no_session = await client.post("/api/opencode-chat", json={
             "message": "test"
         })
-        assert post_response.status_code in [200, 400, 404, 405, 500]
+        assert post_response_no_session.status_code == 400
+        
+        # Try POST with missing messages - should return 400
+        post_response_no_messages = await client.post("/api/opencode-chat", json={
+            "sessionId": "test-session",
+            "model": "test-model"
+        })
+        assert post_response_no_messages.status_code == 400
+        
+        # Try POST with missing model - should return 400
+        post_response_no_model = await client.post("/api/opencode-chat", json={
+            "sessionId": "test-session",
+            "messages": [{"role": "user", "content": "test"}]
+        })
+        assert post_response_no_model.status_code == 400
+        
+        # Try POST with all required fields but invalid session - should return 404
+        post_response_invalid_session = await client.post("/api/opencode-chat", json={
+            "sessionId": "invalid-session",
+            "messages": [{"role": "user", "content": "test"}],
+            "model": "anthropic/claude-3-5-haiku-20241022"
+        })
+        assert post_response_invalid_session.status_code == 404

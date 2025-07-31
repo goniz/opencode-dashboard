@@ -1,7 +1,6 @@
 import { spawn, ChildProcess } from "child_process";
 import Opencode from "@opencode-ai/sdk";
 import { OpenCodeError } from "./opencode-client";
-import { parseModelString } from "./utils";
 
 export interface OpenCodeWorkspaceConfig {
   folder: string;
@@ -198,11 +197,25 @@ class OpenCodeWorkspaceManager {
         if (portMatch) {
           const actualPort = parseInt(portMatch[1], 10);
           workspace.port = actualPort;
-          workspace.status = "running";
           workspace.client = new Opencode({
             baseURL: `http://localhost:${actualPort}`,
           });
-          this.markModified();
+          
+          // Initialize the app after creating the client
+          workspace.client.app.init().then(() => {
+            console.log(`OpenCode app initialized for workspace ${workspaceId}`);
+            workspace.status = "running";
+            this.markModified();
+          }).catch((error) => {
+            console.error(`Failed to initialize OpenCode app:`, error);
+            workspace.status = "error";
+            workspace.error = new OpenCodeWorkspaceError(
+              "Failed to initialize OpenCode app.",
+              error,
+              "Ensure the OpenCode server is running properly."
+            );
+            this.markModified();
+          });
         }
       });
 
