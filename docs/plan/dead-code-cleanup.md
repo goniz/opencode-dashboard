@@ -1,171 +1,191 @@
 # Dead Code Cleanup Plan
 
-**Status**: 🔄 In Progress  
+**Status**: ⏳ Not Started  
 **Created**: 2025-08-02  
 **Last Updated**: 2025-08-02
 
 ## Overview
 
-This plan identifies and removes dead code from the opencode-dashboard project, including unused dependencies, legacy API routes, and obsolete interfaces.
+This plan identifies and removes dead code, unused components, orphaned files, and unnecessary assets from the opencode-dashboard project to improve maintainability, reduce bundle size, and eliminate confusion.
 
 ## Progress Tracking
 
-- [ ] **Phase 1**: Identify Dead Code *(5/5 tasks)* ⏳ *In Progress*
-- [ ] **Phase 2**: Remove Legacy API Routes *(3/3 tasks)* ⏳ *Not Started*
-- [ ] **Phase 3**: Clean Up Dependencies *(2/2 tasks)* ⏳ *Not Started*
-- [ ] **Phase 4**: Remove Unused Interfaces *(2/2 tasks)* ⏳ *Not Started*
-- [ ] **Phase 5**: Final Verification *(2/2 tasks)* ⏳ *Not Started*
+- [ ] **Phase 1**: Root-Level Component Cleanup *(6/6 tasks)* ⏳ *Not Started*
+- [ ] **Phase 2**: Unused Utility Cleanup *(2/2 tasks)* ⏳ *Not Started*
+- [ ] **Phase 3**: Asset Cleanup *(6/6 tasks)* ⏳ *Not Started*
+- [ ] **Phase 4**: Legacy API Cleanup *(3/3 tasks)* ⏳ *Not Started*
+- [ ] **Phase 5**: Verification and Testing *(3/3 tasks)* ⏳ *Not Started*
 
 ---
 
-## Phase 1: Identify Dead Code
-**Status**: 🔄 In Progress  
-**Goal**: Catalog all unused code and dependencies
-
-### Tasks
-- [x] ~~**1.1** Identify unused npm dependencies~~ ✅ *Completed 2025-08-02*
-  - [x] ~~`@ai-sdk/openai` - unused dependency~~
-  - [x] ~~`@tailwindcss/postcss` - unused dev dependency~~
-  - [x] ~~`eslint` - unused dev dependency~~
-  - [x] ~~`eslint-config-next` - unused dev dependency~~
-  - [x] ~~`tailwindcss` - unused dev dependency~~
-  - [x] ~~`typescript` - unused dev dependency~~
-
-- [x] ~~**1.2** Identify legacy API routes~~ ✅ *Completed 2025-08-02*
-  - [x] ~~`/api/opencode` - legacy workspace management~~
-  - [x] ~~`/api/opencode-chat` - legacy chat endpoints~~
-  - [x] ~~`/api/folders` - legacy folder endpoints~~
-
-- [x] ~~**1.3** Identify unused interfaces~~ ✅ *Completed 2025-08-02*
-  - [x] ~~`OpenCodeSessionConfig` - replaced by workspace config~~
-  - [x] ~~`OpenCodeSession` - replaced by workspace interfaces~~
-  - [x] ~~`SessionError` - unused error type~~
-  - [x] ~~`SessionState` - unused state type~~
-  - [x] ~~`UseOpenCodeSessionReturn` - replaced by workspace return type~~
-
-- [x] ~~**1.4** Identify legacy API usage~~ ✅ *Completed 2025-08-02*
-  - [x] ~~`opencode-chat-interface.tsx:21` - uses `/api/opencode-chat`~~
-  - [x] ~~`opencode-chat-interface.tsx:22` - uses `/api/opencode-chat`~~
-
-- [x] ~~**1.5** Identify test files in source~~ ✅ *Completed 2025-08-02*
-  - [x] ~~`src/lib/test-converter.ts` - test utilities in source~~
-
----
-
-## Phase 2: Remove Legacy API Routes
+## Phase 1: Root-Level Component Cleanup
 **Status**: ⏳ Not Started  
-**Goal**: Remove obsolete API endpoints
+**Goal**: Remove unused UI components that are duplicated or orphaned in the root directory
 
 ### Tasks
-- [ ] **2.1** Remove `/api/opencode` endpoints
-  - [ ] Delete `src/app/api/opencode/route.ts`
-  - [ ] Update any remaining references
+- [ ] **1.1** Remove unused root-level components
+  - [ ] `button.tsx` - Shadcn/ui component not used (components use `../../button` imports)
+  - [ ] `markdown-text.tsx` - Only used by `thread.tsx` which is also unused
+  - [ ] `thread-list.tsx` - Assistant-ui component not integrated into main app
+  - [ ] `thread.tsx` - Assistant-ui component not integrated into main app
+  - [ ] `tooltip-icon-button.tsx` - Only used by unused thread components
+  - [ ] `tooltip.tsx` - Only used by unused tooltip-icon-button component
 
-- [ ] **2.2** Remove `/api/opencode-chat` endpoints
-  - [ ] Delete `src/app/api/opencode-chat/route.ts`
-  - [ ] Update chat interface to use new endpoints
+- [ ] **1.2** Verify no active imports exist
+  - [ ] Search codebase for any remaining imports of these components
+  - [ ] Update any found imports to use proper component paths
 
-- [ ] **2.3** Remove `/api/folders` endpoints
-  - [ ] Delete `src/app/api/folders/route.ts`
-  - [ ] Update folder selector to use new endpoints
+- [ ] **1.3** Update import paths if needed
+  - [ ] Ensure all active components import from `src/components/` directory
+  - [ ] Fix any broken imports after cleanup
+
+- [ ] **1.4** Test component removal impact
+  - [ ] Run build to ensure no compilation errors
+  - [ ] Test UI functionality to ensure no missing components
+
+- [ ] **1.5** Document component architecture
+  - [ ] Clarify that UI components should live in `src/components/`
+  - [ ] Update any documentation referencing removed components
+
+- [ ] **1.6** Clean up related dependencies
+  - [ ] Check if any packages are only used by removed components
+  - [ ] Remove unused dependencies from package.json if applicable
 
 ---
 
-## Phase 3: Clean Up Dependencies
+## Phase 2: Unused Utility Cleanup
 **Status**: ⏳ Not Started  
-**Goal**: Remove unused npm packages
+**Goal**: Remove test utilities and unused helper functions
 
 ### Tasks
-- [ ] **3.1** Remove unused dependencies
-  ```bash
-  npm uninstall @ai-sdk/openai
-  ```
+- [ ] **2.1** Remove test utilities from source
+  - [ ] `src/lib/test-converter.ts` - Test file that should not be in production source
+  - [ ] Move to `tests/` directory if needed for development, or remove entirely
 
-- [ ] **3.2** Remove unused dev dependencies
-  ```bash
-  npm uninstall @tailwindcss/postcss eslint eslint-config-next tailwindcss typescript
-  ```
+- [ ] **2.2** Evaluate utility usage
+  - [ ] `src/lib/port-utils.ts` - Verify if this is actually used in the application
+  - [ ] Remove if no active imports found
 
 ---
 
-## Phase 4: Remove Unused Interfaces
+## Phase 3: Asset Cleanup
 **Status**: ⏳ Not Started  
-**Goal**: Clean up obsolete TypeScript interfaces
+**Goal**: Remove unused static assets and organize remaining ones
 
 ### Tasks
-- [ ] **4.1** Remove legacy session interfaces from `useOpenCodeWorkspace.ts`
-  - [ ] Remove `OpenCodeSessionConfig`
-  - [ ] Remove `OpenCodeSession`
-  - [ ] Remove `SessionError`
-  - [ ] Remove `SessionState`
-  - [ ] Remove `UseOpenCodeSessionReturn`
+- [ ] **3.1** Remove unused SVG assets
+  - [ ] `terminal-icon.svg` - No references found in codebase
+  - [ ] `public/file.svg` - No references found in codebase
+  - [ ] `public/globe.svg` - No references found in codebase
+  - [ ] `public/next.svg` - Default Next.js asset, likely unused
+  - [ ] `public/vercel.svg` - Default Vercel asset, likely unused
+  - [ ] `public/window.svg` - No references found in codebase
 
-- [ ] **4.2** Update context and hook exports
-  - [ ] Update `OpenCodeWorkspaceContext.tsx` to remove legacy references
-  - [ ] Update `useOpenCodeWorkspace.ts` to use workspace terminology consistently
+- [ ] **3.2** Verify asset usage
+  - [ ] Search for any dynamic imports or references
+  - [ ] Check for usage in CSS files or style objects
+  - [ ] Verify no external references (documentation, etc.)
+
+- [ ] **3.3** Organize remaining assets
+  - [ ] Move any kept assets to appropriate subdirectories
+  - [ ] Update any references to moved assets
+
+- [ ] **3.4** Update asset imports
+  - [ ] Ensure all remaining assets have proper imports
+  - [ ] Use Next.js Image component where appropriate
+
+- [ ] **3.5** Optimize remaining assets
+  - [ ] Compress any large images
+  - [ ] Convert to appropriate formats (WebP, etc.)
+
+- [ ] **3.6** Document asset usage
+  - [ ] Create asset inventory if needed
+  - [ ] Document proper asset organization patterns
 
 ---
 
-## Phase 5: Final Verification
+## Phase 4: Legacy API Cleanup
 **Status**: ⏳ Not Started  
-**Goal**: Ensure no regressions after cleanup
+**Goal**: Remove obsolete API endpoints and unused dependencies
 
 ### Tasks
-- [ ] **5.1** Verify build succeeds
-  ```bash
-  npm run build
-  ```
+- [ ] **4.1** Remove legacy API routes
+  - [ ] Delete `src/app/api/opencode/route.ts` if it exists
+  - [ ] Delete `src/app/api/opencode-chat/route.ts` if it exists
+  - [ ] Delete `src/app/api/folders/route.ts` if it exists
 
-- [ ] **5.2** Verify lint passes
-  ```bash
-  npm run lint
-  ```
+- [ ] **4.2** Clean up unused dependencies
+  - [ ] Audit package.json for unused dependencies
+  - [ ] Remove any packages only used by deleted components
+
+- [ ] **4.3** Update API references
+  - [ ] Update any remaining legacy API calls
+  - [ ] Ensure all components use new workspace/session API structure
 
 ---
 
-## Dead Code Summary
+## Phase 5: Verification and Testing
+**Status**: ⏳ Not Started  
+**Goal**: Ensure cleanup doesn't break functionality and improves performance
 
-### Files to Remove
-- `src/app/api/opencode/route.ts`
-- `src/app/api/opencode-chat/route.ts`
-- `src/app/api/folders/route.ts`
-- `src/lib/test-converter.ts`
+### Tasks
+- [ ] **5.1** Run comprehensive testing
+  - [ ] Execute all existing tests
+  - [ ] Test build process
+  - [ ] Verify no runtime errors
 
-### Dependencies to Remove
-- `@ai-sdk/openai`
-- `@tailwindcss/postcss`
-- `eslint`
-- `eslint-config-next`
-- `tailwindcss`
-- `typescript`
+- [ ] **5.2** Performance verification
+  - [ ] Measure bundle size before/after cleanup
+  - [ ] Verify faster build times
+  - [ ] Check for any performance regressions
 
-### Interfaces to Remove
-- `OpenCodeSessionConfig`
-- `OpenCodeSession`
-- `SessionError`
-- `SessionState`
-- `UseOpenCodeSessionReturn`
+- [ ] **5.3** Documentation updates
+  - [ ] Update README if needed
+  - [ ] Update component documentation
+  - [ ] Add guidelines for preventing future dead code
 
-### Legacy API Usage to Update
-- `opencode-chat-interface.tsx` - update from `/api/opencode-chat` to `/api/workspaces/[workspaceId]/sessions/[sessionId]/chat`
+---
+
+## Identified Dead Code
+
+### Root-Level Components (Unused)
+- `button.tsx` - Shadcn/ui Button component (duplicated in proper location)
+- `markdown-text.tsx` - Markdown rendering component (only used by unused thread.tsx)
+- `thread-list.tsx` - Assistant-ui ThreadList component (not integrated)
+- `thread.tsx` - Assistant-ui Thread component (not integrated)
+- `tooltip-icon-button.tsx` - Tooltip button wrapper (only used by unused components)
+- `tooltip.tsx` - Tooltip component (only used by unused tooltip-icon-button)
+
+### Utility Files
+- `src/lib/test-converter.ts` - Test utilities in production source
+- `src/lib/port-utils.ts` - Potentially unused port utility functions
+
+### Static Assets
+- `terminal-icon.svg` - Unused SVG icon
+- `public/file.svg` - Unused file icon
+- `public/globe.svg` - Unused globe icon  
+- `public/next.svg` - Default Next.js logo (unused)
+- `public/vercel.svg` - Default Vercel logo (unused)
+- `public/window.svg` - Unused window icon
 
 ---
 
 ## Breaking Changes
 
-⚠️ **This cleanup introduces breaking changes:**
-- Removes legacy API endpoints
-- Removes unused TypeScript interfaces
-- Removes unused dependencies
+⚠️ **This cleanup introduces minimal breaking changes:**
+- Removed components were not actively used in the application
+- Asset removal only affects unused static files
+- No API or interface changes expected
 
 ## Benefits
 
 ✅ **Key Benefits:**
-1. **Reduced Bundle Size** - Remove unused dependencies
-2. **Cleaner Codebase** - Remove dead code and legacy interfaces
-3. **Better Performance** - Fewer dependencies to install and maintain
-4. **Improved Maintainability** - Clearer codebase structure
-5. **Modern Architecture** - Fully migrated to workspace/session model
+1. **Reduced Bundle Size**: Removing unused components and assets
+2. **Cleaner Codebase**: Eliminates confusion about which components to use
+3. **Faster Builds**: Fewer files to process during compilation
+4. **Better Maintainability**: Clear component organization and structure
+5. **Improved Developer Experience**: Less cognitive overhead when navigating codebase
+6. **Security**: Removes test utilities from production code
 
 ---
 
@@ -179,7 +199,7 @@ When marking phases as complete, update the progress tracking section at the top
 - ❌ Blocked
 
 **Example of completed task:**
-- [x] ~~**1.1** Identify unused npm dependencies~~ ✅ *Completed 2025-08-02*
+- [x] ~~**1.1** Remove unused root-level components~~ ✅ *Completed 2025-08-02*
 
 **Example of completed phase:**
-- [x] **Phase 1**: Identify Dead Code *(5/5 tasks)* ✅ *Completed 2025-08-02*
+- [x] **Phase 1**: Root-Level Component Cleanup *(6/6 tasks)* ✅ *Completed 2025-08-02*
