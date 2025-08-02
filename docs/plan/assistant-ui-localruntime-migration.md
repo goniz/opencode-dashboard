@@ -476,10 +476,10 @@ export function OpenCodeMultiSessionProvider({ children }: OpenCodeMultiSessionP
 - [x] Update OpenCodeChatInterface to use LocalRuntime
 
 ### Week 2: Multi-Session Support
-- [ ] Implement OpenCodeThreadListAdapter
-- [ ] Create OpenCodeMultiSessionProvider
-- [ ] Update UI for thread management
-- [ ] Test session switching
+- [x] Implement OpenCodeThreadListAdapter
+- [x] Create OpenCodeMultiSessionProvider
+- [x] Update UI for thread management
+- [x] Test session switching
 
 ### Week 3: Enhanced Features
 - [ ] Add tool support
