@@ -1,17 +1,13 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { AssistantRuntimeProvider } from "@assistant-ui/react";
-import { useChatRuntime } from "@assistant-ui/react-ai-sdk";
 import { Button } from "../../button";
 import { Thread } from "../../thread";
 import { useOpenCodeSessionContext } from "@/contexts/OpenCodeWorkspaceContext";
 import { cn, parseModelString } from "@/lib/utils";
-import { PlusIcon, PlayIcon, StopCircleIcon, FolderIcon, BrainIcon, ServerIcon, RotateCwIcon, AlertTriangleIcon } from "lucide-react";
+import { PlusIcon, PlayIcon, StopCircleIcon, FolderIcon, BrainIcon, ServerIcon, AlertTriangleIcon } from "lucide-react";
 import type { OpenCodeSession } from "@/hooks/useOpenCodeWorkspace";
-import { messageConverter } from "@/lib/message-converter";
-import type { Message as UseChatMessage } from "ai";
-import type { OpenCodeMessage } from "@/lib/message-types";
+import { OpenCodeRuntimeProvider } from "@/components/providers/opencode-runtime-provider";
 
 interface OpenCodeChatInterfaceProps {
   className?: string;
@@ -32,42 +28,6 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [selectedOpenCodeSessionId, setSelectedOpenCodeSessionId] = useState<string | null>(null);
 
-  const [initialMessages, setInitialMessages] = useState<Array<UseChatMessage & { role: "user" | "assistant" | "system" }>>([]);
-
-  // Simple sync state for loading indicator
-  const [isSyncing, setIsSyncing] = useState(false);
-
-  // Function to load messages directly from OpenCode API
-  const loadMessagesFromOpenCode = useCallback(async (openCodeSessionId: string) => {
-    if (!openCodeSessionId || !currentSession) return [];
-    
-    setIsSyncing(true);
-    try {
-      // Use the OpenCode session ID instead of workspace ID
-      const response = await fetch(`/api/opencode-chat?sessionId=${openCodeSessionId}`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch messages from OpenCode");
-      }
-      
-      const data = await response.json();
-      const messages = data.messages || [];
-      
-      // Convert OpenCode messages to useChat format
-      const convertedMessages = messages
-        .map((msg: unknown) => messageConverter.openCodeToUseChat(msg as OpenCodeMessage))
-        .filter((msg: UseChatMessage): msg is UseChatMessage & { role: "user" | "assistant" | "system" } => 
-          msg.role === "user" || msg.role === "assistant" || msg.role === "system"
-        ) as Array<UseChatMessage & { role: "user" | "assistant" | "system" }>;
-      
-      return convertedMessages;
-    } catch (error) {
-      console.warn(`Error loading messages from OpenCode session ${openCodeSessionId}:`, error);
-      return [];
-    } finally {
-      setIsSyncing(false);
-    }
-  }, [currentSession]);
-
 
 
   // Update selected session when current session changes
@@ -84,17 +44,6 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
       }
     }
   }, [currentSession]);
-
-  // Load messages when session changes (always from OpenCode)
-  useEffect(() => {
-    if (selectedOpenCodeSessionId && currentSession?.status === "running") {
-      loadMessagesFromOpenCode(selectedOpenCodeSessionId).then(messages => {
-        setInitialMessages(messages);
-      });
-    } else {
-      setInitialMessages([]);
-    }
-  }, [selectedOpenCodeSessionId, currentSession?.status, loadMessagesFromOpenCode]);
 
   // Validate mandatory fields - no fallbacks allowed
   let validationError: string | null = null;
@@ -119,17 +68,6 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
     }
   }
 
-  // Create chat runtime - hooks must be called unconditionally
-  const runtime = useChatRuntime({
-    api: "/api/opencode-chat",
-    body: {
-      sessionId: selectedOpenCodeSessionId || '',
-      model: parsedModel?.modelID || '',
-      provider: parsedModel?.providerID || '',
-      stream: false
-    },
-    initialMessages: initialMessages.length > 0 ? initialMessages : undefined,
-  });
 
   // Show loading state if no session is selected yet
   if (!selectedSessionId) {
@@ -163,12 +101,10 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
     setSelectedSessionId(session.id);
     await switchToSession(session.id);
     
-    // Load messages from OpenCode (the authoritative source)
+    // Update OpenCode session ID for LocalRuntime
     if (session.status === "running") {
       const firstOpenCodeSession = session.sessions?.[0];
       if (firstOpenCodeSession) {
-        const messages = await loadMessagesFromOpenCode(firstOpenCodeSession.id);
-        setInitialMessages(messages);
         setSelectedOpenCodeSessionId(firstOpenCodeSession.id);
       }
     }
@@ -273,8 +209,12 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
               </p>
             </div>
           </div>
-        ) : selectedSessionId && selectedOpenCodeSessionId && currentSession ? (
-          <AssistantRuntimeProvider runtime={runtime}>
+        ) : selectedSessionId && selectedOpenCodeSessionId && currentSession && parsedModel ? (
+          <OpenCodeRuntimeProvider
+            sessionId={selectedOpenCodeSessionId}
+            model={parsedModel.modelID}
+            provider={parsedModel.providerID}
+          >
             {/* Chat Header */}
             <div className="border-b border-border p-3 md:p-4 bg-background">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
@@ -290,29 +230,6 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
                   </p>
                 </div>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-8 px-2 text-xs min-h-[44px] lg:min-h-0"
-                    onClick={async () => {
-                      if (currentSession && selectedOpenCodeSessionId) {
-                        const messages = await loadMessagesFromOpenCode(selectedOpenCodeSessionId);
-                        setInitialMessages(messages);
-                      }
-                    }}
-                    disabled={isSyncing || !currentSession}
-                  >
-                    <RotateCwIcon className={cn("h-3 w-3", isSyncing && "animate-spin")} />
-                    <span className="ml-1">Sync from OpenCode</span>
-                  </Button>
-                  
-                  {isSyncing && (
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <RotateCwIcon className="h-3 w-3 animate-spin" />
-                      Syncing from OpenCode...
-                    </div>
-                  )}
-                  
                   <div className={cn(
                     "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium",
                     currentSession.status === "running" && "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400",
@@ -335,18 +252,9 @@ export default function OpenCodeChatInterface({ className }: OpenCodeChatInterfa
 
             {/* Thread Component */}
             <div className="flex-1">
-              {isSyncing ? (
-                <div className="flex items-center justify-center h-full">
-                  <div className="text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent mx-auto mb-3"></div>
-                    <p className="text-sm text-muted-foreground">Loading messages from OpenCode...</p>
-                  </div>
-                </div>
-              ) : (
-                <Thread />
-              )}
+              <Thread />
             </div>
-          </AssistantRuntimeProvider>
+          </OpenCodeRuntimeProvider>
         ) : (
           <div className="flex-1 flex items-center justify-center bg-muted/10 p-4">
             <div className="text-center max-w-sm">
