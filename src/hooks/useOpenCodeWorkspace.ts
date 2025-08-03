@@ -279,18 +279,17 @@ export function useOpenCodeSession(): UseOpenCodeSessionReturn {
 
   const switchToSession = useCallback(async (sessionId: string): Promise<void> => {
     console.log("🔄 switchToSession called with ID:", sessionId);
-    console.log("📋 Available sessions:", state.sessions.map(s => ({ id: s.id, status: s.status })));
+    console.log("📋 Available sessions:", state.sessions.map(s => ({ id: s.id, status: s.status, sessionsCount: s.sessions?.length || 0 })));
+    
     const session = state.sessions.find(s => s.id === sessionId);
+    
     if (session) {
-      console.log("✅ Found session, switching to:", session);
+      console.log("✅ Found session, switching to:", { id: session.id, status: session.status, sessionsCount: session.sessions?.length || 0 });
       updateState({ currentSession: session });
       console.log("🎯 updateState called with session:", session.id);
-      
-      // Wait for the next tick to ensure state has updated
-      await new Promise(resolve => setTimeout(resolve, 0));
-      console.log("⏰ State update should be complete now");
     } else {
       console.log("❌ Session not found in available sessions");
+      console.log("📋 Available sessions:", state.sessions.map(s => ({ id: s.id, status: s.status })));
       setError(`Session ${sessionId} not found`);
     }
   }, [updateState, setError, state.sessions]);

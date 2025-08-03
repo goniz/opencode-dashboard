@@ -18,6 +18,16 @@ export default function Home() {
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null);
   const [showAdvancedView, setShowAdvancedView] = useState(false);
 
+  // Debug: Monitor currentSession changes
+  useEffect(() => {
+    console.log("🔍 currentSession changed:", currentSession ? { id: currentSession.id, status: currentSession.status } : "null");
+  }, [currentSession]);
+
+  // Debug: Monitor workspaces changes
+  useEffect(() => {
+    console.log("🔍 workspaces changed:", workspaces.map(w => ({ id: w.id, status: w.status, sessions: w.sessions?.length || 0 })));
+  }, [workspaces]);
+
   const handleOpenWorkspace = (workspaceId: string) => {
     console.log("🎯 handleOpenWorkspace called for workspace:", workspaceId);
     setSelectedWorkspaceId(workspaceId);
@@ -126,10 +136,39 @@ export default function Home() {
           // Wait a bit for the session data to be properly loaded
           await new Promise(resolve => setTimeout(resolve, 500));
           
-          // Switch to the workspace (which now contains the session)
-          await switchToSession(workspace.id);
-          setSelectedWorkspaceId(workspace.id);
-          setViewState("chat");
+          console.log("🔍 Available workspaces before switching:", workspaces.map(w => ({ id: w.id, sessions: w.sessions?.length || 0 })));
+          console.log("🎯 Attempting to switch to workspace:", workspace.id);
+          
+          // Wait for the workspace to appear in the workspaces list
+          let retries = 0;
+          const maxRetries = 20;
+          let foundWorkspace = null;
+          
+          while (retries < maxRetries && !foundWorkspace) {
+            foundWorkspace = workspaces.find(w => w.id === workspace.id);
+            if (foundWorkspace) {
+              console.log("✅ Found workspace in context:", foundWorkspace.id);
+              break;
+            }
+            console.log(`⏳ Waiting for workspace to appear in context, retry ${retries + 1}`);
+            await new Promise(resolve => setTimeout(resolve, 100));
+            retries++;
+          }
+          
+          if (foundWorkspace) {
+            // Switch to the workspace (which now contains the session)
+            await switchToSession(workspace.id);
+            
+            console.log("✅ Switch completed");
+            setSelectedWorkspaceId(workspace.id);
+            setViewState("chat");
+            
+            console.log("🎬 View state set to chat");
+          } else {
+            console.log("❌ Workspace not found in context after retries, falling back to dashboard");
+            setSelectedWorkspaceId(workspace.id);
+            setViewState("workspace-dashboard");
+          }
         } catch (sessionError) {
           console.error("❌ Failed to create OpenCode session:", sessionError);
           // Fall back to workspace dashboard if session creation fails
@@ -266,6 +305,9 @@ export default function Home() {
 
   if (viewState === "chat") {
     console.log("💬 Attempting to show chat view");
+    console.log("🔍 Current session state:", currentSession ? { id: currentSession.id, status: currentSession.status } : "null");
+    console.log("🔍 Available workspaces:", workspaces.map(w => ({ id: w.id, status: w.status, sessions: w.sessions?.length || 0 })));
+    
     if (!currentSession) {
       console.log("⏳ Waiting for session to be set...");
       return (
