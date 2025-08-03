@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Button } from "../../button";
-import { Thread } from "../../thread";
+import { Button } from "@/components/button";
+import { Thread } from "@/components/thread";
 import { useOpenCodeSessionContext } from "@/contexts/OpenCodeWorkspaceContext";
 import { cn, parseModelString } from "@/lib/utils";
 import { PlusIcon, PlayIcon, StopCircleIcon, FolderIcon, BrainIcon, ServerIcon, AlertTriangleIcon } from "lucide-react";

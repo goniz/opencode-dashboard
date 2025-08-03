@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Thread } from "../thread";
+import { Thread } from "@/components/thread";
 import { cn, parseModelString } from "@/lib/utils";
 import { AlertTriangleIcon, MessageSquareIcon, ServerIcon } from "lucide-react";
 import { OpenCodeMultiSessionProvider, useOpenCodeSessionManager } from "@/components/providers/opencode-multi-session-provider";

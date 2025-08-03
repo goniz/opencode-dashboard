@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "../../button";
+import { Button } from "@/components/button";
 import { cn } from "@/lib/utils";
 import { useOpenCodeSession } from "@/hooks/useOpenCodeWorkspace";
 import { PlusIcon, TrashIcon, FolderIcon, BrainIcon, ServerIcon, MessageSquareIcon } from "lucide-react";

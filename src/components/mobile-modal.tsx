@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { Button } from "../../button";
+import { Button } from "@/components/button";
 import { XIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 

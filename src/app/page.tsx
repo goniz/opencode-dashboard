@@ -7,7 +7,7 @@ import OpenCodeChatInterface from "@/components/opencode-chat-interface";
 import QuickStart from "@/components/quick-start";
 import MobileNavigation from "@/components/mobile-navigation";
 import { useOpenCodeSessionContext } from "@/contexts/OpenCodeWorkspaceContext";
-import { Button } from "../../button";
+import { Button } from "@/components/button";
 import { ArrowLeftIcon, SettingsIcon } from "lucide-react";
 
 type ViewState = "quick-start" | "workspaces" | "workspace-dashboard" | "chat";
