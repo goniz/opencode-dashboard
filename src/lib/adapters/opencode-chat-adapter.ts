@@ -1,3 +1,18 @@
+/**
+ * OpenCode Chat Adapter
+ * 
+ * This adapter connects Assistant-UI's chat interface with OpenCode's streaming chat API.
+ * It handles the conversion between Assistant-UI message formats and OpenCode's API format,
+ * and manages streaming responses including text content and tool calls.
+ * 
+ * Key responsibilities:
+ * - Converts Assistant-UI messages to OpenCode API format
+ * - Handles streaming Server-Sent Events (SSE) from OpenCode
+ * - Extracts and formats text content and tool calls from OpenCode responses
+ * - Provides real-time message updates during generation
+ * - Manages errors and connection issues during streaming
+ */
+
 import type { ChatModelAdapter, ChatModelRunOptions, ChatModelRunResult } from "@assistant-ui/react";
 import type { ReadonlyJSONObject } from "assistant-stream/utils";
 import { extractTextContent, extractToolCalls } from "@/lib/message-converter";

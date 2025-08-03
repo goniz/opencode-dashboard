@@ -17,24 +17,6 @@ export default function Home() {
   const [viewState, setViewState] = useState<ViewState>("quick-start");
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null);
   const [showAdvancedView, setShowAdvancedView] = useState(false);
-  const [debugInfo, setDebugInfo] = useState<string[]>([]);
-
-  const addDebugInfo = (message: string) => {
-    setDebugInfo(prev => [...prev.slice(-4), `${new Date().toLocaleTimeString()}: ${message}`]);
-  };
-
-  // Debug: Monitor currentSession changes
-  useEffect(() => {
-    const sessionInfo = currentSession ? `Session: ${currentSession.id} (${currentSession.status})` : "No session";
-    addDebugInfo(`Current session: ${sessionInfo}`);
-    console.log("🔍 currentSession changed:", currentSession ? { id: currentSession.id, status: currentSession.status } : "null");
-  }, [currentSession]);
-
-  // Debug: Monitor workspaces changes
-  useEffect(() => {
-    addDebugInfo(`Workspaces: ${workspaces.length} total`);
-    console.log("🔍 workspaces changed:", workspaces.map(w => ({ id: w.id, status: w.status, sessions: w.sessions?.length || 0 })));
-  }, [workspaces]);
 
   const handleOpenWorkspace = (workspaceId: string) => {
     console.log("🎯 handleOpenWorkspace called for workspace:", workspaceId);
@@ -136,12 +118,10 @@ export default function Home() {
       // If auto-chat is enabled, create an OpenCode session and go directly to chat
       if (workspaceData.autoOpenChat) {
           console.log("🎯 Auto-opening chat - creating OpenCode session for workspace:", workspace.id);
-          addDebugInfo("Creating OpenCode session...");
         
         try {
           const sessionId = await createOpenCodeSession(workspace.id, workspaceData.model);
-          console.log("✅ OpenCode session created successfully:", sessionId);
-          addDebugInfo(`Session created: ${sessionId}`);          
+          console.log("✅ OpenCode session created successfully:", sessionId);          
           // Wait a bit for the session data to be properly loaded
           await new Promise(resolve => setTimeout(resolve, 500));
           
@@ -165,19 +145,16 @@ export default function Home() {
           }
           
           if (foundWorkspace) {
-            addDebugInfo("Switching to workspace...");
             // Switch to the workspace (which now contains the session)
             await switchToSession(workspace.id);
             
             console.log("✅ Switch completed");
-            addDebugInfo("Switch completed, setting chat view");
             setSelectedWorkspaceId(workspace.id);
             setViewState("chat");
             
             console.log("🎬 View state set to chat");
           } else {
             console.log("❌ Workspace not found in context after retries, falling back to dashboard");
-            addDebugInfo("Workspace not found, using dashboard");
             setSelectedWorkspaceId(workspace.id);
             setViewState("workspace-dashboard");
           }
@@ -256,20 +233,6 @@ export default function Home() {
 
   console.log("🔍 Render - viewState:", viewState, "currentSession:", currentSession?.id);
 
-  // Debug info overlay
-  const DebugOverlay = () => (
-    <div className="fixed top-4 right-4 bg-black/80 text-white p-3 rounded-lg text-xs max-w-xs z-50">
-      <div className="font-bold mb-2">Debug Info:</div>
-      {debugInfo.map((info, i) => (
-        <div key={i} className="mb-1">{info}</div>
-      ))}
-      <div className="mt-2 pt-2 border-t border-white/20">
-        <div>View: {viewState}</div>
-        <div>Current Session: {currentSession?.id || "none"}</div>
-        <div>Workspaces: {workspaces.length}</div>
-      </div>
-    </div>
-  );
 
   if (viewState === "workspace-dashboard") {
     const selectedWorkspace = workspaces.find(w => w.id === selectedWorkspaceId);
@@ -339,26 +302,12 @@ export default function Home() {
       console.log("⏳ Waiting for session to be set...");
       return (
         <div className="min-h-screen bg-background flex items-center justify-center">
-          <DebugOverlay />
           <div className="text-center max-w-md mx-auto px-4">
             <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent mx-auto mb-4"></div>
             <p className="text-muted-foreground mb-2">Loading chat session...</p>
             <p className="text-sm text-muted-foreground/70">
               Setting up your workspace and creating the chat session. This should only take a moment.
             </p>
-            
-            {/* Debug info for mobile */}
-            <div className="mt-8 bg-gray-900 text-white p-4 rounded-lg text-xs text-left">
-              <div className="font-bold mb-2">Debug Info:</div>
-              {debugInfo.map((info, i) => (
-                <div key={i} className="mb-1">{info}</div>
-              ))}
-              <div className="mt-2 pt-2 border-t border-white/20">
-                <div>View: {viewState}</div>
-                <div>Current Session: none</div>
-                <div>Workspaces: {workspaces.length}</div>
-              </div>
-            </div>
           </div>
         </div>
       );
@@ -424,7 +373,6 @@ export default function Home() {
   if (viewState === "quick-start") {
     return (
       <div className="min-h-screen bg-background py-8 pb-16 md:pb-8">
-        <DebugOverlay />
         <MobileNavigation
           currentView={viewState}
           onNavigate={setViewState}

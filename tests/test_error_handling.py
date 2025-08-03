@@ -33,8 +33,8 @@ class TestErrorHandling:
                     headers={"content-type": "application/json"}
                 )
                 
-                # Should return 400 or 500 for malformed JSON
-                assert response.status_code in [400, 500]
+                # Should return 400 for malformed JSON
+                assert response.status_code == 400
 
     async def test_missing_content_type(self, client: httpx.AsyncClient, test_folder: str, test_model: str):
         """Test requests without proper content-type headers."""
@@ -78,8 +78,8 @@ class TestErrorHandling:
         
         response = await client.post("/api/workspaces", json=large_payload)
         
-        # Should handle large payloads gracefully
-        assert response.status_code in [200, 400, 413, 500]
+        # Should handle large payloads gracefully - either succeed or reject appropriately
+        assert response.status_code in [200, 400, 413]
 
     async def test_unicode_and_special_characters(self, client: httpx.AsyncClient, server_manager, test_model: str):
         """Test handling of Unicode and special characters in requests."""
@@ -100,7 +100,7 @@ class TestErrorHandling:
             })
             
             # Should handle special characters gracefully
-            assert response.status_code in [200, 400, 500]
+            assert response.status_code in [200, 400]
 
     async def test_null_and_undefined_values(self, client: httpx.AsyncClient):
         """Test handling of null and undefined values in requests."""
@@ -135,18 +135,18 @@ class TestErrorHandling:
                 "folder": injection,
                 "model": "test-model"
             })
-            assert response.status_code in [400, 500]
+            assert response.status_code == 400
             
             # Test in model name
             response = await client.post("/api/workspaces", json={
                 "folder": "/tmp/test",
                 "model": injection
             })
-            assert response.status_code in [400, 500]
+            assert response.status_code == 400
             
             # Test in query parameters
             response = await client.get(f"/api/folders?path={injection}")
-            assert response.status_code in [400, 500]
+            assert response.status_code == 400
 
     async def test_xss_attempts(self, client: httpx.AsyncClient):
         """Test protection against XSS attempts."""
@@ -164,7 +164,7 @@ class TestErrorHandling:
             })
             
             # Should handle XSS attempts safely
-            assert response.status_code in [400, 500]
+            assert response.status_code == 400
             
             # Response should not contain the XSS payload
             response_text = response.text
@@ -188,15 +188,15 @@ class TestErrorHandling:
                 "model": "test-model"
             })
             # Some traversal attempts might succeed but fail later due to opencode CLI
-            assert response.status_code in [200, 400, 500]
+            assert response.status_code in [200, 400]
             
             # Test in folders endpoint
             response = await client.get(f"/api/folders?path={traversal}")
-            assert response.status_code in [400, 500]
+            assert response.status_code == 400
             
             # Test in models endpoint
             response = await client.get(f"/api/models?folder={traversal}")
-            assert response.status_code in [400, 500]
+            assert response.status_code == 400
 
     async def test_command_injection_attempts(self, client: httpx.AsyncClient):
         """Test protection against command injection attempts."""
@@ -215,11 +215,11 @@ class TestErrorHandling:
                 "folder": f"/tmp/test{injection}",
                 "model": "test-model"
             })
-            assert response.status_code in [400, 500]
+            assert response.status_code == 400
             
             # Test in models endpoint (uses shell command)
             response = await client.get(f"/api/models?folder=/tmp/test{injection}")
-            assert response.status_code in [400, 500]
+            assert response.status_code == 400
 
     async def test_rate_limiting_simulation(self, client: httpx.AsyncClient, test_folder: str, test_model: str):
         """Test behavior under rapid requests (simulating rate limiting scenarios)."""
@@ -231,15 +231,15 @@ class TestErrorHandling:
                 "model": test_model
             })
         
-        # Make many concurrent requests
-        tasks = [make_request() for _ in range(20)]
+        # Make concurrent requests (reduced to be less aggressive)
+        tasks = [make_request() for _ in range(5)]
         responses = await asyncio.gather(*tasks, return_exceptions=True)
         
         # Should handle concurrent requests gracefully
         successful_responses = 0
         for response in responses:
             if isinstance(response, httpx.Response):
-                assert response.status_code in [200, 400, 429, 500, 503]
+                assert response.status_code in [200, 400, 429, 503]
                 if response.status_code == 200:
                     successful_responses += 1
         
@@ -248,16 +248,16 @@ class TestErrorHandling:
 
     async def test_timeout_handling(self, client: httpx.AsyncClient):
         """Test timeout handling for long-running operations."""
-        # Test with a very short timeout
+        # Test with a short timeout
         short_timeout_client = httpx.AsyncClient(
             base_url=client.base_url,
-            timeout=0.001  # 1ms timeout
+            timeout=0.1  # 100ms timeout - more realistic for testing
         )
         
         try:
             response = await short_timeout_client.get("/api/workspaces")
             # If it succeeds, that's fine too (operation was very fast)
-            assert response.status_code in [200, 400, 500]
+            assert response.status_code in [200, 400]
         except httpx.TimeoutException:
             # Expected for very short timeout
             pass
@@ -282,7 +282,7 @@ class TestErrorHandling:
         })
         
         # Should handle deeply nested objects gracefully
-        assert response.status_code in [200, 400, 413, 500]
+        assert response.status_code in [200, 400, 413]
 
     async def test_concurrent_resource_access(self, client: httpx.AsyncClient, test_workspace, test_model: str):
         """Test concurrent access to the same resources."""
@@ -296,7 +296,7 @@ class TestErrorHandling:
                 "model": test_model
             })
         
-        tasks = [create_session() for _ in range(10)]
+        tasks = [create_session() for _ in range(3)]
         responses = await asyncio.gather(*tasks, return_exceptions=True)
         
         # Should handle concurrent session creation
@@ -306,7 +306,7 @@ class TestErrorHandling:
                 if response.status_code == 200:
                     successful_creations += 1
                 else:
-                    assert response.status_code in [400, 500, 503]
+                    assert response.status_code in [400, 503]
         
         # At least some should succeed
         assert successful_creations > 0

@@ -1,3 +1,17 @@
+/**
+ * OpenCode Thread List Adapter
+ * 
+ * This adapter integrates OpenCode workspace sessions with Assistant-UI's thread management system.
+ * It provides a bridge between OpenCode's workspace/session model and Assistant-UI's thread list interface,
+ * allowing sessions from all workspaces to be displayed as threads in the UI.
+ * 
+ * Key responsibilities:
+ * - Lists all active sessions from all workspaces as threads
+ * - Maps OpenCode session metadata to Assistant-UI thread format
+ * - Provides thread initialization, but session creation is handled externally
+ * - Handles thread lifecycle operations (limited support for rename/archive/delete)
+ */
+
 import type { 
   unstable_RemoteThreadListAdapter as RemoteThreadListAdapter
 } from "@assistant-ui/react";
