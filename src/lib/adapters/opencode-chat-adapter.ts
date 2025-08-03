@@ -1,4 +1,5 @@
 import type { ChatModelAdapter, ChatModelRunOptions, ChatModelRunResult } from "@assistant-ui/react";
+import type { ReadonlyJSONObject } from "assistant-stream/utils";
 import { extractTextContent, extractToolCalls } from "@/lib/message-converter";
 
 export class OpenCodeChatAdapter implements ChatModelAdapter {
@@ -70,7 +71,7 @@ export class OpenCodeChatAdapter implements ChatModelAdapter {
                 const finalText = extractTextContent(data.message);
                 const toolCalls = extractToolCalls(data.message);
                 
-                const content: Array<{ type: "text"; text: string } | { type: "tool-call"; toolCallId: string; toolName: string; args: any; argsText: string; result?: any }> = [];
+                const content: Array<{ type: "text"; text: string } | { type: "tool-call"; toolCallId: string; toolName: string; args: ReadonlyJSONObject; argsText: string; result?: unknown }> = [];
                 
                 if (finalText) {
                   content.push({ type: "text", text: finalText });
@@ -82,7 +83,7 @@ export class OpenCodeChatAdapter implements ChatModelAdapter {
                     type: "tool-call" as const,
                     toolCallId: tool.id,
                     toolName: tool.name,
-                    args: tool.args,
+                    args: tool.args as ReadonlyJSONObject,
                     argsText: JSON.stringify(tool.args),
                     result: tool.result,
                   });
@@ -95,7 +96,7 @@ export class OpenCodeChatAdapter implements ChatModelAdapter {
               } else if (data.type === "error") {
                 throw new Error(data.error);
               }
-            } catch (e) {
+            } catch {
               console.warn("Failed to parse SSE data:", line);
             }
           }

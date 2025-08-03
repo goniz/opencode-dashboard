@@ -1,6 +1,5 @@
 import type { 
-  unstable_RemoteThreadListAdapter as RemoteThreadListAdapter,
-  ThreadMessage 
+  unstable_RemoteThreadListAdapter as RemoteThreadListAdapter
 } from "@assistant-ui/react";
 import type { OpenCodeSession } from "@/hooks/useOpenCodeWorkspace";
 
@@ -98,7 +97,7 @@ export class OpenCodeThreadListAdapter implements RemoteThreadListAdapter {
     console.log(`Delete not implemented for session ${remoteId}`);
   }
 
-  async generateTitle(_remoteId: string, _messages: readonly ThreadMessage[]): Promise<ReadableStream> {
+  async generateTitle(): Promise<ReadableStream> {
     // Return empty stream - titles are generated from folder/model info
     // Could potentially generate titles based on conversation content in the future
     return new ReadableStream({

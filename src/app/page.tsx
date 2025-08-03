@@ -355,7 +355,7 @@ export default function Home() {
               ))}
               <div className="mt-2 pt-2 border-t border-white/20">
                 <div>View: {viewState}</div>
-                <div>Current Session: {currentSession ? (currentSession as any).id : "none"}</div>
+                <div>Current Session: none</div>
                 <div>Workspaces: {workspaces.length}</div>
               </div>
             </div>
