@@ -4,10 +4,27 @@ import type { OpenCodeWorkspaceConfig } from "@/lib/opencode-workspace";
 
 export async function POST(request: NextRequest) {
   try {
+    // Check payload size before parsing
+    const contentLength = request.headers.get('content-length');
+    if (contentLength && parseInt(contentLength) > 1024 * 1024) { // 1MB limit
+      return NextResponse.json(
+        { error: "Payload too large" },
+        { status: 413 }
+      );
+    }
+
     let body;
     try {
       body = await request.json();
-    } catch {
+    } catch (error) {
+      // Handle both malformed JSON and oversized payloads
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      if (errorMessage.includes('body size') || errorMessage.includes('payload')) {
+        return NextResponse.json(
+          { error: "Payload too large" },
+          { status: 413 }
+        );
+      }
       return NextResponse.json(
         { error: "Invalid JSON in request body" },
         { status: 400 }
