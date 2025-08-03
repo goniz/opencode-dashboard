@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { workspaceManager } from "@/lib/opencode-workspace";
-import { withOpenCodeErrorHandling } from "@/lib/opencode-client";
+import { withOpenCodeErrorHandling, OpenCodeError } from "@/lib/opencode-client";
 import { parseModelString } from "@/lib/utils";
 
 export const runtime = "nodejs";
@@ -193,11 +193,11 @@ export async function POST(
     console.error("OpenCode chat error:", error);
     
     // Handle OpenCodeError (wrapped errors from withOpenCodeErrorHandling)
-    if (error instanceof Error && error.name === 'OpenCodeError') {
-      const openCodeError = error as any;
+    if (error instanceof OpenCodeError) {
+      const openCodeError = error;
       // Extract the original status code if available
       if (openCodeError.context?.status) {
-        const status = openCodeError.context.status;
+        const status = openCodeError.context.status as number;
         let errorMessage = "OpenCode API error";
         
         // Provide user-friendly error messages based on status
@@ -303,11 +303,11 @@ export async function GET(
     console.error("Failed to get chat history:", error);
     
     // Handle OpenCodeError (wrapped errors from withOpenCodeErrorHandling)
-    if (error instanceof Error && error.name === 'OpenCodeError') {
-      const openCodeError = error as any;
+    if (error instanceof OpenCodeError) {
+      const openCodeError = error;
       // Extract the original status code if available
       if (openCodeError.context?.status) {
-        const status = openCodeError.context.status;
+        const status = openCodeError.context.status as number;
         let errorMessage = "Failed to retrieve chat history";
         
         // Provide user-friendly error messages based on status
