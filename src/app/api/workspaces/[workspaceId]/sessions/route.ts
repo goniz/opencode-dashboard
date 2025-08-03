@@ -16,6 +16,14 @@ export async function POST(
         { status: 400 }
       );
     }
+    
+    if (!body || typeof body !== 'object') {
+      return NextResponse.json(
+        { error: "Invalid request body" },
+        { status: 400 }
+      );
+    }
+    
     const { model } = body as { model: string };
 
     if (!model) {
