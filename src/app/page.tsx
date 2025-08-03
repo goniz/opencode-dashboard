@@ -123,6 +123,9 @@ export default function Home() {
           const sessionId = await createOpenCodeSession(workspace.id, workspaceData.model);
           console.log("✅ OpenCode session created successfully:", sessionId);
           
+          // Wait a bit for the session data to be properly loaded
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
           // Switch to the workspace (which now contains the session)
           await switchToSession(workspace.id);
           setSelectedWorkspaceId(workspace.id);
@@ -150,6 +153,12 @@ export default function Home() {
       if (!currentSession) {
         console.log("❌ No current session available for chat view");
         
+        // Set a timeout to prevent infinite loading
+        const timeout = setTimeout(() => {
+          console.log("⏰ Chat loading timeout reached, returning to workspaces");
+          setViewState(showAdvancedView ? "workspaces" : "quick-start");
+        }, 10000); // 10 second timeout
+        
         // Check if we have any workspaces with sessions
         const hasAnySessions = workspaces.some(w => w.sessions && w.sessions.length > 0);
         
@@ -169,25 +178,30 @@ export default function Home() {
               switchToSession(firstSession.id)
                 .then(() => {
                   console.log("✅ Successfully switched to session:", firstSession.id);
+                  clearTimeout(timeout);
                 })
                 .catch(error => {
                   console.error("❌ Failed to switch to session:", error);
                   console.log("⬅️ Returning to workspaces view");
-                  setViewState("workspaces");
+                  clearTimeout(timeout);
+                  setViewState(showAdvancedView ? "workspaces" : "quick-start");
                 });
               
-              return;
+              return () => clearTimeout(timeout);
             }
           }
         } else {
           console.log("⬅️ No sessions available, returning to workspaces view");
-          setViewState("workspaces");
+          clearTimeout(timeout);
+          setViewState(showAdvancedView ? "workspaces" : "quick-start");
         }
+        
+        return () => clearTimeout(timeout);
       } else {
         console.log("✅ Current session available for chat view:", currentSession.id);
       }
     }
-  }, [viewState, currentSession, workspaces, switchToSession, setSelectedWorkspaceId]);
+  }, [viewState, currentSession, workspaces, switchToSession, setSelectedWorkspaceId, showAdvancedView]);
 
   console.log("🔍 Render - viewState:", viewState, "currentSession:", currentSession?.id);
 
@@ -256,9 +270,12 @@ export default function Home() {
       console.log("⏳ Waiting for session to be set...");
       return (
         <div className="min-h-screen bg-background flex items-center justify-center">
-          <div className="text-center">
+          <div className="text-center max-w-md mx-auto px-4">
             <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading chat session...</p>
+            <p className="text-muted-foreground mb-2">Loading chat session...</p>
+            <p className="text-sm text-muted-foreground/70">
+              Setting up your workspace and creating the chat session. This should only take a moment.
+            </p>
           </div>
         </div>
       );

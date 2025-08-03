@@ -253,6 +253,21 @@ export function useOpenCodeSession(): UseOpenCodeSessionReturn {
       // Refresh sessions list to get updated workspace with new session
       await loadSessions();
       
+      // Wait for the session to be properly loaded in the state
+      let retries = 0;
+      const maxRetries = 10;
+      while (retries < maxRetries) {
+        const workspace = state.sessions.find(s => s.id === workspaceId);
+        if (workspace?.sessions?.some(s => s.id === sessionData.id)) {
+          console.log("✅ Session found in workspace data after", retries, "retries");
+          break;
+        }
+        console.log("⏳ Waiting for session to appear in workspace data, retry", retries + 1);
+        await new Promise(resolve => setTimeout(resolve, 100));
+        await loadSessions();
+        retries++;
+      }
+      
       return sessionData.id;
     } catch (error) {
       console.error("Failed to create OpenCode session:", error);
@@ -260,7 +275,7 @@ export function useOpenCodeSession(): UseOpenCodeSessionReturn {
       setError(errorMessage);
       throw new Error(errorMessage);
     }
-  }, [setError, loadSessions]);
+  }, [setError, loadSessions, state.sessions]);
 
   const switchToSession = useCallback(async (sessionId: string): Promise<void> => {
     console.log("🔄 switchToSession called with ID:", sessionId);
