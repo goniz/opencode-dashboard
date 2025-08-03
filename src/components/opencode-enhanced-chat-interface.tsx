@@ -153,10 +153,10 @@ function ChatInterfaceContent({ className }: OpenCodeEnhancedChatInterfaceProps)
 
 // Main component that provides the multi-session context
 export default function OpenCodeEnhancedChatInterface({ className }: OpenCodeEnhancedChatInterfaceProps) {
-  const { sessions: workspaces, currentSession } = useOpenCodeSessionContext();
+  const { currentSession } = useOpenCodeSessionContext();
   
   // Determine initial session ID from current workspace's first session
-  const initialSessionId = currentSession?.sessions?.[0]?.id || null;
+  const initialSessionId = currentSession?.sessions?.[0]?.id;
 
   return (
     <OpenCodeMultiSessionProvider currentSessionId={initialSessionId}>

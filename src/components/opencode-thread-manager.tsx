@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Button } from "../button";
+import { Button } from "./button";
 import { cn } from "@/lib/utils";
 import { 
   PlusIcon, 
@@ -13,7 +13,7 @@ import {
   ChevronDownIcon 
 } from "lucide-react";
 import { useOpenCodeSessionManager } from "@/components/providers/opencode-multi-session-provider";
-import type { OpenCodeSession } from "@/hooks/useOpenCodeWorkspace";
+
 
 interface OpenCodeThreadManagerProps {
   className?: string;
@@ -45,9 +45,9 @@ export function OpenCodeThreadManager({
   const loadThreads = useCallback(async () => {
     try {
       const result = await threadListAdapter.list();
-      const threads = result.threads.map(thread => ({
+      const threads = result.threads.map((thread: { status: "regular" | "archived"; remoteId: string; title?: string; metadata?: { workspaceId?: string; model?: string; createdAt?: string; lastActivity?: string } }) => ({
         id: thread.remoteId,
-        title: thread.title,
+        title: thread.title || 'Untitled',
         workspaceId: thread.metadata?.workspaceId || '',
         model: thread.metadata?.model || '',
         createdAt: thread.metadata?.createdAt || '',
@@ -78,9 +78,9 @@ export function OpenCodeThreadManager({
   }, []);
 
   // Handle thread selection
-  const handleThreadSelect = useCallback(async (sessionId: string) => {
+  const handleThreadSelect = useCallback((sessionId: string) => {
     try {
-      await switchToSession(sessionId);
+      switchToSession(sessionId);
       onSessionSelect?.(sessionId);
     } catch (error) {
       console.error("Failed to switch to session:", error);

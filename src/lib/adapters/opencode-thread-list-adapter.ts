@@ -1,5 +1,23 @@
-import type { RemoteThreadListAdapter, RemoteThreadListResponse, ThreadMessage } from "@assistant-ui/react";
+import type { 
+  unstable_RemoteThreadListAdapter as RemoteThreadListAdapter,
+  ThreadMessage 
+} from "@assistant-ui/react";
 import type { OpenCodeSession } from "@/hooks/useOpenCodeWorkspace";
+
+type RemoteThreadListResponse = {
+  threads: Array<{
+    status: "regular" | "archived";
+    remoteId: string;
+    externalId?: string;
+    title?: string;
+    metadata?: Record<string, unknown>;
+  }>;
+};
+
+type RemoteThreadInitializeResponse = {
+  remoteId: string;
+  externalId: string | undefined;
+};
 
 interface ThreadItem {
   id: string;
@@ -53,10 +71,10 @@ export class OpenCodeThreadListAdapter implements RemoteThreadListAdapter {
     };
   }
 
-  async initialize(threadId: string): Promise<{ remoteId: string }> {
+  async initialize(threadId: string): Promise<RemoteThreadInitializeResponse> {
     // Sessions are created externally via the workspace API
     // This adapter just manages existing sessions, so we return the threadId as remoteId
-    return { remoteId: threadId };
+    return { remoteId: threadId, externalId: undefined };
   }
 
   async rename(remoteId: string, newTitle: string): Promise<void> {
@@ -80,7 +98,7 @@ export class OpenCodeThreadListAdapter implements RemoteThreadListAdapter {
     console.log(`Delete not implemented for session ${remoteId}`);
   }
 
-  async generateTitle(remoteId: string, messages: readonly ThreadMessage[]): Promise<ReadableStream> {
+  async generateTitle(_remoteId: string, _messages: readonly ThreadMessage[]): Promise<ReadableStream> {
     // Return empty stream - titles are generated from folder/model info
     // Could potentially generate titles based on conversation content in the future
     return new ReadableStream({

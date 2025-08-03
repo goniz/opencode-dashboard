@@ -19,7 +19,7 @@ export function ToolApprovalDialog({
 }: ToolApprovalDialogProps) {
   if (!isOpen) return null;
 
-  const isDestructive = ["write_file", "execute_command"].includes(toolName);
+  // OpenCode determines if approval is needed - we just display the dialog
 
   const formatArgs = (args: Record<string, unknown>) => {
     return Object.entries(args).map(([key, value]) => (
@@ -48,18 +48,9 @@ export function ToolApprovalDialog({
           <div className="mb-4">
             <div className="flex items-center gap-2 mb-2">
               <span className="font-medium text-gray-700">Tool:</span>
-              <code className={`px-2 py-1 rounded text-sm font-mono ${
-                isDestructive 
-                  ? "bg-red-100 text-red-800" 
-                  : "bg-blue-100 text-blue-800"
-              }`}>
+              <code className="px-2 py-1 rounded text-sm font-mono bg-blue-100 text-blue-800">
                 {toolName}
               </code>
-              {isDestructive && (
-                <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded">
-                  DESTRUCTIVE
-                </span>
-              )}
             </div>
           </div>
 
@@ -70,26 +61,7 @@ export function ToolApprovalDialog({
             </div>
           </div>
 
-          {isDestructive && (
-            <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded">
-              <div className="flex items-start">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-yellow-800">
-                    Warning: Destructive Operation
-                  </h3>
-                  <p className="mt-1 text-sm text-yellow-700">
-                    This operation may modify files or execute commands on your system. 
-                    Please review the parameters carefully before approving.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
+
         </div>
 
         <div className="p-6 border-t bg-gray-50 flex justify-end gap-3">
@@ -101,13 +73,9 @@ export function ToolApprovalDialog({
           </button>
           <button
             onClick={onApprove}
-            className={`px-4 py-2 text-sm font-medium text-white rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-              isDestructive
-                ? "bg-red-600 hover:bg-red-700 focus:ring-red-500"
-                : "bg-blue-600 hover:bg-blue-700 focus:ring-blue-500"
-            }`}
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:ring-blue-500 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2"
           >
-            {isDestructive ? "Approve (Destructive)" : "Approve"}
+            Approve
           </button>
         </div>
       </div>

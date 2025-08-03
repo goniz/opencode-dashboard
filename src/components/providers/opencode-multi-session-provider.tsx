@@ -75,8 +75,8 @@ export function OpenCodeMultiSessionProvider({
     },
   }), [historyAdapter]);
 
-  // Create runtime
-  const runtime = useLocalRuntime(chatAdapter, runtimeOptions);
+  // Create runtime - only if we have a chat adapter
+  const runtime = useLocalRuntime(chatAdapter || new OpenCodeChatAdapter("", "", ""), runtimeOptions);
 
   // Context value for session management
   const sessionContext = useMemo(() => ({
@@ -102,7 +102,13 @@ import type { OpenCodeSession } from "@/hooks/useOpenCodeWorkspace";
 
 interface SessionManagerContextValue {
   activeSessionId: string | null;
-  currentSession: (OpenCodeSession['sessions'] extends (infer U)[] ? U : never) & {
+  currentSession: {
+    id: string;
+    workspaceId: string;
+    model: string;
+    createdAt: string;
+    lastActivity: string;
+    status: "active" | "inactive";
     workspaceFolder: string;
     workspaceModel: string;
   } | null;

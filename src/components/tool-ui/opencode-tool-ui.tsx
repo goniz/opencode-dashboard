@@ -26,12 +26,13 @@ interface ToolCallUIProps {
 // Dynamic tool configuration based on tool name patterns
 function getToolConfig(toolName: string) {
   const name = toolName.toLowerCase();
+  const title = toolName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   
   // File operations
   if (name.includes('read') || name.includes('get') || name.includes('fetch')) {
     return {
       icon: FileTextIcon,
-      title: toolName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      title,
       color: "text-blue-600",
       bgColor: "bg-blue-50",
       borderColor: "border-blue-200"
@@ -42,7 +43,7 @@ function getToolConfig(toolName: string) {
   if (name.includes('write') || name.includes('edit') || name.includes('create') || name.includes('save')) {
     return {
       icon: EditIcon,
-      title: toolName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      title,
       color: "text-green-600",
       bgColor: "bg-green-50",
       borderColor: "border-green-200"
@@ -53,7 +54,7 @@ function getToolConfig(toolName: string) {
   if (name.includes('execute') || name.includes('run') || name.includes('bash') || name.includes('shell') || name.includes('command')) {
     return {
       icon: TerminalIcon,
-      title: toolName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      title,
       color: "text-purple-600",
       bgColor: "bg-purple-50",
       borderColor: "border-purple-200"
@@ -64,7 +65,7 @@ function getToolConfig(toolName: string) {
   if (name.includes('list') || name.includes('ls') || name.includes('dir') || name.includes('glob')) {
     return {
       icon: FolderIcon,
-      title: toolName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      title,
       color: "text-orange-600",
       bgColor: "bg-orange-50",
       borderColor: "border-orange-200"
@@ -75,7 +76,7 @@ function getToolConfig(toolName: string) {
   if (name.includes('search') || name.includes('find') || name.includes('grep') || name.includes('query')) {
     return {
       icon: SearchIcon,
-      title: toolName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      title,
       color: "text-indigo-600",
       bgColor: "bg-indigo-50",
       borderColor: "border-indigo-200"
@@ -85,7 +86,7 @@ function getToolConfig(toolName: string) {
   // Default configuration
   return {
     icon: TerminalIcon,
-    title: toolName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+    title,
     color: "text-gray-600",
     bgColor: "bg-gray-50",
     borderColor: "border-gray-200"
@@ -170,28 +171,11 @@ export function OpenCodeToolUI({ toolName, args, result, isError, status }: Tool
             Object.values(args)[0]; // fallback to first argument
 
           if (typeof primaryArg === 'string' && primaryArg) {
-            const name = toolName.toLowerCase();
-            
-            // Choose appropriate icon and formatting
-            if (name.includes('file') || name.includes('read') || name.includes('write')) {
-              return <span>📄 {primaryArg}</span>;
-            } else if (name.includes('command') || name.includes('execute') || name.includes('run')) {
-              return (
-                <span className="font-mono bg-gray-100 px-1 rounded">
-                  $ {primaryArg}
-                </span>
-              );
-            } else if (name.includes('search') || name.includes('find') || name.includes('grep')) {
-              return (
-                <span className="font-mono bg-gray-100 px-1 rounded">
-                  /{primaryArg}/
-                </span>
-              );
-            } else if (name.includes('list') || name.includes('dir')) {
-              return <span>📁 {primaryArg}</span>;
-            } else {
-              return <span>{primaryArg}</span>;
-            }
+            return (
+              <span className="font-mono bg-gray-100 px-1 rounded text-xs">
+                {primaryArg}
+              </span>
+            );
           }
           
           return null;

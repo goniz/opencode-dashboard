@@ -11,10 +11,7 @@ import type { AssistantTool, AssistantToolUI } from "@assistant-ui/react";
 import { OpenCodeChatAdapter } from "@/lib/adapters/opencode-chat-adapter";
 import { OpenCodeHistoryAdapter } from "@/lib/adapters/opencode-history-adapter";
 import { OpenCodeFileAttachmentAdapter } from "@/lib/adapters/opencode-attachment-adapter";
-import { createOpenCodeTools } from "@/lib/adapters/opencode-tool-adapter";
 import { ToolApprovalDialog, useToolApproval } from "@/components/tool-approval-dialog";
-import { makeAssistantToolUI } from "@assistant-ui/react";
-import { OpenCodeToolCallUI } from "@/components/tool-ui/opencode-tool-ui";
 import { OpenCodeConnectionStatus } from "@/components/opencode-connection-status";
 
 interface OpenCodeRuntimeProviderProps {
@@ -57,22 +54,9 @@ export function OpenCodeRuntimeProvider({
   useEffect(() => {
     async function loadTools() {
       try {
-        const dynamicTools = await createOpenCodeTools({
-          sessionId,
-          onApprovalRequired: requestApproval
-        });
-        
-        setTools(dynamicTools);
-
-        // Create tool UIs for each discovered tool
-        const dynamicToolUIs = dynamicTools.map(tool => 
-          makeAssistantToolUI({
-            toolName: tool.unstable_tool.toolName,
-            render: OpenCodeToolCallUI
-          })
-        );
-        
-        setToolUIs(dynamicToolUIs);
+        // For now, set empty tools array until tools API is implemented
+        setTools([]);
+        setToolUIs([]);
       } catch (error) {
         console.error("Failed to load OpenCode tools:", error);
         setTools([]);
