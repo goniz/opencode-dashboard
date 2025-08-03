@@ -54,6 +54,59 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate folder path format
+    if (typeof folder !== 'string' || folder.length === 0) {
+      return NextResponse.json(
+        { error: "Invalid folder path format" },
+        { status: 400 }
+      );
+    }
+
+    // Validate model format
+    if (typeof model !== 'string' || model.length === 0) {
+      return NextResponse.json(
+        { error: "Invalid model format" },
+        { status: 400 }
+      );
+    }
+
+    // Basic security validation - reject obvious injection attempts and path traversal
+    const suspiciousPatterns = [
+      /['"]/g, // quotes
+      /;/g, // semicolons
+      /--/g, // SQL comments
+      /union/gi, // UNION keyword
+      /select/gi, // SELECT keyword
+      /drop/gi, // DROP keyword
+      /insert/gi, // INSERT keyword
+      /update/gi, // UPDATE keyword
+      /delete/gi, // DELETE keyword
+      /\.\./g, // directory traversal
+      /[<>]/g, // potential XSS
+    ];
+
+    const hasSuspiciousContent = (input: string) => {
+      return suspiciousPatterns.some(pattern => pattern.test(input));
+    };
+
+    // Additional checks for path traversal - be more specific about dangerous paths
+    const hasSystemPaths = /(\/etc\/|\/windows\/|\/system32\/|passwd|shadow)/gi.test(folder);
+    const hasDangerousPaths = /(\/root\/|\/home\/.*\/\.ssh|\/var\/|\/usr\/bin)/gi.test(folder);
+
+    if (hasSuspiciousContent(folder) || hasSystemPaths || hasDangerousPaths) {
+      return NextResponse.json(
+        { error: "Invalid characters in folder path" },
+        { status: 400 }
+      );
+    }
+
+    if (hasSuspiciousContent(model)) {
+      return NextResponse.json(
+        { error: "Invalid characters in model name" },
+        { status: 400 }
+      );
+    }
+
     const config: OpenCodeWorkspaceConfig = { folder, model };
     const workspace = await workspaceManager.startWorkspace(config);
 

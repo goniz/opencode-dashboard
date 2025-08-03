@@ -192,6 +192,36 @@ export async function POST(
   } catch (error) {
     console.error("OpenCode chat error:", error);
     
+    // Handle OpenCodeError (wrapped errors from withOpenCodeErrorHandling)
+    if (error instanceof Error && error.name === 'OpenCodeError') {
+      const openCodeError = error as any;
+      // Extract the original status code if available
+      if (openCodeError.context?.status) {
+        const status = openCodeError.context.status;
+        let errorMessage = "OpenCode API error";
+        
+        // Provide user-friendly error messages based on status
+        if (status === 400) {
+          errorMessage = "Invalid request or model not available";
+        } else if (status === 404) {
+          errorMessage = "Resource not found";
+        } else if (status === 401) {
+          errorMessage = "Authentication failed";
+        } else if (status === 403) {
+          errorMessage = "Permission denied";
+        } else if (status === 429) {
+          errorMessage = "Rate limit exceeded";
+        } else if (status >= 500) {
+          errorMessage = "OpenCode server error";
+        }
+        
+        return NextResponse.json(
+          { error: errorMessage },
+          { status }
+        );
+      }
+    }
+    
     // Handle different types of errors
     if (error instanceof Error) {
       if (error.message.includes("not found")) {
@@ -271,6 +301,33 @@ export async function GET(
 
   } catch (error) {
     console.error("Failed to get chat history:", error);
+    
+    // Handle OpenCodeError (wrapped errors from withOpenCodeErrorHandling)
+    if (error instanceof Error && error.name === 'OpenCodeError') {
+      const openCodeError = error as any;
+      // Extract the original status code if available
+      if (openCodeError.context?.status) {
+        const status = openCodeError.context.status;
+        let errorMessage = "Failed to retrieve chat history";
+        
+        // Provide user-friendly error messages based on status
+        if (status === 404) {
+          errorMessage = "Session not found";
+        } else if (status === 400) {
+          errorMessage = "Invalid request";
+        } else if (status === 401) {
+          errorMessage = "Authentication failed";
+        } else if (status === 403) {
+          errorMessage = "Permission denied";
+        }
+        
+        return NextResponse.json(
+          { error: errorMessage },
+          { status }
+        );
+      }
+    }
+    
     return NextResponse.json(
       { error: "Failed to retrieve chat history" },
       { status: 500 }
