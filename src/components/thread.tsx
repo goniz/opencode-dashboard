@@ -23,6 +23,7 @@ import { Button } from "./button";
 import { MarkdownText } from "./markdown-text";
 import { TooltipIconButton } from "./tooltip-icon-button";
 
+
 export const Thread: FC = () => {
   return (
     <ThreadPrimitive.Root
@@ -205,7 +206,9 @@ const AssistantMessage: FC = () => {
   return (
     <MessagePrimitive.Root className="grid grid-cols-[auto_auto_1fr] grid-rows-[auto_1fr] relative w-full max-w-[var(--thread-max-width)] py-3 md:py-4">
       <div className="text-foreground max-w-[calc(var(--thread-max-width)*0.9)] md:max-w-[calc(var(--thread-max-width)*0.8)] break-words leading-6 md:leading-7 col-span-2 col-start-2 row-start-1 my-1 md:my-1.5 text-sm md:text-base">
-        <MessagePrimitive.Content components={{ Text: MarkdownText }} />
+        <MessagePrimitive.Parts components={{ 
+          Text: MarkdownText
+        }} />
         <MessageError />
       </div>
 

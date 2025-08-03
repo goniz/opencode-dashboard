@@ -1,5 +1,5 @@
 import type { ChatModelAdapter, ChatModelRunOptions, ChatModelRunResult } from "@assistant-ui/react";
-import { extractTextContent } from "@/lib/message-converter";
+import { extractTextContent, extractToolCalls } from "@/lib/message-converter";
 
 export class OpenCodeChatAdapter implements ChatModelAdapter {
   constructor(
@@ -66,10 +66,30 @@ export class OpenCodeChatAdapter implements ChatModelAdapter {
                   content: [{ type: "text", text: currentText }],
                 };
               } else if (data.type === "chat_completed" && data.message) {
-                // Final message from OpenCode
+                // Final message from OpenCode - extract both text and tool calls
                 const finalText = extractTextContent(data.message);
+                const toolCalls = extractToolCalls(data.message);
+                
+                const content: Array<{ type: "text"; text: string } | { type: "tool-call"; toolCallId: string; toolName: string; args: any; argsText: string; result?: any }> = [];
+                
+                if (finalText) {
+                  content.push({ type: "text", text: finalText });
+                }
+                
+                // Add tool calls as tool invocations
+                toolCalls.forEach(tool => {
+                  content.push({
+                    type: "tool-call" as const,
+                    toolCallId: tool.id,
+                    toolName: tool.name,
+                    args: tool.args,
+                    argsText: JSON.stringify(tool.args),
+                    result: tool.result,
+                  });
+                });
+                
                 yield {
-                  content: [{ type: "text", text: finalText }],
+                  content: content.length > 0 ? content : [{ type: "text", text: finalText }],
                 };
                 return;
               } else if (data.type === "error") {

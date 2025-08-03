@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { ToolCallMessagePartProps } from "@assistant-ui/react";
+import { makeAssistantToolUI } from "@assistant-ui/react";
 import { 
   FileTextIcon, 
   EditIcon, 
@@ -14,14 +14,6 @@ import {
   ChevronDownIcon,
   ChevronRightIcon
 } from "lucide-react";
-
-interface ToolCallUIProps {
-  toolName: string;
-  args: Record<string, unknown>;
-  result?: string;
-  isError?: boolean;
-  status: "running" | "complete" | "error";
-}
 
 // Dynamic tool configuration based on tool name patterns
 function getToolConfig(toolName: string) {
@@ -93,11 +85,18 @@ function getToolConfig(toolName: string) {
   };
 }
 
-export function OpenCodeToolUI({ toolName, args, result, isError, status }: ToolCallUIProps) {
+interface OpenCodeToolUIProps {
+  toolName: string;
+  args: Record<string, unknown>;
+  result?: string;
+  isError?: boolean;
+  status: "running" | "complete" | "error";
+}
+
+function OpenCodeToolUIComponent({ toolName, args, result, isError, status }: OpenCodeToolUIProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   
   const config = getToolConfig(toolName);
-
   const Icon = config.icon;
 
   const getStatusIcon = () => {
@@ -218,22 +217,108 @@ export function OpenCodeToolUI({ toolName, args, result, isError, status }: Tool
   );
 }
 
-// Tool UI component that renders all OpenCode tools
-function OpenCodeToolCallUI(props: ToolCallMessagePartProps) {
-  const status = props.status.type === "complete" 
-    ? (props.isError ? "error" : "complete")
-    : "running";
+// Create a generic tool UI that can handle any OpenCode tool
+export const OpenCodeGenericToolUI = makeAssistantToolUI<
+  Record<string, unknown>,
+  unknown
+>({
+  toolName: "*", // This will match any tool name
+  render: ({ toolName, args, result, status }) => {
+    const toolStatus = status.type === "complete" 
+      ? "complete"
+      : status.type === "incomplete" 
+        ? "error" 
+        : "running";
 
-  return (
-    <OpenCodeToolUI
-      toolName={props.toolName}
-      args={props.args as Record<string, unknown>}
-      result={typeof props.result === 'string' ? props.result : JSON.stringify(props.result)}
-      isError={props.isError}
-      status={status}
-    />
-  );
-}
+    const isError = status.type === "incomplete";
+    
+    return (
+      <OpenCodeToolUIComponent
+        toolName={toolName}
+        args={args}
+        result={typeof result === 'string' ? result : JSON.stringify(result)}
+        isError={isError}
+        status={toolStatus}
+      />
+    );
+  },
+});
 
-// Export the component for use in tool UI registration
-export { OpenCodeToolCallUI };
+// Export individual tool UIs for specific tools
+export const BashToolUI = makeAssistantToolUI<
+  { command: string; description?: string },
+  string
+>({
+  toolName: "bash",
+  render: ({ args, result, status }) => {
+    const toolStatus = status.type === "complete" 
+      ? "complete"
+      : status.type === "incomplete" 
+        ? "error" 
+        : "running";
+
+    const isError = status.type === "incomplete";
+    
+    return (
+      <OpenCodeToolUIComponent
+        toolName="bash"
+        args={args}
+        result={result}
+        isError={isError}
+        status={toolStatus}
+      />
+    );
+  },
+});
+
+export const ReadToolUI = makeAssistantToolUI<
+  { filePath: string; offset?: number; limit?: number },
+  string
+>({
+  toolName: "read",
+  render: ({ args, result, status }) => {
+    const toolStatus = status.type === "complete" 
+      ? "complete"
+      : status.type === "incomplete" 
+        ? "error" 
+        : "running";
+
+    const isError = status.type === "incomplete";
+    
+    return (
+      <OpenCodeToolUIComponent
+        toolName="read"
+        args={args}
+        result={result}
+        isError={isError}
+        status={toolStatus}
+      />
+    );
+  },
+});
+
+export const EditToolUI = makeAssistantToolUI<
+  { filePath: string; oldString: string; newString: string },
+  string
+>({
+  toolName: "edit",
+  render: ({ args, result, status }) => {
+    const toolStatus = status.type === "complete" 
+      ? "complete"
+      : status.type === "incomplete" 
+        ? "error" 
+        : "running";
+
+    const isError = status.type === "incomplete";
+    
+    return (
+      <OpenCodeToolUIComponent
+        toolName="edit"
+        args={args}
+        result={result}
+        isError={isError}
+        status={toolStatus}
+      />
+    );
+  },
+});

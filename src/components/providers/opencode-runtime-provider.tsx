@@ -13,6 +13,12 @@ import { OpenCodeHistoryAdapter } from "@/lib/adapters/opencode-history-adapter"
 import { OpenCodeFileAttachmentAdapter } from "@/lib/adapters/opencode-attachment-adapter";
 import { ToolApprovalDialog, useToolApproval } from "@/components/tool-approval-dialog";
 import { OpenCodeConnectionStatus } from "@/components/opencode-connection-status";
+import { 
+  OpenCodeGenericToolUI, 
+  BashToolUI, 
+  ReadToolUI, 
+  EditToolUI 
+} from "@/components/tool-ui/opencode-tool-ui";
 
 interface OpenCodeRuntimeProviderProps {
   sessionId: string;
@@ -90,6 +96,13 @@ export function OpenCodeRuntimeProvider({
         {toolUIs.map((ToolUI, index) => (
           <ToolUI key={`ui-${index}`} />
         ))}
+        
+        {/* OpenCode Tool UIs */}
+        <OpenCodeGenericToolUI />
+        <BashToolUI />
+        <ReadToolUI />
+        <EditToolUI />
+        
         {children}
       </AssistantRuntimeProvider>
       
