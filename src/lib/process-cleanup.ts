@@ -273,3 +273,63 @@ export function initializeSignalHandlers(): void {
 export function areSignalHandlersInitialized(): boolean {
   return signalHandlersInitialized;
 }
+
+// Exception handling
+let exceptionHandlersInitialized = false;
+
+/**
+ * Initialize exception handlers for graceful shutdown during crashes
+ * 
+ * Sets up listeners for uncaughtException and unhandledRejection that will
+ * trigger the ProcessCleanupManager to coordinate graceful shutdown even
+ * during unexpected errors.
+ */
+export function initializeExceptionHandlers(): void {
+  if (exceptionHandlersInitialized) {
+    console.warn('[ProcessCleanup] Exception handlers already initialized');
+    return;
+  }
+
+  // Handle unhandled exceptions
+  process.on('uncaughtException', async (error) => {
+    console.error('[ProcessCleanup] Uncaught Exception:', error);
+    try {
+      await processCleanupManager.initiateShutdown('uncaughtException');
+    } catch (cleanupError) {
+      console.error('[ProcessCleanup] Error during cleanup after uncaught exception:', cleanupError);
+    }
+    process.exit(1);
+  });
+
+  // Handle unhandled promise rejections
+  process.on('unhandledRejection', async (reason, promise) => {
+    console.error('[ProcessCleanup] Unhandled Rejection at:', promise, 'reason:', reason);
+    try {
+      await processCleanupManager.initiateShutdown('unhandledRejection');
+    } catch (cleanupError) {
+      console.error('[ProcessCleanup] Error during cleanup after unhandled rejection:', cleanupError);
+    }
+    process.exit(1);
+  });
+
+  exceptionHandlersInitialized = true;
+  console.log('[ProcessCleanup] Exception handlers initialized for: uncaughtException, unhandledRejection');
+}
+
+/**
+ * Check if exception handlers have been initialized
+ */
+export function areExceptionHandlersInitialized(): boolean {
+  return exceptionHandlersInitialized;
+}
+
+/**
+ * Initialize all process handlers (signals and exceptions) for comprehensive shutdown handling
+ * 
+ * This is a convenience function that initializes both signal handlers and exception handlers.
+ * Use this for the most common case where you want complete process cleanup coverage.
+ */
+export function initializeAllHandlers(): void {
+  initializeSignalHandlers();
+  initializeExceptionHandlers();
+}

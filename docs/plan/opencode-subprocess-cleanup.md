@@ -83,7 +83,7 @@ This plan ensures all OpenCode subprocesses are properly stopped and cleaned up 
   - Includes duplicate initialization protection
   - Provides logging for signal reception and handler initialization
 
-- [ ] **1.3** Add exception and rejection handlers
+- [x] ~~**1.3** Add exception and rejection handlers~~ ✅ *Completed 2025-08-04*
   ```typescript
   // Handle unhandled exceptions
   process.on('uncaughtException', async (error) => {
@@ -98,6 +98,14 @@ This plan ensures all OpenCode subprocesses are properly stopped and cleaned up 
     process.exit(1);
   });
   ```
+  
+  **Implementation Notes:**
+  - Added `initializeExceptionHandlers()` function to `src/lib/process-cleanup.ts`
+  - Handles uncaughtException and unhandledRejection events
+  - Uses existing `processCleanupManager` singleton for coordination
+  - Includes duplicate initialization protection and error handling during cleanup
+  - Added `initializeAllHandlers()` convenience function for complete setup
+  - Provides logging for exception reception and handler initialization
 
 - [ ] **1.4** Implement graceful shutdown with timeout
   ```typescript
