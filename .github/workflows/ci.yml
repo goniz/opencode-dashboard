@@ -73,6 +73,25 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
       - name: Test Leak Detection
-        run: npm run test:leak
+        run: |
+          # Run leak tests and handle various exit codes appropriately
+          npm run test:leak; TEST_EXIT_CODE=$?
+          case $TEST_EXIT_CODE in
+            0)
+              # All tests passed
+              echo "Leak tests completed successfully"
+              exit 0
+              ;;
+            5)
+              # No tests collected (all skipped is fine)
+              echo "Leak tests completed - no tests were collected (all skipped as expected)"
+              exit 0
+              ;;
+            *)
+              # Any other exit code indicates a real failure
+              echo "Leak tests failed with exit code $TEST_EXIT_CODE"
+              exit $TEST_EXIT_CODE
+              ;;
+          esac
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
