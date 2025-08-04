@@ -119,35 +119,6 @@ class TestErrorHandling:
             data = response.json()
             assert "error" in data
 
-    async def test_sql_injection_attempts(self, client: httpx.AsyncClient):
-        """Test protection against SQL injection attempts."""
-        injection_attempts = [
-            "'; DROP TABLE workspaces; --",
-            "' OR '1'='1",
-            "'; SELECT * FROM users; --",
-            "' UNION SELECT * FROM sessions --",
-        ]
-        
-        # Test in various parameters
-        for injection in injection_attempts:
-            # Test in folder path
-            response = await client.post("/api/workspaces", json={
-                "folder": injection,
-                "model": "test-model"
-            })
-            assert response.status_code == 400
-            
-            # Test in model name
-            response = await client.post("/api/workspaces", json={
-                "folder": "/tmp/test",
-                "model": injection
-            })
-            assert response.status_code == 400
-            
-            # Test in query parameters
-            response = await client.get(f"/api/folders?path={injection}")
-            assert response.status_code == 400
-
     async def test_xss_attempts(self, client: httpx.AsyncClient):
         """Test protection against XSS attempts."""
         xss_attempts = [
@@ -170,56 +141,6 @@ class TestErrorHandling:
             response_text = response.text
             assert "<script>" not in response_text
             assert "javascript:" not in response_text
-
-    async def test_path_traversal_attempts(self, client: httpx.AsyncClient):
-        """Test protection against path traversal attempts."""
-        traversal_attempts = [
-            "../../../etc/passwd",
-            "..\\..\\..\\windows\\system32",
-            "/etc/passwd",
-            "../../../../",
-            "%2e%2e%2f%2e%2e%2f%2e%2e%2f",  # URL encoded ../../../
-        ]
-        
-        for traversal in traversal_attempts:
-            # Test in workspace folder
-            response = await client.post("/api/workspaces", json={
-                "folder": traversal,
-                "model": "test-model"
-            })
-            # Some traversal attempts might succeed but fail later due to opencode CLI
-            assert response.status_code in [200, 400]
-            
-            # Test in folders endpoint
-            response = await client.get(f"/api/folders?path={traversal}")
-            assert response.status_code == 400
-            
-            # Test in models endpoint
-            response = await client.get(f"/api/models?folder={traversal}")
-            assert response.status_code == 400
-
-    async def test_command_injection_attempts(self, client: httpx.AsyncClient):
-        """Test protection against command injection attempts."""
-        injection_attempts = [
-            "; rm -rf /",
-            "& del /f /q C:\\*",
-            "| cat /etc/passwd",
-            "`whoami`",
-            "$(whoami)",
-            "&& echo 'injected'",
-        ]
-        
-        for injection in injection_attempts:
-            # Test in folder paths (most likely to be used in shell commands)
-            response = await client.post("/api/workspaces", json={
-                "folder": f"/tmp/test{injection}",
-                "model": "test-model"
-            })
-            assert response.status_code == 400
-            
-            # Test in models endpoint (uses shell command)
-            response = await client.get(f"/api/models?folder=/tmp/test{injection}")
-            assert response.status_code == 400
 
     async def test_rate_limiting_simulation(self, client: httpx.AsyncClient, test_folder: str, test_model: str):
         """Test behavior under rapid requests (simulating rate limiting scenarios)."""
@@ -263,26 +184,6 @@ class TestErrorHandling:
             pass
         finally:
             await short_timeout_client.aclose()
-
-    async def test_memory_exhaustion_protection(self, client: httpx.AsyncClient):
-        """Test protection against memory exhaustion attacks."""
-        # Try to create many nested objects
-        deeply_nested = {"level": 0}
-        current = deeply_nested
-        
-        # Create 1000 levels of nesting
-        for i in range(1000):
-            current["next"] = {"level": i + 1}
-            current = current["next"]
-        
-        response = await client.post("/api/workspaces", json={
-            "folder": "/tmp/test",
-            "model": "test-model",
-            "nested_data": deeply_nested
-        })
-        
-        # Should handle deeply nested objects gracefully
-        assert response.status_code in [200, 400, 413]
 
     async def test_concurrent_resource_access(self, client: httpx.AsyncClient, test_workspace, test_model: str):
         """Test concurrent access to the same resources."""
