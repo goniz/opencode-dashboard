@@ -38,11 +38,10 @@ jobs:
           HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
         run: |
           set -euo pipefail
-          PR_NUMBER=$(gh api repos/$REPO/pulls \
-            -f state=open \
-            -f head="$HEAD_OWNER:$HEAD_BRANCH" \
-            --jq '.[0].number // empty')
-          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+          # Use GET with query string to avoid POST semantics from `-f` (which caused HTTP 422 "base wasn't supplied").
+          QUERY_PATH="repos/$REPO/pulls?state=open&head=${HEAD_OWNER}:${HEAD_BRANCH}"
+          PR_NUMBER=$(gh api "$QUERY_PATH" --jq '.[0].number // empty' || echo "")
+          echo "pr_number=${PR_NUMBER}" >> "$GITHUB_OUTPUT"
 
       - name: Stop if no PR open
         if: ${{ steps.pr.outputs.pr_number == '' }}
