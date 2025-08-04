@@ -168,6 +168,7 @@ source = { editable = "." }
 dependencies = [
     { name = "httpx" },
     { name = "portpicker" },
+    { name = "psutil" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pytest-xdist" },
