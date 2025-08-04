@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { AlertTriangleIcon } from "lucide-react";
-import { Button } from "../../button";
+import { Button } from "@/components/button";
 
 interface ErrorDisplayProps {
   error: {

@@ -15,6 +15,14 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  // Validate folder path for security
+  if (typeof folderPath !== 'string') {
+    return NextResponse.json(
+      { error: "Invalid folder parameter" },
+      { status: 400 }
+    );
+  }
+
   try {
     const { stdout, stderr } = await execAsync("opencode models", {
       cwd: folderPath,

@@ -6,6 +6,14 @@ export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const path = searchParams.get("path") || process.cwd();
 
+  // Validate path parameter for security
+  if (typeof path !== 'string') {
+    return NextResponse.json(
+      { error: "Invalid path parameter" },
+      { status: 400 }
+    );
+  }
+
   try {
     const entries = await readdir(path);
     const folders = [];

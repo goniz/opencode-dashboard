@@ -253,6 +253,21 @@ export function useOpenCodeSession(): UseOpenCodeSessionReturn {
       // Refresh sessions list to get updated workspace with new session
       await loadSessions();
       
+      // Wait for the session to be properly loaded in the state
+      let retries = 0;
+      const maxRetries = 10;
+      while (retries < maxRetries) {
+        const workspace = state.sessions.find(s => s.id === workspaceId);
+        if (workspace?.sessions?.some(s => s.id === sessionData.id)) {
+          console.log("✅ Session found in workspace data after", retries, "retries");
+          break;
+        }
+        console.log("⏳ Waiting for session to appear in workspace data, retry", retries + 1);
+        await new Promise(resolve => setTimeout(resolve, 100));
+        await loadSessions();
+        retries++;
+      }
+      
       return sessionData.id;
     } catch (error) {
       console.error("Failed to create OpenCode session:", error);
@@ -260,22 +275,21 @@ export function useOpenCodeSession(): UseOpenCodeSessionReturn {
       setError(errorMessage);
       throw new Error(errorMessage);
     }
-  }, [setError, loadSessions]);
+  }, [setError, loadSessions, state.sessions]);
 
   const switchToSession = useCallback(async (sessionId: string): Promise<void> => {
     console.log("🔄 switchToSession called with ID:", sessionId);
-    console.log("📋 Available sessions:", state.sessions.map(s => ({ id: s.id, status: s.status })));
+    console.log("📋 Available sessions:", state.sessions.map(s => ({ id: s.id, status: s.status, sessionsCount: s.sessions?.length || 0 })));
+    
     const session = state.sessions.find(s => s.id === sessionId);
+    
     if (session) {
-      console.log("✅ Found session, switching to:", session);
+      console.log("✅ Found session, switching to:", { id: session.id, status: session.status, sessionsCount: session.sessions?.length || 0 });
       updateState({ currentSession: session });
       console.log("🎯 updateState called with session:", session.id);
-      
-      // Wait for the next tick to ensure state has updated
-      await new Promise(resolve => setTimeout(resolve, 0));
-      console.log("⏰ State update should be complete now");
     } else {
       console.log("❌ Session not found in available sessions");
+      console.log("📋 Available sessions:", state.sessions.map(s => ({ id: s.id, status: s.status })));
       setError(`Session ${sessionId} not found`);
     }
   }, [updateState, setError, state.sessions]);

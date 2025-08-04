@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "../../button";
+import { Button } from "@/components/button";
 import { cn } from "@/lib/utils";
 import { PlusIcon } from "lucide-react";
 import ModelSelector from "./model-selector";

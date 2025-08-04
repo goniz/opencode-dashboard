@@ -4,15 +4,40 @@ import type { OpenCodeWorkspaceConfig } from "@/lib/opencode-workspace";
 
 export async function POST(request: NextRequest) {
   try {
+    // Check payload size before parsing
+    const contentLength = request.headers.get('content-length');
+    if (contentLength && parseInt(contentLength) > 1024 * 1024) { // 1MB limit
+      return NextResponse.json(
+        { error: "Payload too large" },
+        { status: 413 }
+      );
+    }
+
     let body;
     try {
       body = await request.json();
-    } catch {
+    } catch (error) {
+      // Handle both malformed JSON and oversized payloads
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      if (errorMessage.includes('body size') || errorMessage.includes('payload')) {
+        return NextResponse.json(
+          { error: "Payload too large" },
+          { status: 413 }
+        );
+      }
       return NextResponse.json(
         { error: "Invalid JSON in request body" },
         { status: 400 }
       );
     }
+    
+    if (!body || typeof body !== 'object') {
+      return NextResponse.json(
+        { error: "Invalid request body" },
+        { status: 400 }
+      );
+    }
+    
     const { folder, model } = body as { folder: string; model: string };
 
     if (!folder) {
@@ -27,6 +52,43 @@ export async function POST(request: NextRequest) {
         { error: "Model is required" },
         { status: 400 }
       );
+    }
+
+    // Validate folder path format
+    if (typeof folder !== 'string' || folder.length === 0) {
+      return NextResponse.json(
+        { error: "Invalid folder path format" },
+        { status: 400 }
+      );
+    }
+
+    // Validate model format
+    if (typeof model !== 'string' || model.length === 0) {
+      return NextResponse.json(
+        { error: "Invalid model format" },
+        { status: 400 }
+      );
+    }
+
+    // Security validation: Check for potential XSS and malicious content
+    const maliciousPatterns = [
+      /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
+      /javascript:/gi,
+      /<img[^>]+onerror/gi,
+      /on\w+\s*=/gi, // onclick, onload, etc.
+      /<iframe/gi,
+      /<object/gi,
+      /<embed/gi,
+      /[';\"]\s*alert\s*\(/gi, // Common XSS injection patterns
+    ];
+
+    for (const pattern of maliciousPatterns) {
+      if (pattern.test(folder) || pattern.test(model)) {
+        return NextResponse.json(
+          { error: "Invalid input: potential security risk detected" },
+          { status: 400 }
+        );
+      }
     }
 
     const config: OpenCodeWorkspaceConfig = { folder, model };

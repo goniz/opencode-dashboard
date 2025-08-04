@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Button } from "../../button";
+import { Button } from "@/components/button";
 import { cn } from "@/lib/utils";
 import { FolderIcon, BrainIcon, ClockIcon, RocketIcon, PlayIcon, Square } from "lucide-react";
 import FolderSelector from "./folder-selector";
