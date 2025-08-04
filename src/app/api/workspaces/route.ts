@@ -75,12 +75,12 @@ export async function POST(request: NextRequest) {
       /['"]/g, // quotes
       /;/g, // semicolons
       /--/g, // SQL comments
-      /union/gi, // UNION keyword
-      /select/gi, // SELECT keyword
-      /drop/gi, // DROP keyword
-      /insert/gi, // INSERT keyword
-      /update/gi, // UPDATE keyword
-      /delete/gi, // DELETE keyword
+      /\b(union\s+select|union\s+all)\b/gi, // UNION SQL injection
+      /\b(select\s+\*|select\s+.+\s+from)\b/gi, // SELECT SQL injection
+      /\b(drop\s+table|drop\s+database)\b/gi, // DROP SQL injection
+      /\b(insert\s+into)\b/gi, // INSERT SQL injection
+      /\b(update\s+.+\s+set)\b/gi, // UPDATE SQL injection
+      /\b(delete\s+from)\b/gi, // DELETE SQL injection (only actual SQL DELETE statements)
       /\.\./g, // directory traversal
       /[<>]/g, // potential XSS
     ];
