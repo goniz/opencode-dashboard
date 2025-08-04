@@ -9,26 +9,23 @@ on:
     types: [created]
 
 permissions:
-  contents: write               # allow commits/branches
-  pull-requests: write          # allow opening PRs
-  issues: write                 # allow posting comments
-  actions: read                 # allow reading logs/artifacts & run metadata
+  contents: write
+  pull-requests: write
+  issues: write
+  actions: read
 
 env:
   ENABLE_PHRASE: "/autofix"
   CI_WORKFLOW_NAME: "CI"
 
 concurrency:
-  group: auto-fix-${{ github.event_name }}-${{ github.event.workflow_run.id || github.event.issue.number }}
+  group: auto-fix-${{ github.run_id }}
   cancel-in-progress: true
 
 jobs:
   # 1) Gate on CI failure for PRs only: require /autofix comment before doing anything
   gate_on_failure:
-    if: >-
-      github.event_name == 'workflow_run' &&
-      github.event.workflow_run.conclusion == 'failure' &&
-      github.event.workflow_run.event == 'pull_request'
+    if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'failure' && github.event.workflow_run.event == 'pull_request' }}
     runs-on: ubuntu-latest
     steps:
       - name: Determine PR for failing run
@@ -63,13 +60,7 @@ jobs:
           HAS_ENABLE=$(gh api repos/$REPO/issues/$PR_NUMBER/comments --paginate --jq \
             "[.[].body | test(\"(^|\\s)${ENABLE_PHRASE}(\\s|$)\", \"i\")] | any")
           if [[ "$HAS_ENABLE" != "true" ]]; then
-            gh api repos/$REPO/issues/$PR_NUMBER/comments -f body="$(
-              cat <<'MSG'
-CI has failed for this PR.
-To let the auto-fix workflow run, please comment **`/autofix`** on this PR.
-Once you comment `/autofix`, I will verify the failure and attempt an auto-fix (minimal change).
-MSG
-            )"
+            gh api repos/$REPO/issues/$PR_NUMBER/comments -f body=$'CI has failed for this PR.\nTo let the auto-fix workflow run, please comment `/autofix` on this PR.\nOnce you comment `/autofix`, I will verify the failure and attempt an auto-fix (minimal change).'
             echo "enabled=false" >> $GITHUB_OUTPUT
           else
             echo "enabled=true" >> $GITHUB_OUTPUT
@@ -81,11 +72,7 @@ MSG
 
   # 2) Run on comment: when `/autofix` is posted on a PR, verify CI failure and proceed to fix
   fix_on_enable:
-    if: >-
-      github.event_name == 'issue_comment' &&
-      github.event.action == 'created' &&
-      github.event.issue.pull_request &&
-      contains(github.event.comment.body, '/autofix')
+    if: ${{ github.event_name == 'issue_comment' && github.event.action == 'created' && github.event.issue.pull_request != null && contains(github.event.comment.body, env.ENABLE_PHRASE) }}
     runs-on: ubuntu-latest
     steps:
       - name: Resolve PR and head details
@@ -128,12 +115,7 @@ MSG
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.issue.number }}
         run: |
-          gh api repos/$REPO/issues/$PR_NUMBER/comments -f body="$(
-            cat <<'MSG'
-I found no failed **CI** run for the latest commit on this PR. Nothing to fix right now.
-If CI fails again, comment `/autofix` to let me attempt an auto-fix.
-MSG
-          )" || true
+          gh api repos/$REPO/issues/$PR_NUMBER/comments -f body=$'I found no failed CI run for the latest commit on this PR. Nothing to fix right now.\nIf CI fails again, comment `/autofix` to let me attempt an auto-fix.' || true
 
       - name: Checkout failing commit
         if: ${{ steps.run.outputs.run_id != '' && steps.run.outputs.conclusion == 'failure' }}
@@ -157,7 +139,7 @@ MSG
         id: prompt
         run: |
           {
-            echo "prompt<<'EOF'"
+            echo "prompt<<EOF"
             echo "Context:"
             echo "- CI workflow '${{ env.CI_WORKFLOW_NAME }}' failed for PR #${{ github.event.issue.number }}."
             echo "- Branch: '${{ steps.pr.outputs.ref }}' | Commit: ${{ steps.pr.outputs.sha }}."
