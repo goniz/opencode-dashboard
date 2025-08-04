@@ -1,5 +1,5 @@
 # .github/workflows/auto-fix-ci-with-claude.yml
-name: Auto-fix CI (PRs only, gated by /autofix)
+name: Auto-fix CI (PRs only, /autofix ➜ auto-fix label)
 
 on:
   workflow_run:
@@ -21,6 +21,7 @@ permissions:
 
 env:
   ENABLE_PHRASE: "/autofix"
+  ENABLE_LABEL: "auto-fix"
   CI_WORKFLOW_NAME: "CI"
 
 concurrency:
@@ -28,7 +29,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # 1) Gate on CI failure for PRs only: require /autofix comment before doing anything
+  # 1) Gate on CI failure for PRs only: require 'auto-fix' label before doing anything
   gate_on_failure:
     if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'failure' && github.event.workflow_run.event == 'pull_request' }}
     runs-on: ubuntu-latest
@@ -50,40 +51,30 @@ jobs:
         if: ${{ steps.pr.outputs.pr_number == '' }}
         run: echo "No open PR found for this failing run. Exiting."
 
-      - name: Check for /autofix on PR (issue+review comments, reviews, PR body)
+      - name: Check for 'auto-fix' label; post reminder if missing
         if: ${{ steps.pr.outputs.pr_number != '' }}
         id: gate
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ steps.pr.outputs.pr_number }}
+          ENABLE_LABEL: ${{ env.ENABLE_LABEL }}
           ENABLE_PHRASE: ${{ env.ENABLE_PHRASE }}
         run: |
           set -euo pipefail
-          tmp="$(mktemp)"
-          {
-            # PR body
-            gh api "repos/$REPO/pulls/$PR_NUMBER" --jq '.body // empty'
-            # Issue comments (top-level)
-            gh api "repos/$REPO/issues/$PR_NUMBER/comments" --paginate --jq '.[].body'
-            # Review comments (inline on diffs)
-            gh api "repos/$REPO/pulls/$PR_NUMBER/comments" --paginate --jq '.[].body'
-            # Reviews (Submit review with a body)
-            gh api "repos/$REPO/pulls/$PR_NUMBER/reviews" --paginate --jq '.[].body // empty'
-          } > "$tmp" || true
-
-          if tr -d '\r' < "$tmp" | grep -qiE '(^|[[:space:]])'"$ENABLE_PHRASE"'([[:space:]]|$)'; then
+          if gh api "repos/$REPO/issues/$PR_NUMBER/labels" --jq '.[].name' | grep -Fxq "$ENABLE_LABEL"; then
             echo "enabled=true" >> "$GITHUB_OUTPUT"
           else
-            gh api repos/$REPO/issues/$PR_NUMBER/comments -f body=$'CI has failed for this PR.\nTo let the auto-fix workflow run, please comment `/autofix` on this PR (top-level comment or review is fine).\nOnce you comment `/autofix`, I will verify the failure and attempt an auto-fix (minimal change).'
+            gh api repos/$REPO/issues/$PR_NUMBER/comments -f body=$'CI has failed for this PR.\nTo enable auto-fix, please comment `/autofix` on this PR (top-level comment or review). I will label the PR `auto-fix` and proceed when CI is failing.'
             echo "enabled=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Stop here (gated by comment)
+      - name: Stop here (gated by label)
         if: ${{ steps.gate.outputs.enabled != 'true' }}
-        run: echo "Enable phrase not present. Stopping."
+        run: echo "Enable label not present. Stopping."
 
-  # 2) Run on comment/review: when `/autofix` is posted on a PR, verify CI failure and proceed to fix
+  # 2) On comment/review containing '/autofix': add label 'auto-fix', then (if CI failed) proceed to fix
+  #    This lets users opt-in via /autofix once per PR; subsequent CI failures will be gated by the label.
   fix_on_enable:
     if: ${{ (github.event_name == 'issue_comment' && github.event.action == 'created' && github.event.issue.pull_request != null && contains(github.event.comment.body, '/autofix')) || (github.event_name == 'pull_request_review_comment' && github.event.action == 'created' && contains(github.event.comment.body, '/autofix')) || (github.event_name == 'pull_request_review' && github.event.action == 'submitted' && contains(github.event.review.body, '/autofix')) }}
     runs-on: ubuntu-latest
@@ -108,6 +99,21 @@ jobs:
           echo "pr=$PR_NUMBER" >> "$GITHUB_OUTPUT"
           echo "sha=$HEAD_SHA" >> "$GITHUB_OUTPUT"
           echo "ref=$HEAD_REF" >> "$GITHUB_OUTPUT"
+
+      - name: Ensure 'auto-fix' label exists and add it to PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ steps.pr.outputs.pr }}
+          ENABLE_LABEL: ${{ env.ENABLE_LABEL }}
+        run: |
+          set -euo pipefail
+          # Create label if missing
+          if ! gh api "repos/$REPO/labels" --paginate --jq '.[].name' | grep -Fxq "$ENABLE_LABEL"; then
+            gh api repos/$REPO/labels -f name="$ENABLE_LABEL" -f color="1f883d" -f description="Enable automated CI fixes" >/dev/null
+          fi
+          # Add label to PR (idempotent)
+          gh api repos/$REPO/issues/$PR_NUMBER/labels -f labels='["'"$ENABLE_LABEL"'"]' >/dev/null
 
       - name: Find latest failed CI run for this commit
         id: run
@@ -135,8 +141,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ steps.pr.outputs.pr }}
+          ENABLE_LABEL: ${{ env.ENABLE_LABEL }}
         run: |
-          gh api repos/$REPO/issues/$PR_NUMBER/comments -f body=$'I found no failed CI run for the latest commit on this PR. Nothing to fix right now.\nIf CI fails again, comment `/autofix` to let me attempt an auto-fix.' || true
+          gh api repos/$REPO/issues/$PR_NUMBER/comments -f body=$'Thanks. I added the `auto-fix` label to this PR.\nCurrently I found no failed CI run for the latest commit. I will act automatically on future CI failures because the label is present.' || true
 
       - name: Checkout failing commit
         if: ${{ steps.run.outputs.run_id != '' && steps.run.outputs.conclusion == 'failure' }}
