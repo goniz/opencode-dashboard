@@ -62,7 +62,7 @@ This plan ensures all OpenCode subprocesses are properly stopped and cleaned up 
   }
   ```
 
-- [ ] **1.2** Implement signal handlers
+- [x] ~~**1.2** Implement signal handlers~~ ✅ *Completed 2025-08-04*
   ```typescript
   // Handle all relevant process signals
   const signals = ['SIGTERM', 'SIGINT', 'SIGQUIT', 'SIGHUP'] as const;
@@ -75,6 +75,13 @@ This plan ensures all OpenCode subprocesses are properly stopped and cleaned up 
     });
   });
   ```
+  
+  **Implementation Notes:**
+  - Added `initializeSignalHandlers()` function to `src/lib/process-cleanup.ts`
+  - Handles SIGTERM, SIGINT, SIGQUIT, and SIGHUP signals
+  - Uses existing `processCleanupManager` singleton for coordination
+  - Includes duplicate initialization protection
+  - Provides logging for signal reception and handler initialization
 
 - [ ] **1.3** Add exception and rejection handlers
   ```typescript

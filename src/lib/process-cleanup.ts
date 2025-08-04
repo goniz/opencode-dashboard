@@ -238,3 +238,38 @@ export class ProcessCleanupManager {
 
 // Export a singleton instance for global use
 export const processCleanupManager = new ProcessCleanupManager();
+
+// Signal handling
+const SHUTDOWN_SIGNALS = ['SIGTERM', 'SIGINT', 'SIGQUIT', 'SIGHUP'] as const;
+let signalHandlersInitialized = false;
+
+/**
+ * Initialize signal handlers for graceful shutdown
+ * 
+ * Sets up listeners for SIGTERM, SIGINT, SIGQUIT, and SIGHUP that will
+ * trigger the ProcessCleanupManager to coordinate graceful shutdown.
+ */
+export function initializeSignalHandlers(): void {
+  if (signalHandlersInitialized) {
+    console.warn('[ProcessCleanup] Signal handlers already initialized');
+    return;
+  }
+
+  SHUTDOWN_SIGNALS.forEach(signal => {
+    process.on(signal, async () => {
+      console.log(`Received ${signal}, initiating graceful shutdown...`);
+      await processCleanupManager.initiateShutdown(signal);
+      process.exit(0);
+    });
+  });
+
+  signalHandlersInitialized = true;
+  console.log('[ProcessCleanup] Signal handlers initialized for:', SHUTDOWN_SIGNALS.join(', '));
+}
+
+/**
+ * Check if signal handlers have been initialized
+ */
+export function areSignalHandlersInitialized(): boolean {
+  return signalHandlersInitialized;
+}
