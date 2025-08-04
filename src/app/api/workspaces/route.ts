@@ -70,6 +70,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Security validation: Check for potential XSS and malicious content
+    const maliciousPatterns = [
+      /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
+      /javascript:/gi,
+      /<img[^>]+onerror/gi,
+      /on\w+\s*=/gi, // onclick, onload, etc.
+      /<iframe/gi,
+      /<object/gi,
+      /<embed/gi,
+    ];
+
+    for (const pattern of maliciousPatterns) {
+      if (pattern.test(folder) || pattern.test(model)) {
+        return NextResponse.json(
+          { error: "Invalid input: potential security risk detected" },
+          { status: 400 }
+        );
+      }
+    }
+
     const config: OpenCodeWorkspaceConfig = { folder, model };
     const workspace = await workspaceManager.startWorkspace(config);
 
