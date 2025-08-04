@@ -7,11 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "uv run pytest -x -s",
-    "test:verbose": "uv run pytest -x -s -v",
-    "test:coverage": "uv run pytest --cov=tests",
-    "test:api": "uv run pytest -m api",
-    "test:integration": "uv run pytest -m integration",
+    "test": "uv run pytest -x -s -n auto",
+    "test:verbose": "uv run pytest -x -s -v -n auto",
+    "test:coverage": "uv run pytest --cov=tests -n auto",
+    "test:api": "uv run pytest -m api -n auto",
+    "test:integration": "uv run pytest -m integration -n auto",
     "test:install": "uv sync"
   },
   "dependencies": {
