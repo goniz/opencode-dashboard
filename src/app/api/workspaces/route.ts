@@ -79,6 +79,7 @@ export async function POST(request: NextRequest) {
       /<iframe/gi,
       /<object/gi,
       /<embed/gi,
+      /[';\"]\s*alert\s*\(/gi, // Common XSS injection patterns
     ];
 
     for (const pattern of maliciousPatterns) {
