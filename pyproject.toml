@@ -27,6 +27,7 @@ markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests",
     "api: marks tests as API tests",
+    "parallel: marks tests as safe for parallel execution",
 ]
 asyncio_mode = "auto"
 
