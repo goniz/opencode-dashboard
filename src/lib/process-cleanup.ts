@@ -19,8 +19,14 @@ export interface CleanupHandler {
 export interface ShutdownConfig {
   /** Default timeout for cleanup handlers (milliseconds) */
   defaultTimeout: number;
-  /** Maximum time to wait for all cleanup handlers (milliseconds) */
+  /** Maximum time to wait for all cleanup handlers in graceful phase (milliseconds) */
   gracefulTimeout: number;
+  /** Maximum time to wait for all cleanup handlers in force termination phase (milliseconds) */
+  forceTimeout: number;
+  /** Number of retry attempts for failed cleanup handlers */
+  retryAttempts: number;
+  /** Delay between retry attempts (milliseconds) */
+  retryDelay: number;
   /** Enable verbose logging for debugging */
   enableVerboseLogging: boolean;
 }
@@ -34,7 +40,10 @@ export class ProcessCleanupManager {
   constructor(config: Partial<ShutdownConfig> = {}) {
     this.config = {
       defaultTimeout: 5000, // 5 seconds default
-      gracefulTimeout: 10000, // 10 seconds total
+      gracefulTimeout: 10000, // 10 seconds for graceful phase
+      forceTimeout: 5000, // 5 seconds for force termination phase
+      retryAttempts: 3, // 3 retry attempts by default
+      retryDelay: 1000, // 1 second delay between retries
       enableVerboseLogging: process.env.NODE_ENV === 'development',
       ...config,
     };
@@ -118,35 +127,69 @@ export class ProcessCleanupManager {
   }
 
   /**
-   * Execute all cleanup handlers with timeout and error handling
+   * Execute all cleanup handlers with two-phase shutdown: graceful then force termination
    */
   private async executeCleanup(): Promise<void> {
     const startTime = Date.now();
-    const results: Array<{ name: string; success: boolean; duration: number; error?: Error }> = [];
+    const results: Array<{ name: string; success: boolean; duration: number; error?: Error; attempts: number }> = [];
 
-    this.log('info', `Starting cleanup of ${this.handlers.length} handlers...`);
+    this.log('info', `Starting two-phase cleanup of ${this.handlers.length} handlers...`);
 
-    // Create a promise that resolves when all handlers complete or timeout occurs
-    const cleanupPromise = this.runAllHandlers(results);
-    const timeoutPromise = this.createTimeoutPromise();
-
+    // Phase 1: Graceful shutdown with retries
+    this.log('info', `Phase 1: Graceful shutdown (timeout: ${this.config.gracefulTimeout}ms, retries: ${this.config.retryAttempts})`);
+    const gracefulStartTime = Date.now();
+    
     try {
-      await Promise.race([cleanupPromise, timeoutPromise]);
+      const gracefulPromise = this.runAllHandlersWithRetry(results, false);
+      const gracefulTimeoutPromise = this.createTimeoutPromise(this.config.gracefulTimeout, 'graceful');
+      
+      await Promise.race([gracefulPromise, gracefulTimeoutPromise]);
+      
+      const gracefulDuration = Date.now() - gracefulStartTime;
+      this.log('info', `Phase 1 completed in ${gracefulDuration}ms`);
+      
     } catch (error) {
-      this.log('error', 'Cleanup process failed:', error);
+      const gracefulDuration = Date.now() - gracefulStartTime;
+      this.log('warn', `Phase 1 failed or timed out after ${gracefulDuration}ms:`, error instanceof Error ? error.message : String(error));
+      
+      // Phase 2: Force termination for remaining failed handlers
+      const failedHandlers = this.handlers.filter(handler => 
+        !results.some(result => result.name === handler.name && result.success)
+      );
+      
+      if (failedHandlers.length > 0) {
+        this.log('info', `Phase 2: Force termination for ${failedHandlers.length} remaining handlers (timeout: ${this.config.forceTimeout}ms, no retries)`);
+        const forceStartTime = Date.now();
+        
+        try {
+          const forcePromise = this.runSpecificHandlers(failedHandlers, results, true);
+          const forceTimeoutPromise = this.createTimeoutPromise(this.config.forceTimeout, 'force');
+          
+          await Promise.race([forcePromise, forceTimeoutPromise]);
+          
+          const forceDuration = Date.now() - forceStartTime;
+          this.log('info', `Phase 2 completed in ${forceDuration}ms`);
+          
+        } catch (forceError) {
+          const forceDuration = Date.now() - forceStartTime;
+          this.log('error', `Phase 2 failed or timed out after ${forceDuration}ms:`, forceError instanceof Error ? forceError.message : String(forceError));
+        }
+      }
     }
 
     const totalDuration = Date.now() - startTime;
     const successCount = results.filter(r => r.success).length;
     const failureCount = results.filter(r => !r.success).length;
+    const totalAttempts = results.reduce((sum, r) => sum + r.attempts, 0);
 
-    this.log('info', `Cleanup completed in ${totalDuration}ms - ${successCount} succeeded, ${failureCount} failed`);
+    this.log('info', `Two-phase cleanup completed in ${totalDuration}ms - ${successCount} succeeded, ${failureCount} failed, ${totalAttempts} total attempts`);
 
     // Log detailed results if verbose logging is enabled
     if (this.config.enableVerboseLogging) {
       results.forEach(result => {
         const status = result.success ? 'SUCCESS' : 'FAILED';
-        const message = `Handler "${result.name}": ${status} (${result.duration}ms)`;
+        const attemptsText = result.attempts > 1 ? ` (${result.attempts} attempts)` : '';
+        const message = `Handler "${result.name}": ${status} (${result.duration}ms)${attemptsText}`;
         if (result.error) {
           this.log('error', `${message} - ${result.error.message}`);
         } else {
@@ -157,56 +200,109 @@ export class ProcessCleanupManager {
   }
 
   /**
-   * Run all cleanup handlers with individual timeouts
+   * Run all cleanup handlers with retry logic
    */
-  private async runAllHandlers(results: Array<{ name: string; success: boolean; duration: number; error?: Error }>): Promise<void> {
-    const promises = this.handlers.map(handler => this.executeHandler(handler, results));
+  private async runAllHandlersWithRetry(
+    results: Array<{ name: string; success: boolean; duration: number; error?: Error; attempts: number }>, 
+    isForceMode: boolean
+  ): Promise<void> {
+    const promises = this.handlers.map(handler => this.executeHandlerWithRetry(handler, results, isForceMode));
     await Promise.allSettled(promises);
   }
 
   /**
-   * Execute a single cleanup handler with timeout
+   * Run specific cleanup handlers (used for force termination phase)
    */
-  private async executeHandler(
-    handler: CleanupHandler,
-    results: Array<{ name: string; success: boolean; duration: number; error?: Error }>
+  private async runSpecificHandlers(
+    handlers: CleanupHandler[],
+    results: Array<{ name: string; success: boolean; duration: number; error?: Error; attempts: number }>, 
+    isForceMode: boolean
   ): Promise<void> {
-    const startTime = Date.now();
-    const timeout = handler.timeout ?? this.config.defaultTimeout;
-
-    try {
-      this.log('debug', `Starting cleanup handler "${handler.name}" (timeout: ${timeout}ms)`);
-
-      // Create timeout promise
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => {
-          reject(new Error(`Cleanup handler "${handler.name}" timed out after ${timeout}ms`));
-        }, timeout);
-      });
-
-      // Race between handler execution and timeout
-      await Promise.race([handler.cleanup(), timeoutPromise]);
-
-      const duration = Date.now() - startTime;
-      results.push({ name: handler.name, success: true, duration });
-      this.log('debug', `Cleanup handler "${handler.name}" completed successfully in ${duration}ms`);
-
-    } catch (error) {
-      const duration = Date.now() - startTime;
-      const cleanupError = error instanceof Error ? error : new Error(String(error));
-      results.push({ name: handler.name, success: false, duration, error: cleanupError });
-      this.log('error', `Cleanup handler "${handler.name}" failed after ${duration}ms:`, cleanupError.message);
-    }
+    const promises = handlers.map(handler => this.executeHandlerWithRetry(handler, results, isForceMode));
+    await Promise.allSettled(promises);
   }
 
   /**
-   * Create a promise that rejects after the graceful timeout
+   * Execute a single cleanup handler with retry logic and timeout
    */
-  private createTimeoutPromise(): Promise<never> {
+  private async executeHandlerWithRetry(
+    handler: CleanupHandler,
+    results: Array<{ name: string; success: boolean; duration: number; error?: Error; attempts: number }>,
+    isForceMode: boolean
+  ): Promise<void> {
+    const maxAttempts = isForceMode ? 1 : this.config.retryAttempts;
+    const retryDelay = isForceMode ? 0 : this.config.retryDelay;
+    const timeout = handler.timeout ?? this.config.defaultTimeout;
+    const mode = isForceMode ? 'FORCE' : 'GRACEFUL';
+    
+    let lastError: Error | undefined;
+    let totalDuration = 0;
+    const overallStartTime = Date.now();
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      const attemptStartTime = Date.now();
+      
+      try {
+        this.log('debug', `[${mode}] Starting cleanup handler "${handler.name}" (attempt ${attempt}/${maxAttempts}, timeout: ${timeout}ms)`);
+
+        // Create timeout promise
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          setTimeout(() => {
+            reject(new Error(`Cleanup handler "${handler.name}" timed out after ${timeout}ms`));
+          }, timeout);
+        });
+
+        // Race between handler execution and timeout
+        await Promise.race([handler.cleanup(), timeoutPromise]);
+
+        const attemptDuration = Date.now() - attemptStartTime;
+        totalDuration = Date.now() - overallStartTime;
+        
+        results.push({ 
+          name: handler.name, 
+          success: true, 
+          duration: totalDuration, 
+          attempts: attempt 
+        });
+        
+        this.log('debug', `[${mode}] Cleanup handler "${handler.name}" completed successfully in ${attemptDuration}ms (attempt ${attempt}/${maxAttempts})`);
+        return; // Success, exit retry loop
+
+      } catch (error) {
+        const attemptDuration = Date.now() - attemptStartTime;
+        lastError = error instanceof Error ? error : new Error(String(error));
+        
+        this.log('warn', `[${mode}] Cleanup handler "${handler.name}" failed on attempt ${attempt}/${maxAttempts} after ${attemptDuration}ms: ${lastError.message}`);
+        
+        // If this isn't the last attempt and we're not in force mode, wait before retrying
+        if (attempt < maxAttempts && !isForceMode) {
+          this.log('debug', `[${mode}] Retrying cleanup handler "${handler.name}" in ${retryDelay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, retryDelay));
+        }
+      }
+    }
+
+    // All attempts failed
+    totalDuration = Date.now() - overallStartTime;
+    results.push({ 
+      name: handler.name, 
+      success: false, 
+      duration: totalDuration, 
+      error: lastError, 
+      attempts: maxAttempts 
+    });
+    
+    this.log('error', `[${mode}] Cleanup handler "${handler.name}" failed after ${maxAttempts} attempts in ${totalDuration}ms: ${lastError?.message || 'Unknown error'}`);
+  }
+
+  /**
+   * Create a promise that rejects after the specified timeout
+   */
+  private createTimeoutPromise(timeout: number, phase: string): Promise<never> {
     return new Promise((_, reject) => {
       setTimeout(() => {
-        reject(new Error(`Graceful shutdown timeout after ${this.config.gracefulTimeout}ms`));
-      }, this.config.gracefulTimeout);
+        reject(new Error(`${phase} shutdown timeout after ${timeout}ms`));
+      }, timeout);
     });
   }
 
