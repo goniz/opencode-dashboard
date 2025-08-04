@@ -13,6 +13,7 @@ permissions:
   pull-requests: write
   issues: write
   actions: read
+  id-token: write
 
 env:
   ENABLE_PHRASE: "/autofix"
@@ -123,16 +124,25 @@ jobs:
         with:
           ref: ${{ steps.pr.outputs.sha }}
 
-      - name: Download logs from failed CI run
+      - name: Download raw CI logs and artifacts
         if: ${{ steps.run.outputs.run_id != '' && steps.run.outputs.conclusion == 'failure' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
         run: |
+          set -euo pipefail
           mkdir -p ci-logs
-          gh run download ${{ steps.run.outputs.run_id }} \
-            --repo "$REPO" \
-            --dir ci-logs || echo "No logs/artifacts found"
+          echo "Downloading raw run logs ZIP..."
+          gh api -H "Accept: application/zip" repos/$REPO/actions/runs/${{ steps.run.outputs.run_id }}/logs > ci-logs/run-logs.zip || {
+            echo "No run logs available"; touch ci-logs/run-logs.zip; }
+          if command -v unzip >/dev/null 2>&1; then
+            unzip -o ci-logs/run-logs.zip -d ci-logs/run-logs || echo "Nothing to unzip"
+          else
+            echo "unzip not found; attempting bsdtar"
+            bsdtar -xf ci-logs/run-logs.zip -C ci-logs/run-logs || echo "Nothing to extract"
+          fi
+          echo "Downloading artifacts (if any)..."
+          gh run download ${{ steps.run.outputs.run_id }} --repo "$REPO" --dir ci-logs/artifacts || echo "No artifacts found"
 
       - name: Build Claude prompt from context
         if: ${{ steps.run.outputs.run_id != '' && steps.run.outputs.conclusion == 'failure' }}
