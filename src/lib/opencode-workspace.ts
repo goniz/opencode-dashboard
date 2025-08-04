@@ -1,4 +1,5 @@
 import { spawn, ChildProcess } from "child_process";
+import os from "os";
 import Opencode from "@opencode-ai/sdk";
 import { OpenCodeError } from "./opencode-client";
 
@@ -171,26 +172,34 @@ class OpenCodeWorkspaceManager {
       await this.checkOpenCodeCommand();
 
       const command = ["serve", "--port=0", "--print-logs"];
-      const process = spawn("opencode", command, {
+      const childProcess = spawn("opencode", command, {
         cwd: config.folder,
         stdio: ["pipe", "pipe", "inherit"],
         detached: false, // Keep in same process group for better cleanup
-        killSignal: 'SIGTERM'
+        killSignal: 'SIGTERM',
+        // Ensure child processes are killed when parent is killed
+        windowsHide: true,
+        // Set process group ID for better cleanup
+        ...(os.platform() !== 'win32' && { 
+          detached: false,
+          // Create new process group but don't detach
+          env: { ...process.env, FORCE_COLOR: '0' }
+        })
       });
 
-      workspace.process = process;
+      workspace.process = childProcess;
       
       // Store process metadata for better tracking
-      if (process.pid) {
+      if (childProcess.pid) {
         workspace.processMetadata = {
-          pid: process.pid,
+          pid: childProcess.pid,
           startTime: new Date(),
           command: ["opencode", ...command],
           cwd: config.folder
         };
       }
 
-      process.on("error", (error) => {
+      childProcess.on("error", (error: Error) => {
         console.error(`OpenCode process error:`, error);
         workspace.status = "error";
         workspace.error = new OpenCodeWorkspaceError(
@@ -201,7 +210,7 @@ class OpenCodeWorkspaceManager {
         this.markModified();
       });
 
-      process.on("exit", (code) => {
+      childProcess.on("exit", (code: number | null) => {
         console.log(`OpenCode process exited with code ${code}`);
         if (code !== 0 && workspace.status !== "running") {
           workspace.status = "error";
@@ -217,7 +226,7 @@ class OpenCodeWorkspaceManager {
         this.markModified();
       });
 
-      process.stdout?.on("data", (data) => {
+      childProcess.stdout?.on("data", (data: Buffer) => {
         console.log(`OpenCode stdout: ${data}`);
         const output = data.toString();
         
@@ -399,35 +408,57 @@ class OpenCodeWorkspaceManager {
     const process = workspace.process;
     const pid = process.pid;
 
+    if (!pid) {
+      console.warn(`[WorkspaceManager] Process for workspace ${workspace.id} has no PID, considering terminated`);
+      return true;
+    }
+
     for (let attempt = 1; attempt <= config.retryAttempts; attempt++) {
       const isLastAttempt = attempt === config.retryAttempts;
       const signal = (config.forceKill || isLastAttempt) ? 'SIGKILL' : 'SIGTERM';
       
       console.log(`[WorkspaceManager] Terminating workspace ${workspace.id} process ${pid} with ${signal} (attempt ${attempt}/${config.retryAttempts})`);
       
-      try {
-        process.kill(signal);
-        
-        // Wait for process to terminate
-        const terminated = await this.waitForProcessTermination(process, config.timeout);
-        
-        if (terminated) {
-          console.log(`[WorkspaceManager] Process ${pid} terminated successfully on attempt ${attempt}`);
-          return true;
-        }
-        
-        console.warn(`[WorkspaceManager] Process ${pid} did not terminate within ${config.timeout}ms on attempt ${attempt}`);
-        
-        // If this isn't the last attempt, wait before retrying
-        if (!isLastAttempt) {
-          await new Promise(resolve => setTimeout(resolve, 1000 * attempt)); // Exponential backoff
-        }
-        
+        try {
+          // Check if process is still alive before attempting to kill
+          if (!this.isProcessAlive(process)) {
+            console.log(`[WorkspaceManager] Process ${pid} is already dead, considering termination successful`);
+            return true;
+          }
+
+          // Try to kill the process
+          process.kill(signal);
+          
+          // Also try to kill the process group on Unix systems (to catch child processes)
+          if (os.platform() !== 'win32') {
+            try {
+              // Use Node.js process.kill to kill the process group
+              (process.kill as (pid: number, signal: NodeJS.Signals) => boolean)(-pid, signal); // Negative PID kills the process group
+              console.log(`[WorkspaceManager] Sent ${signal} to process group ${pid}`);
+            } catch (groupError) {
+              console.log(`[WorkspaceManager] Could not kill process group ${pid}:`, groupError instanceof Error ? groupError.message : String(groupError));
+            }
+          }
+          
+          // Wait for process to terminate
+          const terminated = await this.waitForProcessTermination(process, config.timeout);
+          
+          if (terminated) {
+            console.log(`[WorkspaceManager] Process ${pid} terminated successfully on attempt ${attempt}`);
+            return true;
+          }
+          
+          console.warn(`[WorkspaceManager] Process ${pid} did not terminate within ${config.timeout}ms on attempt ${attempt}`);
+          
+          // If this isn't the last attempt, wait before retrying
+          if (!isLastAttempt) {
+            await new Promise(resolve => setTimeout(resolve, 1000 * attempt)); // Exponential backoff
+          }        
       } catch (error) {
         console.error(`[WorkspaceManager] Error terminating process ${pid} on attempt ${attempt}:`, error);
         
         // If process doesn't exist anymore, consider it successful
-        if (error instanceof Error && error.message.includes('ESRCH')) {
+        if (error instanceof Error && (error.message.includes('ESRCH') || error.message.includes('No such process'))) {
           console.log(`[WorkspaceManager] Process ${pid} no longer exists, considering termination successful`);
           return true;
         }
@@ -447,6 +478,7 @@ class OpenCodeWorkspaceManager {
   private async waitForProcessTermination(process: ChildProcess, timeout: number): Promise<boolean> {
     return new Promise((resolve) => {
       const timeoutId = setTimeout(() => {
+        cleanup();
         resolve(false);
       }, timeout);
 
@@ -454,26 +486,36 @@ class OpenCodeWorkspaceManager {
         clearTimeout(timeoutId);
         process.removeListener('exit', onExit);
         process.removeListener('error', onError);
+        process.removeListener('close', onClose);
       };
 
-      const onExit = () => {
+      const onExit = (code: number | null, signal: string | null) => {
+        console.log(`[WorkspaceManager] Process ${process.pid} exited with code ${code}, signal ${signal}`);
         cleanup();
         resolve(true);
       };
 
-      const onError = () => {
+      const onClose = (code: number | null, signal: string | null) => {
+        console.log(`[WorkspaceManager] Process ${process.pid} closed with code ${code}, signal ${signal}`);
+        cleanup();
+        resolve(true);
+      };
+
+      const onError = (error: Error) => {
+        console.log(`[WorkspaceManager] Process ${process.pid} error:`, error.message);
         cleanup();
         resolve(true); // Process error usually means it's gone
       };
 
       // Check if process is already dead
-      if (process.killed || process.exitCode !== null) {
+      if (process.killed || process.exitCode !== null || !this.isProcessAlive(process)) {
         cleanup();
         resolve(true);
         return;
       }
 
       process.once('exit', onExit);
+      process.once('close', onClose);
       process.once('error', onError);
     });
   }
@@ -490,7 +532,15 @@ class OpenCodeWorkspaceManager {
       // Signal 0 checks if process exists without actually sending a signal
       process.kill(0);
       return true;
-    } catch {
+    } catch (error) {
+      // ESRCH means the process doesn't exist
+      if (error instanceof Error && error.message.includes('ESRCH')) {
+        return false;
+      }
+      // EPERM means the process exists but we don't have permission to signal it
+      if (error instanceof Error && error.message.includes('EPERM')) {
+        return true;
+      }
       return false;
     }
   }

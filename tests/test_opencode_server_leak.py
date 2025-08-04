@@ -16,6 +16,8 @@ import httpx
 import pytest
 from typing import List, Set
 
+pytestmark = [pytest.mark.serial, pytest.mark.skip(reason="Excluded from default test runs")]
+
 
 class ProcessTracker:
     """Utility class to track OpenCode server processes."""

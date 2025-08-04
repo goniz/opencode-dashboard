@@ -28,6 +28,7 @@ markers = [
     "integration: marks tests as integration tests",
     "api: marks tests as API tests",
     "parallel: marks tests as safe for parallel execution",
+    "serial: marks tests that must run serially (not in parallel)",
 ]
 asyncio_mode = "auto"
 

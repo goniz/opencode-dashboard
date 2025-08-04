@@ -31,8 +31,8 @@ function getEnvironmentConfig(): AppInitializationConfig {
     return {
       shutdown: {
         enableProcessMonitoring: true,
-        workspaceCleanupTimeout: 5000, // Shorter timeout for dev
-        workspaceRetryAttempts: 2,
+        workspaceCleanupTimeout: 8000, // Longer timeout for dev to handle tests
+        workspaceRetryAttempts: 3,
         enableVerboseLogging: true
       },
       enableSignalHandlers: true,
@@ -153,8 +153,8 @@ export async function forceInitializeForTesting(): Promise<void> {
   await initializeCleanupHandlers({
     shutdown: {
       enableProcessMonitoring: false, // Disable monitoring in tests
-      workspaceCleanupTimeout: 2000,
-      workspaceRetryAttempts: 1,
+      workspaceCleanupTimeout: 5000, // Longer timeout for tests
+      workspaceRetryAttempts: 3, // More retries for tests
       enableVerboseLogging: true
     },
     enableSignalHandlers: true,

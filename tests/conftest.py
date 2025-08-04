@@ -102,10 +102,14 @@ class TestServerManager:
         print(f"Worker {worker_id}: Starting production test server on port {self.port}...")
         print(f"Worker {worker_id}: Using temp directory: {self.temp_dir}")
         
+        # Get the project root directory (parent of tests directory)
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        
         # Start the Next.js production server
         self.process = subprocess.Popen(
             ["npm", "start"],
             env=env,
+            cwd=project_root,  # Ensure we run from the project root
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
@@ -165,95 +169,7 @@ class TestServerManager:
                 print(f"Production server process for worker {worker_id} is still running but not responding")
         raise TimeoutError(f"Production server for worker {worker_id} failed to start within {timeout} seconds")
     
-    def start_production_server(self, worker_id: str = "master") -> str:
-        """Start the Next.js production server and return the base URL."""
-        print(f"Worker {worker_id}: Starting production server setup...")
-        
-        # Find a truly free port with verification
-        self.port = find_free_port()
-        self.base_url = f"http://localhost:{self.port}"
-        
-        # Create a temporary directory for test workspace folders
-        self.temp_dir = tempfile.mkdtemp(prefix=f"opencode_test_{worker_id}_")
-        
-        # Set environment variables for the production server with isolation
-        env = os.environ.copy()
-        env["PORT"] = str(self.port)
-        env["NODE_ENV"] = "production"
-        
-        # Add worker-specific environment variables for isolation
-        env["WORKER_ID"] = worker_id
-        env["TEST_TEMP_DIR"] = self.temp_dir
-        env["NEXT_PUBLIC_WORKER_ID"] = worker_id
-        env["TMPDIR"] = self.temp_dir
-        
-        # Use a unique hostname for each worker to avoid conflicts
-        env["HOSTNAME"] = f"localhost-{worker_id}"
-        
-        print(f"Worker {worker_id}: Starting production test server on port {self.port}...")
-        print(f"Worker {worker_id}: Using temp directory: {self.temp_dir}")
-        
-        # Start the Next.js production server
-        self.process = subprocess.Popen(
-            ["npm", "start"],
-            env=env,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            # Prevent zombie processes
-            preexec_fn=os.setsid if hasattr(os, 'setsid') else None
-        )
-        
-        # Wait for server to be ready with longer timeout
-        print(f"Worker {worker_id}: Waiting for production server to be ready...")
-        self._wait_for_production_server(worker_id)
-        
-        return self.base_url
-    
-    def _wait_for_production_server(self, worker_id: str = "master", timeout: int = 60):
-        """Wait for the production server to be ready to accept requests."""
-        start_time = time.time()
-        
-        while time.time() - start_time < timeout:
-            # Check if process is still running
-            if self.process.poll() is not None:
-                stdout, stderr = self.process.communicate()
-                print(f"Production server process for worker {worker_id} exited. STDOUT: {stdout}")
-                print(f"Production server process for worker {worker_id} exited. STDERR: {stderr}")
-                raise RuntimeError(f"Production server process for worker {worker_id} exited unexpectedly")
-            
-            try:
-                with httpx.Client() as client:
-                    # Test basic health check
-                    response = client.get(f"{self.base_url}", timeout=10)
-                    print(f"Worker {worker_id}: Basic health check returned {response.status_code}")
-                    
-                    # Test API endpoint to ensure server is ready
-                    api_response = client.get(f"{self.base_url}/api/workspaces", timeout=10)
-                    print(f"Worker {worker_id}: API endpoint returned {api_response.status_code}")
-                    
-                    # Production servers should respond quickly and consistently
-                    if api_response.status_code in [200, 404]:
-                        print(f"Production server for worker {worker_id} is ready at {self.base_url}")
-                        return
-                    
-            except (httpx.RequestError, httpx.TimeoutException) as e:
-                print(f"Worker {worker_id}: Production server not ready yet ({str(e)}), waiting...")
-                pass
-            
-            time.sleep(1)
-        
-        # If we get here, server didn't start properly
-        if self.process:
-            try:
-                stdout, stderr = self.process.communicate(timeout=5)
-                print(f"Production server startup failed for worker {worker_id}.")
-                print(f"STDOUT: {stdout[:500]}...")
-                print(f"STDERR: {stderr[:500]}...")
-            except subprocess.TimeoutExpired:
-                print(f"Production server process for worker {worker_id} is still running but not responding")
-        raise TimeoutError(f"Production server for worker {worker_id} failed to start within {timeout} seconds")
-    
+
     def stop_server(self):
         """Stop the Next.js server and cleanup."""
         if self.process:
