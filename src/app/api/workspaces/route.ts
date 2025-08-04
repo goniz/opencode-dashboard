@@ -70,43 +70,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Basic security validation - reject obvious injection attempts and path traversal
-    const suspiciousPatterns = [
-      /['"]/g, // quotes
-      /;/g, // semicolons
-      /--/g, // SQL comments
-      /\b(union\s+select|union\s+all)\b/gi, // UNION SQL injection
-      /\b(select\s+\*|select\s+.+\s+from)\b/gi, // SELECT SQL injection
-      /\b(drop\s+table|drop\s+database)\b/gi, // DROP SQL injection
-      /\b(insert\s+into)\b/gi, // INSERT SQL injection
-      /\b(update\s+.+\s+set)\b/gi, // UPDATE SQL injection
-      /\b(delete\s+from)\b/gi, // DELETE SQL injection (only actual SQL DELETE statements)
-      /\.\./g, // directory traversal
-      /[<>]/g, // potential XSS
-    ];
-
-    const hasSuspiciousContent = (input: string) => {
-      return suspiciousPatterns.some(pattern => pattern.test(input));
-    };
-
-    // Additional checks for path traversal - be more specific about dangerous paths
-    const hasSystemPaths = /(\/etc\/|\/windows\/|\/system32\/|passwd|shadow)/gi.test(folder);
-    const hasDangerousPaths = /(\/root\/|\/home\/.*\/\.ssh|\/var\/|\/usr\/bin)/gi.test(folder);
-
-    if (hasSuspiciousContent(folder) || hasSystemPaths || hasDangerousPaths) {
-      return NextResponse.json(
-        { error: "Invalid characters in folder path" },
-        { status: 400 }
-      );
-    }
-
-    if (hasSuspiciousContent(model)) {
-      return NextResponse.json(
-        { error: "Invalid characters in model name" },
-        { status: 400 }
-      );
-    }
-
     const config: OpenCodeWorkspaceConfig = { folder, model };
     const workspace = await workspaceManager.startWorkspace(config);
 
