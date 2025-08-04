@@ -38,7 +38,6 @@ jobs:
           HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
         run: |
           set -euo pipefail
-          # Use GET with query string to avoid POST semantics from `-f` (which caused HTTP 422 "base wasn't supplied").
           QUERY_PATH="repos/$REPO/pulls?state=open&head=${HEAD_OWNER}:${HEAD_BRANCH}"
           PR_NUMBER=$(gh api "$QUERY_PATH" --jq '.[0].number // empty' || echo "")
           echo "pr_number=${PR_NUMBER}" >> "$GITHUB_OUTPUT"
@@ -57,13 +56,13 @@ jobs:
           ENABLE_PHRASE: ${{ env.ENABLE_PHRASE }}
         run: |
           set -euo pipefail
-          HAS_ENABLE=$(gh api repos/$REPO/issues/$PR_NUMBER/comments --paginate --jq \
-            "[.[].body | test(\"(^|\\s)${ENABLE_PHRASE}(\\s|$)\", \"i\")] | any")
-          if [[ "$HAS_ENABLE" != "true" ]]; then
-            gh api repos/$REPO/issues/$PR_NUMBER/comments -f body=$'CI has failed for this PR.\nTo let the auto-fix workflow run, please comment `/autofix` on this PR.\nOnce you comment `/autofix`, I will verify the failure and attempt an auto-fix (minimal change).'
-            echo "enabled=false" >> $GITHUB_OUTPUT
+          if gh api repos/$REPO/issues/$PR_NUMBER/comments --paginate --jq '.[].body' \
+             | tr -d '\r' \
+             | grep -qiE '(^|[[:space:]])'"$ENABLE_PHRASE"'([[:space:]]|$)'; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
           else
-            echo "enabled=true" >> $GITHUB_OUTPUT
+            gh api repos/$REPO/issues/$PR_NUMBER/comments -f body=$'CI has failed for this PR.\nTo let the auto-fix workflow run, please comment `/autofix` on this PR.\nOnce you comment `/autofix`, I will verify the failure and attempt an auto-fix (minimal change).'
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Stop here (gated by comment)
@@ -176,8 +175,9 @@ jobs:
         uses: anthropics/claude-code-action@beta
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          direct_prompt: ${{ steps.prompt.outputs.prompt }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           use_sticky_comment: "true"
+          direct_prompt: ${{ steps.prompt.outputs.prompt }}
           base_branch: ${{ steps.pr.outputs.ref }}
           timeout_minutes: "45"
           additional_permissions: |
