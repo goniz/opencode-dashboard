@@ -1,0 +1,199 @@
+# .github/workflows/auto-fix-ci-with-claude.yml
+name: Auto-fix CI (PRs only, gated by /autofix)
+
+on:
+  workflow_run:
+    workflows: ["CI"]           # <-- your CI workflow's displayed name
+    types: [completed]
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write               # allow commits/branches
+  pull-requests: write          # allow opening PRs
+  issues: write                 # allow posting comments
+  actions: read                 # allow reading logs/artifacts & run metadata
+
+env:
+  ENABLE_PHRASE: "/autofix"
+  CI_WORKFLOW_NAME: "CI"
+
+concurrency:
+  group: auto-fix-${{ github.event_name }}-${{ github.event.workflow_run.id || github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  # 1) Gate on CI failure for PRs only: require /autofix comment before doing anything
+  gate_on_failure:
+    if: >-
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'failure' &&
+      github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Determine PR for failing run
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          HEAD_OWNER: ${{ github.event.workflow_run.head_repository.owner.login }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          set -euo pipefail
+          PR_NUMBER=$(gh api repos/$REPO/pulls \
+            -f state=open \
+            -f head="$HEAD_OWNER:$HEAD_BRANCH" \
+            --jq '.[0].number // empty')
+          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+
+      - name: Stop if no PR open
+        if: ${{ steps.pr.outputs.pr_number == '' }}
+        run: echo "No open PR found for this failing run. Exiting."
+
+      - name: Check for /autofix on PR; post reminder if missing
+        if: ${{ steps.pr.outputs.pr_number != '' }}
+        id: gate
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ steps.pr.outputs.pr_number }}
+          ENABLE_PHRASE: ${{ env.ENABLE_PHRASE }}
+        run: |
+          set -euo pipefail
+          HAS_ENABLE=$(gh api repos/$REPO/issues/$PR_NUMBER/comments --paginate --jq \
+            "[.[].body | test(\"(^|\\s)${ENABLE_PHRASE}(\\s|$)\", \"i\")] | any")
+          if [[ "$HAS_ENABLE" != "true" ]]; then
+            gh api repos/$REPO/issues/$PR_NUMBER/comments -f body="$(
+              cat <<'MSG'
+CI has failed for this PR.
+To let the auto-fix workflow run, please comment **`/autofix`** on this PR.
+Once you comment `/autofix`, I will verify the failure and attempt an auto-fix (minimal change).
+MSG
+            )"
+            echo "enabled=false" >> $GITHUB_OUTPUT
+          else
+            echo "enabled=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Stop here (gated by comment)
+        if: ${{ steps.gate.outputs.enabled != 'true' }}
+        run: echo "Enable phrase not present. Stopping."
+
+  # 2) Run on comment: when `/autofix` is posted on a PR, verify CI failure and proceed to fix
+  fix_on_enable:
+    if: >-
+      github.event_name == 'issue_comment' &&
+      github.event.action == 'created' &&
+      github.event.issue.pull_request &&
+      contains(github.event.comment.body, '/autofix')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve PR and head details
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          set -euo pipefail
+          HEAD_SHA=$(gh api repos/$REPO/pulls/$PR_NUMBER --jq '.head.sha')
+          HEAD_REF=$(gh api repos/$REPO/pulls/$PR_NUMBER --jq '.head.ref')
+          echo "sha=$HEAD_SHA" >> $GITHUB_OUTPUT
+          echo "ref=$HEAD_REF" >> $GITHUB_OUTPUT
+
+      - name: Find latest failed CI run for this commit
+        id: run
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          CI_WORKFLOW_NAME: ${{ env.CI_WORKFLOW_NAME }}
+          HEAD_SHA: ${{ steps.pr.outputs.sha }}
+        run: |
+          set -euo pipefail
+          RUN_ID=$(gh api repos/$REPO/actions/runs --paginate --jq \
+            "[.workflow_runs[] | select(.name==env.CI_WORKFLOW_NAME and .head_sha==env.HEAD_SHA)] \
+             | sort_by(.created_at) | reverse | .[0].id // empty")
+          if [[ -z "$RUN_ID" ]]; then
+            echo "found=" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          CONCLUSION=$(gh api repos/$REPO/actions/runs/$RUN_ID --jq .conclusion)
+          echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+          echo "conclusion=$CONCLUSION" >> $GITHUB_OUTPUT
+
+      - name: If CI is not failing, inform and stop
+        if: ${{ steps.run.outputs.run_id == '' || steps.run.outputs.conclusion != 'failure' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          gh api repos/$REPO/issues/$PR_NUMBER/comments -f body="$(
+            cat <<'MSG'
+I found no failed **CI** run for the latest commit on this PR. Nothing to fix right now.
+If CI fails again, comment `/autofix` to let me attempt an auto-fix.
+MSG
+          )" || true
+
+      - name: Checkout failing commit
+        if: ${{ steps.run.outputs.run_id != '' && steps.run.outputs.conclusion == 'failure' }}
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.pr.outputs.sha }}
+
+      - name: Download logs from failed CI run
+        if: ${{ steps.run.outputs.run_id != '' && steps.run.outputs.conclusion == 'failure' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          mkdir -p ci-logs
+          gh run download ${{ steps.run.outputs.run_id }} \
+            --repo "$REPO" \
+            --dir ci-logs || echo "No logs/artifacts found"
+
+      - name: Build Claude prompt from context
+        if: ${{ steps.run.outputs.run_id != '' && steps.run.outputs.conclusion == 'failure' }}
+        id: prompt
+        run: |
+          {
+            echo "prompt<<'EOF'"
+            echo "Context:"
+            echo "- CI workflow '${{ env.CI_WORKFLOW_NAME }}' failed for PR #${{ github.event.issue.number }}."
+            echo "- Branch: '${{ steps.pr.outputs.ref }}' | Commit: ${{ steps.pr.outputs.sha }}."
+            echo "- The repository is checked out at that commit; CI logs are saved under ./ci-logs."
+            echo
+            echo "Goal:"
+            echo "1) Diagnose the failure using ./ci-logs and repo state."
+            echo "2) Implement the smallest safe fix."
+            echo "3) Create/Update a branch from '${{ steps.pr.outputs.ref }}', commit changes, and open a PR (or push to this PR) summarizing the root cause and fix."
+            echo
+            echo "Constraints & guidance:"
+            echo "- Follow repository conventions (see CLAUDE.md and AGENTS.md if present)."
+            echo "- Update tests/tooling configs as needed to make CI pass."
+            echo "- Prefer minimal, targeted changes; avoid large refactors."
+            echo "- If a secret/env/config is missing, add the smallest corrective change and document it in the PR."
+            echo "- Reference specific failing tests/jobs from the logs in the PR body."
+            echo
+            echo "Artifacts index (for quick navigation):"
+            ls -R ci-logs 2>/dev/null | sed 's/^/  /' || true
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Ask Claude to attempt fix and open PR (OAuth)
+        if: ${{ steps.run.outputs.run_id != '' && steps.run.outputs.conclusion == 'failure' }}
+        uses: anthropics/claude-code-action@beta
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          direct_prompt: ${{ steps.prompt.outputs.prompt }}
+          base_branch: ${{ steps.pr.outputs.ref }}
+          timeout_minutes: "45"
+          additional_permissions: |
+            actions: read
+          # Optional hardening:
+          # allowed_tools: |
+          #   Bash
+          #   Read
+          #   Write
+          # settings: |
+          #   { "model": "claude-3-7-sonnet-20250219" }
