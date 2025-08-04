@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { OpenCodeSessionProvider } from "@/contexts/OpenCodeWorkspaceContext";
+import { initializeCleanupHandlers } from "@/lib/app-initialization";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,6 +18,13 @@ export const metadata: Metadata = {
   title: "OpenCode Dashboard - AI Coding Agent",
   description: "Interactive dashboard for OpenCode CLI - Your AI-powered coding assistant",
 };
+
+// Initialize cleanup handlers on server startup
+if (typeof window === 'undefined') {
+  initializeCleanupHandlers().catch((error) => {
+    console.error('[Layout] Failed to initialize cleanup handlers:', error);
+  });
+}
 
 export default function RootLayout({
   children,
