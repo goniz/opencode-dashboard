@@ -7,11 +7,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "uv run pytest -x -s -n auto",
-    "test:verbose": "uv run pytest -x -s -v -n auto",
+    "test": "uv run pytest -x -n auto",
+    "test:verbose": "uv run pytest -x -v -n auto",
     "test:coverage": "uv run pytest --cov=tests -n auto",
     "test:api": "uv run pytest -m api -n auto",
     "test:integration": "uv run pytest -m integration -n auto",
+    "test:leak": "uv run pytest tests/test_opencode_server_leak.py -v",
     "test:install": "uv sync"
   },
   "dependencies": {
