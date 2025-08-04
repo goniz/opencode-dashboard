@@ -2,8 +2,16 @@ import pytest
 import httpx
 import json
 import asyncio
+import os
 from typing import Dict, Any, List, Optional
 from .test_utils import parse_opencode_streaming_chunk
+
+
+# Skip tool call parsing tests if API key is not available
+pytestmark = pytest.mark.skipif(
+    not os.environ.get("ANTHROPIC_API_KEY"),
+    reason="Tool call parsing tests require ANTHROPIC_API_KEY environment variable"
+)
 
 
 @pytest.mark.api

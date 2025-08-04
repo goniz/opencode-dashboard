@@ -2,9 +2,17 @@ import pytest
 import httpx
 import json
 import asyncio
+import os
 from unittest.mock import Mock, patch, AsyncMock
 from typing import Dict, Any, List
 from .test_utils import parse_opencode_streaming_chunk
+
+
+# Skip OpenCode tests if API key is not available
+pytestmark = pytest.mark.skipif(
+    not os.environ.get("ANTHROPIC_API_KEY"),
+    reason="OpenCode tests require ANTHROPIC_API_KEY environment variable"
+)
 
 
 @pytest.mark.api
