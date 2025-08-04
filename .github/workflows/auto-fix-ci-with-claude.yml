@@ -199,6 +199,20 @@ jobs:
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '22'
+
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh && echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Install dependencies
+        run: |
+          npm install
+          npm run test:install
+          npm install -g opencode-ai@latest
+
       - name: Ask Claude to attempt fix and open PR (OAuth)
         if: ${{ steps.run.outputs.run_id != '' && steps.run.outputs.conclusion == 'failure' }}
         uses: anthropics/claude-code-action@beta
