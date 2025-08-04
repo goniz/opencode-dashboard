@@ -3,10 +3,14 @@ name: Auto-fix CI (PRs only, gated by /autofix)
 
 on:
   workflow_run:
-    workflows: ["CI"]           # <-- your CI workflow's displayed name
+    workflows: ["CI"]
     types: [completed]
   issue_comment:
     types: [created]
+  pull_request_review_comment:
+    types: [created]
+  pull_request_review:
+    types: [submitted]
 
 permissions:
   contents: write
@@ -46,7 +50,7 @@ jobs:
         if: ${{ steps.pr.outputs.pr_number == '' }}
         run: echo "No open PR found for this failing run. Exiting."
 
-      - name: Check for /autofix on PR; post reminder if missing
+      - name: Check for /autofix on PR (issue+review comments, reviews, PR body)
         if: ${{ steps.pr.outputs.pr_number != '' }}
         id: gate
         env:
@@ -56,12 +60,22 @@ jobs:
           ENABLE_PHRASE: ${{ env.ENABLE_PHRASE }}
         run: |
           set -euo pipefail
-          if gh api repos/$REPO/issues/$PR_NUMBER/comments --paginate --jq '.[].body' \
-             | tr -d '\r' \
-             | grep -qiE '(^|[[:space:]])'"$ENABLE_PHRASE"'([[:space:]]|$)'; then
+          tmp="$(mktemp)"
+          {
+            # PR body
+            gh api "repos/$REPO/pulls/$PR_NUMBER" --jq '.body // empty'
+            # Issue comments (top-level)
+            gh api "repos/$REPO/issues/$PR_NUMBER/comments" --paginate --jq '.[].body'
+            # Review comments (inline on diffs)
+            gh api "repos/$REPO/pulls/$PR_NUMBER/comments" --paginate --jq '.[].body'
+            # Reviews (Submit review with a body)
+            gh api "repos/$REPO/pulls/$PR_NUMBER/reviews" --paginate --jq '.[].body // empty'
+          } > "$tmp" || true
+
+          if tr -d '\r' < "$tmp" | grep -qiE '(^|[[:space:]])'"$ENABLE_PHRASE"'([[:space:]]|$)'; then
             echo "enabled=true" >> "$GITHUB_OUTPUT"
           else
-            gh api repos/$REPO/issues/$PR_NUMBER/comments -f body=$'CI has failed for this PR.\nTo let the auto-fix workflow run, please comment `/autofix` on this PR.\nOnce you comment `/autofix`, I will verify the failure and attempt an auto-fix (minimal change).'
+            gh api repos/$REPO/issues/$PR_NUMBER/comments -f body=$'CI has failed for this PR.\nTo let the auto-fix workflow run, please comment `/autofix` on this PR (top-level comment or review is fine).\nOnce you comment `/autofix`, I will verify the failure and attempt an auto-fix (minimal change).'
             echo "enabled=false" >> "$GITHUB_OUTPUT"
           fi
 
@@ -69,9 +83,9 @@ jobs:
         if: ${{ steps.gate.outputs.enabled != 'true' }}
         run: echo "Enable phrase not present. Stopping."
 
-  # 2) Run on comment: when `/autofix` is posted on a PR, verify CI failure and proceed to fix
+  # 2) Run on comment/review: when `/autofix` is posted on a PR, verify CI failure and proceed to fix
   fix_on_enable:
-    if: ${{ github.event_name == 'issue_comment' && github.event.action == 'created' && github.event.issue.pull_request != null && contains(github.event.comment.body, '/autofix') }}
+    if: ${{ (github.event_name == 'issue_comment' && github.event.action == 'created' && github.event.issue.pull_request != null && contains(github.event.comment.body, '/autofix')) || (github.event_name == 'pull_request_review_comment' && github.event.action == 'created' && contains(github.event.comment.body, '/autofix')) || (github.event_name == 'pull_request_review' && github.event.action == 'submitted' && contains(github.event.review.body, '/autofix')) }}
     runs-on: ubuntu-latest
     steps:
       - name: Resolve PR and head details
@@ -79,13 +93,21 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
-          PR_NUMBER: ${{ github.event.issue.number }}
         run: |
           set -euo pipefail
+          # Determine PR number depending on triggering event
+          if [[ "${{ github.event_name }}" == "issue_comment" ]]; then
+            PR_NUMBER="${{ github.event.issue.number }}"
+          elif [[ "${{ github.event_name }}" == "pull_request_review_comment" ]]; then
+            PR_NUMBER="${{ github.event.pull_request.number }}"
+          else
+            PR_NUMBER="${{ github.event.pull_request.number }}"
+          fi
           HEAD_SHA=$(gh api repos/$REPO/pulls/$PR_NUMBER --jq '.head.sha')
           HEAD_REF=$(gh api repos/$REPO/pulls/$PR_NUMBER --jq '.head.ref')
-          echo "sha=$HEAD_SHA" >> $GITHUB_OUTPUT
-          echo "ref=$HEAD_REF" >> $GITHUB_OUTPUT
+          echo "pr=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "sha=$HEAD_SHA" >> "$GITHUB_OUTPUT"
+          echo "ref=$HEAD_REF" >> "$GITHUB_OUTPUT"
 
       - name: Find latest failed CI run for this commit
         id: run
@@ -112,7 +134,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
-          PR_NUMBER: ${{ github.event.issue.number }}
+          PR_NUMBER: ${{ steps.pr.outputs.pr }}
         run: |
           gh api repos/$REPO/issues/$PR_NUMBER/comments -f body=$'I found no failed CI run for the latest commit on this PR. Nothing to fix right now.\nIf CI fails again, comment `/autofix` to let me attempt an auto-fix.' || true
 
@@ -149,7 +171,7 @@ jobs:
           {
             echo "prompt<<EOF"
             echo "Context:"
-            echo "- CI workflow '${{ env.CI_WORKFLOW_NAME }}' failed for PR #${{ github.event.issue.number }}."
+            echo "- CI workflow '${{ env.CI_WORKFLOW_NAME }}' failed for PR #${{ steps.pr.outputs.pr }}."
             echo "- Branch: '${{ steps.pr.outputs.ref }}' | Commit: ${{ steps.pr.outputs.sha }}."
             echo "- The repository is checked out at that commit; CI logs are saved under ./ci-logs."
             echo
