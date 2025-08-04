@@ -67,12 +67,12 @@ class TestErrorHandling:
             # Should handle gracefully
             assert response.status_code in [200, 400, 415]
 
-    async def test_oversized_requests(self, client: httpx.AsyncClient):
+    async def test_oversized_requests(self, client: httpx.AsyncClient, test_folder: str, test_model: str):
         """Test handling of oversized request payloads."""
         # Create a very large payload
         large_payload = {
-            "folder": "/tmp/test",
-            "model": "test-model",
+            "folder": test_folder,
+            "model": test_model,
             "large_field": "x" * (10 * 1024 * 1024)  # 10MB string
         }
         
@@ -102,11 +102,11 @@ class TestErrorHandling:
             # Should handle special characters gracefully
             assert response.status_code in [200, 400]
 
-    async def test_null_and_undefined_values(self, client: httpx.AsyncClient):
+    async def test_null_and_undefined_values(self, client: httpx.AsyncClient, test_folder: str, test_model: str):
         """Test handling of null and undefined values in requests."""
         payloads_with_nulls = [
-            {"folder": None, "model": "test-model"},
-            {"folder": "/tmp/test", "model": None},
+            {"folder": None, "model": test_model},
+            {"folder": test_folder, "model": None},
             {"folder": None, "model": None},
             {},  # Missing required fields
         ]
@@ -119,7 +119,7 @@ class TestErrorHandling:
             data = response.json()
             assert "error" in data
 
-    async def test_xss_attempts(self, client: httpx.AsyncClient):
+    async def test_xss_attempts(self, client: httpx.AsyncClient, test_model: str):
         """Test protection against XSS attempts."""
         xss_attempts = [
             "<script>alert('xss')</script>",
@@ -131,7 +131,7 @@ class TestErrorHandling:
         for xss in xss_attempts:
             response = await client.post("/api/workspaces", json={
                 "folder": xss,
-                "model": "test-model"
+                "model": test_model
             })
             
             # Should handle XSS attempts safely
