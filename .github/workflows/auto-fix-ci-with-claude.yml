@@ -72,7 +72,7 @@ jobs:
 
   # 2) Run on comment: when `/autofix` is posted on a PR, verify CI failure and proceed to fix
   fix_on_enable:
-    if: ${{ github.event_name == 'issue_comment' && github.event.action == 'created' && github.event.issue.pull_request != null && contains(github.event.comment.body, env.ENABLE_PHRASE) }}
+    if: ${{ github.event_name == 'issue_comment' && github.event.action == 'created' && github.event.issue.pull_request != null && contains(github.event.comment.body, '/autofix') }}
     runs-on: ubuntu-latest
     steps:
       - name: Resolve PR and head details
