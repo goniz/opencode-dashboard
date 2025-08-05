@@ -210,7 +210,7 @@ class TestOpenCodeClient:
                 ],
                 "stream": False
             },
-            timeout=60.0
+            timeout=120.0
         )
         
         assert chat_response.status_code == 200

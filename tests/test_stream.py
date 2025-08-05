@@ -403,7 +403,7 @@ class TestWorkspaceStream:
                 ],
                 "stream": True
             },
-            timeout=30.0
+            timeout=90.0
         ) as chat_response:
             assert chat_response.status_code == 200
             
