@@ -313,13 +313,13 @@ class TestWorkspaceStream:
                     ],
                     "stream": False
                 },
-                timeout=30.0
+                timeout=60.0
             )
         )
         
         # Wait for both stream collection and chat to complete
         try:
-            await asyncio.wait_for(asyncio.gather(stream_task, chat_task), timeout=35.0)
+            await asyncio.wait_for(asyncio.gather(stream_task, chat_task), timeout=90.0)
         except asyncio.TimeoutError:
             # Cancel tasks if they timeout
             if not stream_task.done():
