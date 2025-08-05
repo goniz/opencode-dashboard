@@ -64,31 +64,13 @@ jobs:
       - name: Install dependencies
         run: |
           npm install
-          npm run test:install
           npm install -g opencode-ai@latest
 
       - name: Test
-        run: npm run test -- -n 1
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-
-      - name: Test Leak Detection
         run: |
-          # Run leak tests but don't fail the build if they fail (they're optional)
-          echo "Running leak detection tests (these are optional and won't fail the build)"
-          npm run test:leak; TEST_EXIT_CODE=$?
-          case $TEST_EXIT_CODE in
-            0)
-              echo "Leak tests completed successfully"
-              ;;
-            5)
-              echo "Leak tests completed - no tests were collected (all skipped as expected)"
-              ;;
-            *)
-              echo "Leak tests completed with exit code $TEST_EXIT_CODE (this is acceptable as these tests are optional)"
-              ;;
-          esac
-          # Always exit with success since these are optional tests
-          exit 0
+          npm run test:install
+          npm run test
+          npm run test:leak
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+l
