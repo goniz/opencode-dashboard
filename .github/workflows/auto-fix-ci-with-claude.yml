@@ -113,7 +113,7 @@ jobs:
             gh api repos/$REPO/labels -f name="$ENABLE_LABEL" -f color="1f883d" -f description="Enable automated CI fixes" >/dev/null
           fi
           # Add label to PR (idempotent)
-          gh api repos/$REPO/issues/$PR_NUMBER/labels -f labels='["'"$ENABLE_LABEL"'"]' >/dev/null
+          gh api repos/$REPO/issues/$PR_NUMBER/labels -f labels[]="$ENABLE_LABEL" >/dev/null
 
       - name: Find latest failed CI run for this commit
         id: run
