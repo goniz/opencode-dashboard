@@ -186,7 +186,7 @@ export default function Home() {
     }
 
     return (
-      <div className="min-h-screen bg-background pb-16 md:pb-0">
+      <div className="min-h-[100dvh] bg-background pb-16 md:pb-0">
         <MobileNavigation
           currentView={viewState}
           onNavigate={setViewState}
@@ -238,7 +238,7 @@ export default function Home() {
   if (viewState === "chat") {
     if (!currentSession) {
       return (
-        <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="min-h-[100dvh] bg-background flex items-center justify-center">
           <div className="text-center max-w-md mx-auto px-4">
             <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent mx-auto mb-4"></div>
             <p className="text-muted-foreground mb-2">Loading chat session...</p>
@@ -251,7 +251,7 @@ export default function Home() {
     }
 
     return (
-      <div className="min-h-screen bg-background pb-16 md:pb-0">
+      <div className="min-h-[100dvh] bg-background pb-16 md:pb-0">
         <MobileNavigation
           currentView={viewState}
           onNavigate={setViewState}
@@ -298,7 +298,7 @@ export default function Home() {
             </div>
           </div>
         </div>
-        <div className="h-[calc(100vh-73px)] md:h-[calc(100vh-73px)]">
+        <div className="h-[calc(100dvh-73px)] md:h-[calc(100dvh-73px)]">
           <OpenCodeChatInterface />
         </div>
       </div>
