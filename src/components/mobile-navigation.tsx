@@ -6,8 +6,8 @@ import { MenuIcon, XIcon, HomeIcon, FolderIcon, MessageSquareIcon, SettingsIcon,
 import { cn } from "@/lib/utils";
 
 interface MobileNavigationProps {
-  currentView: "quick-start" | "workspaces" | "workspace-dashboard" | "chat";
-  onNavigate: (view: "quick-start" | "workspaces" | "workspace-dashboard" | "chat") => void;
+  currentView: "workspaces" | "workspace-dashboard" | "chat" | "tools";
+  onNavigate: (view: "workspaces" | "workspace-dashboard" | "chat" | "tools") => void;
   onBackToWorkspaces: () => void;
   className?: string;
 }
@@ -22,7 +22,6 @@ export default function MobileNavigation({
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
 
-  // Close drawer when view changes
   useEffect(() => {
     setIsDrawerOpen(false);
   }, [currentView]);
@@ -62,12 +61,7 @@ export default function MobileNavigation({
   }, [isDrawerOpen]);
 
   const navigationItems = [
-    {
-      id: "quick-start",
-      label: "Quick Start",
-      icon: HomeIcon,
-      action: () => onNavigate("quick-start"),
-    },
+
     {
       id: "workspaces",
       label: "Workspaces",
@@ -76,17 +70,17 @@ export default function MobileNavigation({
     },
     {
       id: "workspace-dashboard",
-      label: "Dashboard",
+      label: "Sessions",
       icon: FolderIcon,
       action: () => onNavigate("workspace-dashboard"),
-      disabled: currentView === "quick-start" || currentView === "workspaces",
+      disabled: currentView === "workspaces",
     },
     {
       id: "chat",
       label: "Chat",
       icon: MessageSquareIcon,
       action: () => onNavigate("chat"),
-      disabled: currentView === "quick-start" || currentView === "workspaces",
+      disabled: currentView === "workspaces",
     },
   ];
 
@@ -100,7 +94,7 @@ export default function MobileNavigation({
         className
       )}>
         {/* Left side - Back button or Menu */}
-        {(currentView === "workspace-dashboard" || currentView === "chat") ? (
+        {(currentView === "workspace-dashboard" || currentView === "chat" || currentView === "tools") ? (
           <Button
             variant="ghost"
             size="sm"
@@ -124,15 +118,15 @@ export default function MobileNavigation({
 
         <div className="flex-1 text-center">
           <h1 className="text-lg font-semibold text-foreground">
-            {currentView === "quick-start" && "Quick Start"}
-            {currentView === "workspaces" && "OpenCode Dashboard"}
-            {currentView === "workspace-dashboard" && "Workspace"}
+            {currentView === "workspaces" && "Workspaces"}
+            {currentView === "workspace-dashboard" && "Sessions"}
             {currentView === "chat" && "Chat"}
+            {currentView === "tools" && "Tools"}
           </h1>
         </div>
 
         {/* Right side - Menu button when showing back button, spacer otherwise */}
-        {(currentView === "workspace-dashboard" || currentView === "chat") ? (
+        {(currentView === "workspace-dashboard" || currentView === "chat" || currentView === "tools") ? (
           <Button
             variant="ghost"
             size="sm"
@@ -213,33 +207,42 @@ export default function MobileNavigation({
         </div>
       </div>
 
-      {/* Bottom Navigation Bar */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-border z-30">
-        <div className="flex items-center justify-around py-2">
-          {navigationItems.slice(0, 3).map((item) => {
+       {/* Bottom Navigation Bar */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-black border-t border-white/10 z-30 pb-[env(safe-area-inset-bottom)]">
+        <div className="flex items-center justify-around py-1">
+          {["workspaces","workspace-dashboard","chat","tools"].map((id) => {
+            if (id === "tools") {
+              return (
+                <Button key="tools" variant="ghost" size="sm" className={cn(
+                  "flex flex-col items-center gap-0.5 min-h-[48px] min-w-[64px] px-3 py-1 text-white",
+                  currentView === "tools" && "text-emerald-400"
+                )} onClick={() => onNavigate("tools")}> 
+                  <SettingsIcon className="w-5 h-5" />
+                  <span className="text-[11px]">Tools</span>
+                </Button>
+              );
+            }
+            const item = navigationItems.find(n => n.id === id)!;
             const Icon = item.icon;
             const isActive = currentView === item.id;
-            
             return (
               <Button
                 key={item.id}
                 variant="ghost"
                 size="sm"
                 className={cn(
-                  "flex flex-col items-center gap-1 min-h-[44px] min-w-[44px] px-3 py-2",
-                  isActive && "text-primary",
-                  item.disabled && "opacity-50 cursor-not-allowed"
+                  "flex flex-col items-center gap-0.5 min-h-[48px] min-w-[64px] px-3 py-1 text-white",
+                  isActive && "text-emerald-400"
                 )}
                 onClick={item.disabled ? undefined : item.action}
                 disabled={item.disabled}
               >
                 <Icon className="w-5 h-5" />
-                <span className="text-xs">{item.label}</span>
+                <span className="text-[11px]">{item.label}</span>
               </Button>
             );
           })}
         </div>
-      </div>
-    </>
+      </div>    </>
   );
 }

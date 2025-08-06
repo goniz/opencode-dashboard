@@ -10,11 +10,11 @@ import { useOpenCodeSessionContext } from "@/contexts/OpenCodeWorkspaceContext";
 import { Button } from "@/components/button";
 import { ArrowLeftIcon, SettingsIcon } from "lucide-react";
 
-type ViewState = "quick-start" | "workspaces" | "workspace-dashboard" | "chat";
+type ViewState = "workspaces" | "workspace-dashboard" | "chat" | "tools";
 
 export default function Home() {
   const { currentSession, sessions: workspaces, switchToSession, createSession, createOpenCodeSession } = useOpenCodeSessionContext();
-  const [viewState, setViewState] = useState<ViewState>("quick-start");
+  const [viewState, setViewState] = useState<ViewState>("workspaces");
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null);
   const [showAdvancedView, setShowAdvancedView] = useState(false);
 
@@ -72,7 +72,7 @@ export default function Home() {
   };
 
   const handleBackToWorkspaces = () => {
-    setViewState(showAdvancedView ? "workspaces" : "quick-start");
+    setViewState("workspaces");
   };
 
   const handleQuickStartWorkspaceCreated = async (workspaceData: { folder: string; model: string; autoOpenChat?: boolean }) => {
@@ -136,7 +136,7 @@ export default function Home() {
       if (!currentSession) {
         // Set a timeout to prevent infinite loading
         const timeout = setTimeout(() => {
-          setViewState(showAdvancedView ? "workspaces" : "quick-start");
+          setViewState("workspaces");
         }, 10000); // 10 second timeout
         
         // Check if we have any workspaces with sessions
@@ -159,7 +159,7 @@ export default function Home() {
                 .catch(error => {
                   console.error("Failed to switch to session:", error);
                   clearTimeout(timeout);
-                  setViewState(showAdvancedView ? "workspaces" : "quick-start");
+                  setViewState("workspaces");
                 });
               
               return () => clearTimeout(timeout);
@@ -167,7 +167,7 @@ export default function Home() {
           }
         } else {
           clearTimeout(timeout);
-          setViewState(showAdvancedView ? "workspaces" : "quick-start");
+          setViewState("workspaces");
         }
         
         return () => clearTimeout(timeout);
@@ -306,7 +306,7 @@ export default function Home() {
   }
 
   // Quick Start view
-  if (viewState === "quick-start") {
+  if (viewState === "tools") {
     return (
       <div className="min-h-screen bg-background py-8 pb-16 md:pb-8">
         <MobileNavigation
@@ -373,7 +373,7 @@ export default function Home() {
                   size="sm"
                   onClick={() => {
                     setShowAdvancedView(false);
-                    setViewState("quick-start");
+                    setViewState("workspaces");
                   }}
                   className="flex items-center gap-2"
                 >

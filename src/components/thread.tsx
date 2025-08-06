@@ -211,7 +211,6 @@ const AssistantMessage: FC = () => {
           <MessagePrimitive.Parts components={{ Text: MarkdownText }} />
         </div>
         <MessageError />
-        <div className="text-[10px] text-white/50 mt-1"></div>
       </div>
 
       <AssistantActionBar />
