@@ -4,7 +4,7 @@ import { withOpenCodeErrorHandling, OpenCodeError } from "@/lib/opencode-client"
 import { parseModelString } from "@/lib/utils";
 
 export const runtime = "nodejs";
-export const maxDuration = 30;
+export const maxDuration = 300;
 
 export async function POST(
   request: NextRequest,
@@ -176,7 +176,7 @@ export async function POST(
       });
     } else {
         // Handle non-streaming response with timeout handling
-        const CHAT_TIMEOUT_MS = 5000; // 5 seconds timeout for chat operation
+        const CHAT_TIMEOUT_MS = 120000; // 120 seconds timeout for chat operation
         let chatResponse;
         try {
           // Race the chat operation against a timeout

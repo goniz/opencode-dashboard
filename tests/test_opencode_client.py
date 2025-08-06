@@ -397,7 +397,7 @@ class TestOpenCodeClient:
                 ],
                 "stream": False
             },
-            timeout=30.0
+            timeout=120.0
         )
         
         assert first_response.status_code == 200
@@ -414,7 +414,7 @@ class TestOpenCodeClient:
                 ],
                 "stream": False
             },
-            timeout=30.0
+            timeout=120.0
         )
         
         assert second_response.status_code == 200
