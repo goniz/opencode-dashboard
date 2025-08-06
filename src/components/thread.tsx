@@ -27,12 +27,12 @@ import { TooltipIconButton } from "./tooltip-icon-button";
 export const Thread: FC = () => {
   return (
     <ThreadPrimitive.Root
-      className="bg-background box-border flex h-full flex-col overflow-hidden"
+      className="bg-black box-border flex h-full flex-col overflow-hidden"
       style={{
-        ["--thread-max-width" as string]: "42rem",
+        ["--thread-max-width" as string]: "44rem",
       }}
     >
-      <ThreadPrimitive.Viewport className="flex h-full flex-col items-center overflow-y-scroll scroll-smooth bg-inherit px-3 md:px-4 pt-4 md:pt-8">
+      <ThreadPrimitive.Viewport className="flex h-full flex-col items-center overflow-y-scroll scroll-smooth bg-inherit px-3 md:px-4 pt-2 md:pt-4">
         <ThreadWelcome />
 
         <ThreadPrimitive.Messages
@@ -44,10 +44,10 @@ export const Thread: FC = () => {
         />
 
         <ThreadPrimitive.If empty={false}>
-          <div className="min-h-8 flex-grow" />
+          <div className="min-h-16 flex-grow" />
         </ThreadPrimitive.If>
 
-        <div className="sticky bottom-0 mt-3 flex w-full max-w-[var(--thread-max-width)] flex-col items-center justify-end rounded-t-lg bg-inherit pb-3 md:pb-4">
+        <div className="sticky bottom-0 mt-3 flex w-full max-w-[var(--thread-max-width)] flex-col items-center justify-end rounded-t-2xl bg-black pb-[env(safe-area-inset-bottom)]">
           <ThreadScrollToBottom />
           <Composer />
         </div>
@@ -62,7 +62,7 @@ const ThreadScrollToBottom: FC = () => {
       <TooltipIconButton
         tooltip="Scroll to bottom"
         variant="outline"
-        className="absolute -top-8 rounded-full disabled:invisible"
+        className="absolute -top-10 rounded-full disabled:invisible bg-black/80 border-white/10 text-white"
       >
         <ArrowDownIcon />
       </TooltipIconButton>
@@ -75,7 +75,7 @@ const ThreadWelcome: FC = () => {
     <ThreadPrimitive.Empty>
       <div className="flex w-full max-w-[var(--thread-max-width)] flex-grow flex-col">
         <div className="flex w-full flex-grow flex-col items-center justify-center">
-          <p className="mt-4 font-medium">
+          <p className="mt-4 font-medium text-white/80">
             How can I help you today?
           </p>
         </div>
@@ -114,12 +114,12 @@ const ThreadWelcomeSuggestions: FC = () => {
 
 const Composer: FC = () => {
   return (
-    <ComposerPrimitive.Root className="focus-within:border-ring/20 flex w-full flex-wrap items-end rounded-lg border bg-inherit px-2 md:px-2.5 shadow-sm transition-colors ease-in">
+    <ComposerPrimitive.Root className="focus-within:ring-1 focus-within:ring-emerald-500/30 flex w-full items-end rounded-2xl border border-white/10 bg-white/5 backdrop-blur px-2 shadow-lg">
       <ComposerPrimitive.Input
         rows={1}
         autoFocus
-        placeholder="Write a message..."
-        className="placeholder:text-muted-foreground max-h-40 flex-grow resize-none border-none bg-transparent px-2 py-3 md:py-4 text-sm md:text-base outline-none focus:ring-0 disabled:cursor-not-allowed"
+        placeholder="Message"
+        className="placeholder:text-white/40 max-h-40 flex-grow resize-none border-none bg-transparent px-3 py-3 text-base outline-none focus:ring-0 disabled:cursor-not-allowed"
       />
       <ComposerAction />
     </ComposerPrimitive.Root>
@@ -134,7 +134,7 @@ const ComposerAction: FC = () => {
           <TooltipIconButton
             tooltip="Send"
             variant="default"
-            className="my-2 md:my-2.5 size-9 md:size-8 p-2 transition-opacity ease-in"
+            className="my-2 size-9 p-2 rounded-full bg-emerald-500 text-black hover:bg-emerald-400"
           >
             <SendHorizontalIcon />
           </TooltipIconButton>
@@ -145,7 +145,7 @@ const ComposerAction: FC = () => {
           <TooltipIconButton
             tooltip="Cancel"
             variant="default"
-            className="my-2 md:my-2.5 size-9 md:size-8 p-2 transition-opacity ease-in"
+            className="my-2 size-9 p-2 rounded-full bg-red-500 text-white hover:bg-red-400"
           >
             <CircleStopIcon />
           </TooltipIconButton>
@@ -157,11 +157,12 @@ const ComposerAction: FC = () => {
 
 const UserMessage: FC = () => {
   return (
-    <MessagePrimitive.Root className="grid auto-rows-auto grid-cols-[minmax(44px,1fr)_auto] md:grid-cols-[minmax(72px,1fr)_auto] gap-y-2 [&:where(>*)]:col-start-2 w-full max-w-[var(--thread-max-width)] py-3 md:py-4">
+    <MessagePrimitive.Root className="grid auto-rows-auto grid-cols-[minmax(44px,1fr)_auto] md:grid-cols-[minmax(72px,1fr)_auto] gap-y-2 [&:where(>*)]:col-start-2 w-full max-w-[var(--thread-max-width)] py-2">
       <UserActionBar />
 
-      <div className="bg-muted text-foreground max-w-[calc(var(--thread-max-width)*0.9)] md:max-w-[calc(var(--thread-max-width)*0.8)] break-words rounded-2xl md:rounded-3xl px-3 md:px-5 py-2 md:py-2.5 col-start-2 row-start-2 text-sm md:text-base">
+      <div className="bg-emerald-500 text-black max-w-[calc(var(--thread-max-width)*0.9)] md:max-w-[calc(var(--thread-max-width)*0.8)] break-words rounded-2xl rounded-br-sm px-3 md:px-4 py-2 col-start-2 row-start-2 text-[15px]">
         <MessagePrimitive.Content />
+        <div className="text-[10px] text-black/70 mt-1 text-right"></div>
       </div>
 
       <BranchPicker className="col-span-full col-start-1 row-start-3 -mr-1 justify-end" />
@@ -204,12 +205,13 @@ const EditComposer: FC = () => {
 
 const AssistantMessage: FC = () => {
   return (
-    <MessagePrimitive.Root className="grid grid-cols-[auto_auto_1fr] grid-rows-[auto_1fr] relative w-full max-w-[var(--thread-max-width)] py-3 md:py-4">
-      <div className="text-foreground max-w-[calc(var(--thread-max-width)*0.9)] md:max-w-[calc(var(--thread-max-width)*0.8)] break-words leading-6 md:leading-7 col-span-2 col-start-2 row-start-1 my-1 md:my-1.5 text-sm md:text-base">
-        <MessagePrimitive.Parts components={{ 
-          Text: MarkdownText
-        }} />
+    <MessagePrimitive.Root className="grid grid-cols-[auto_auto_1fr] grid-rows-[auto_1fr] relative w-full max-w-[var(--thread-max-width)] py-2">
+      <div className="max-w-[calc(var(--thread-max-width)*0.9)] md:max-w-[calc(var(--thread-max-width)*0.8)] break-words col-span-2 col-start-2 row-start-1 my-1 text-[15px]">
+        <div className="bg-white/5 text-white rounded-2xl rounded-bl-sm px-3 md:px-4 py-2">
+          <MessagePrimitive.Parts components={{ Text: MarkdownText }} />
+        </div>
         <MessageError />
+        <div className="text-[10px] text-white/50 mt-1"></div>
       </div>
 
       <AssistantActionBar />
