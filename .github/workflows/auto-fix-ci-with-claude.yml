@@ -25,7 +25,7 @@ env:
   CI_WORKFLOW_NAME: "CI"
 
 concurrency:
-  group: auto-fix-${{ github.run_id }}
+  group: auto-fix-${{ github.event.pull_request.number || github.event.issue.number || github.run_id }}
   cancel-in-progress: true
 
 jobs:
@@ -39,8 +39,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
-          HEAD_OWNER: ${{ github.event.workflow_run.head_repository.owner.login }}
-          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          HEAD_OWNER: ${{ github.event.workflow_run.head_repository.owner.login || 'unknown' }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch || 'unknown' }}
         run: |
           set -euo pipefail
           QUERY_PATH="repos/$REPO/pulls?state=open&head=${HEAD_OWNER}:${HEAD_BRANCH}"
@@ -62,7 +62,7 @@ jobs:
           ENABLE_PHRASE: ${{ env.ENABLE_PHRASE }}
         run: |
           set -euo pipefail
-          if gh pr view $PR_NUMBER --json labels --jq '.labels[].name' | grep -Fxq "$ENABLE_LABEL"; then
+          if gh pr view $PR_NUMBER --repo $REPO --json labels --jq '.labels[].name' | grep -Fxq "$ENABLE_LABEL"; then
             echo "enabled=true" >> "$GITHUB_OUTPUT"
           else
             gh api repos/$REPO/issues/$PR_NUMBER/comments -f body=$'CI has failed for this PR.\nTo enable auto-fix, please comment `/autofix` on this PR (top-level comment or review). I will label the PR `auto-fix` and proceed when CI is failing.'
@@ -158,7 +158,7 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          mkdir -p ci-logs
+          mkdir -p ci-logs ci-logs/run-logs
           echo "Downloading raw run logs ZIP..."
           gh api -H "Accept: application/zip" repos/$REPO/actions/runs/${{ steps.run.outputs.run_id }}/logs > ci-logs/run-logs.zip || {
             echo "No run logs available"; touch ci-logs/run-logs.zip; }
