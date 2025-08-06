@@ -175,19 +175,34 @@ export async function POST(
         },
       });
     } else {
-      // Handle non-streaming response
-      const response = await withOpenCodeErrorHandling(
-        () => workspace.client!.session.chat(sessionId, chatParams),
-        { operation: "session.chat", sessionId, messageLength: lastMessage.content.length }
-      );
+        // Handle non-streaming response with timeout handling
+        const CHAT_TIMEOUT_MS = 5000; // 5 seconds timeout for chat operation
+        let chatResponse;
+        try {
+          // Race the chat operation against a timeout
+          const chatPromise = withOpenCodeErrorHandling(
+            () => workspace.client!.session.chat(sessionId, chatParams),
+            { operation: "session.chat", sessionId, messageLength: lastMessage.content.length }
+          );
+          const timeoutPromise = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new OpenCodeError('Chat request timed out')), CHAT_TIMEOUT_MS)
+          );
+          // @ts-ignore - Promise.race returns union type
+          chatResponse = await Promise.race([chatPromise, timeoutPromise]);
+        } catch (error) {
+          if (error instanceof OpenCodeError && error.message.includes('timed out')) {
+            return NextResponse.json({ error: 'Chat request timed out' }, { status: 503 });
+          }
+          // Re-throw other errors to be caught by outer catch
+          throw error;
+        }
 
-      return NextResponse.json({
-        message: response,
-        sessionId: sessionId,
-        workspaceId: workspaceId,
-        timestamp: new Date().toISOString()
-      });
-    }
+        return NextResponse.json({
+          message: chatResponse,
+          sessionId: sessionId,
+          workspaceId: workspaceId,
+          timestamp: new Date().toISOString()
+        });    }
 
   } catch (error) {
     console.error("OpenCode chat error:", error);
