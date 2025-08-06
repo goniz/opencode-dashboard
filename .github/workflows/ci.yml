@@ -44,6 +44,23 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        test-file:
+          - test_chat.py
+          - test_error_handling.py
+          - test_folders.py
+          - test_health_endpoint.py
+          - test_individual_endpoints.py
+          - test_integration.py
+          - test_models.py
+          - test_opencode_client.py
+          - test_opencode_server_leak.py
+          - test_sessions.py
+          - test_stream.py
+          - test_tool_call_parsing.py
+          - test_utils.py
+          - test_workspaces.py
 
     steps:
       - uses: actions/checkout@v3
@@ -61,10 +78,9 @@ jobs:
           npm install
           npm install -g opencode-ai@latest
 
-      - name: Test
+      - name: Test ${{ matrix.test-file }}
         run: |
           npm run test:install
-          npm run test
-          npm run test:leak
+          uv run pytest tests/${{ matrix.test-file }}
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
