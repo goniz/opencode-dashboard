@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/button";
-import { MenuIcon, XIcon, HomeIcon, FolderIcon, MessageSquareIcon, SettingsIcon, ArrowLeftIcon } from "lucide-react";
+import { MenuIcon, XIcon, FolderIcon, MessageSquareIcon, SettingsIcon, ArrowLeftIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface MobileNavigationProps {
