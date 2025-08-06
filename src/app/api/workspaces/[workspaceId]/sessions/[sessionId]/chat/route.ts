@@ -187,7 +187,7 @@ export async function POST(
           const timeoutPromise = new Promise<never>((_, reject) =>
             setTimeout(() => reject(new OpenCodeError('Chat request timed out')), CHAT_TIMEOUT_MS)
           );
-          // @ts-ignore - Promise.race returns union type
+          
           chatResponse = await Promise.race([chatPromise, timeoutPromise]);
         } catch (error) {
           if (error instanceof OpenCodeError && error.message.includes('timed out')) {
