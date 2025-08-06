@@ -62,7 +62,7 @@ jobs:
           ENABLE_PHRASE: ${{ env.ENABLE_PHRASE }}
         run: |
           set -euo pipefail
-          if gh pr view $PR_NUMBER --json labels --jq '.labels[].name' | grep -Fxq "$ENABLE_LABEL"; then
+          if gh pr view $PR_NUMBER --repo $REPO --json labels --jq '.labels[].name' | grep -Fxq "$ENABLE_LABEL"; then
             echo "enabled=true" >> "$GITHUB_OUTPUT"
           else
             gh api repos/$REPO/issues/$PR_NUMBER/comments -f body=$'CI has failed for this PR.\nTo enable auto-fix, please comment `/autofix` on this PR (top-level comment or review). I will label the PR `auto-fix` and proceed when CI is failing.'
