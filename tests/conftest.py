@@ -363,6 +363,26 @@ async def test_workspace(client: httpx.AsyncClient, server_manager: TestServerMa
     workspace_data = response.json()
     workspace_id = workspace_data["id"]
     
+    # Wait for workspace to be fully running before proceeding
+    max_wait_time = 30  # 30 seconds timeout
+    wait_interval = 0.5  # Check every 500ms
+    elapsed_time = 0
+    
+    while elapsed_time < max_wait_time:
+        # Check workspace status
+        status_response = await client.get("/api/workspaces")
+        if status_response.status_code == 200:
+            workspaces = status_response.json()
+            workspace = next((ws for ws in workspaces if ws["id"] == workspace_id), None)
+            if workspace and workspace["status"] == "running":
+                print(f"Workspace {workspace_id} is now running")
+                break
+        
+        await asyncio.sleep(wait_interval)
+        elapsed_time += wait_interval
+    else:
+        pytest.fail(f"Workspace {workspace_id} did not reach 'running' status within {max_wait_time} seconds")
+    
     yield workspace_data
     
     # Cleanup: Stop the workspace to free resources
@@ -379,15 +399,34 @@ async def test_session(client: httpx.AsyncClient, test_workspace, test_model: st
     workspace_id = test_workspace["id"]
     
     # Create session - each test gets its own session within its own workspace
-    response = await client.post(f"/api/workspaces/{workspace_id}/sessions", json={
-        "model": test_model
-    })
+    max_retries = 3
+    retry_delay = 1.0  # 1 second between retries
     
-    if response.status_code != 200:
-        pytest.fail(f"Failed to create test session: {response.status_code} - {response.text}")
+    for attempt in range(max_retries):
+        response = await client.post(f"/api/workspaces/{workspace_id}/sessions", json={
+            "model": test_model
+        })
+        
+        if response.status_code == 200:
+            break
+        elif response.status_code == 404:
+            # Workspace might not be ready yet, wait and retry
+            if attempt < max_retries - 1:
+                print(f"Workspace {workspace_id} not ready, retrying session creation (attempt {attempt + 1}/{max_retries})")
+                await asyncio.sleep(retry_delay)
+                continue
+        
+        pytest.fail(f"Failed to create test session after {max_retries} attempts: {response.status_code} - {response.text}")
     
     session_data = response.json()
     session_id = session_data["id"]
+    
+    # Verify session was created successfully by checking it exists
+    verify_response = await client.get(f"/api/workspaces/{workspace_id}/sessions")
+    if verify_response.status_code == 200:
+        sessions = verify_response.json()
+        if not any(session["id"] == session_id for session in sessions):
+            pytest.fail(f"Session {session_id} was not found after creation")
     
     yield session_data
     
