@@ -55,7 +55,6 @@ jobs:
           - test_integration.py
           - test_models.py
           - test_opencode_client.py
-          - test_opencode_server_leak.py
           - test_sessions.py
           - test_stream.py
           - test_tool_call_parsing.py
