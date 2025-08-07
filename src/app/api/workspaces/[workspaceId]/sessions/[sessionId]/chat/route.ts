@@ -4,7 +4,7 @@ import { withOpenCodeErrorHandling, OpenCodeError } from "@/lib/opencode-client"
 import { parseModelString } from "@/lib/utils";
 
 export const runtime = "nodejs";
-export const maxDuration = 30;
+export const maxDuration = 300;
 
 export async function POST(
   request: NextRequest,
@@ -40,6 +40,9 @@ export async function POST(
     // Get the session
     const session = workspaceManager.getSession(workspaceId, sessionId);
     if (!session) {
+      console.error(`[ChatAPI] Session ${sessionId} not found in workspace ${workspaceId}`);
+      console.error(`[ChatAPI] Available sessions in workspace:`, workspaceManager.getWorkspaceSessions(workspaceId).map(s => s.id));
+      console.error(`[ChatAPI] Workspace status:`, workspace.status);
       return NextResponse.json(
         { error: `Session ${sessionId} not found in workspace ${workspaceId}` },
         { status: 404 }
@@ -175,19 +178,34 @@ export async function POST(
         },
       });
     } else {
-      // Handle non-streaming response
-      const response = await withOpenCodeErrorHandling(
-        () => workspace.client!.session.chat(sessionId, chatParams),
-        { operation: "session.chat", sessionId, messageLength: lastMessage.content.length }
-      );
+        // Handle non-streaming response with timeout handling
+        const CHAT_TIMEOUT_MS = 120000; // 120 seconds timeout for chat operation
+        let chatResponse;
+        try {
+          // Race the chat operation against a timeout
+          const chatPromise = withOpenCodeErrorHandling(
+            () => workspace.client!.session.chat(sessionId, chatParams),
+            { operation: "session.chat", sessionId, messageLength: lastMessage.content.length }
+          );
+          const timeoutPromise = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new OpenCodeError('Chat request timed out')), CHAT_TIMEOUT_MS)
+          );
+          
+          chatResponse = await Promise.race([chatPromise, timeoutPromise]);
+        } catch (error) {
+          if (error instanceof OpenCodeError && error.message.includes('timed out')) {
+            return NextResponse.json({ error: 'Chat request timed out' }, { status: 503 });
+          }
+          // Re-throw other errors to be caught by outer catch
+          throw error;
+        }
 
-      return NextResponse.json({
-        message: response,
-        sessionId: sessionId,
-        workspaceId: workspaceId,
-        timestamp: new Date().toISOString()
-      });
-    }
+        return NextResponse.json({
+          message: chatResponse,
+          sessionId: sessionId,
+          workspaceId: workspaceId,
+          timestamp: new Date().toISOString()
+        });    }
 
   } catch (error) {
     console.error("OpenCode chat error:", error);
@@ -287,10 +305,21 @@ export async function GET(
     }
 
     // Get messages from the OpenCode session
-    const messages = await withOpenCodeErrorHandling(
-      () => workspace.client!.session.messages(sessionId),
-      { operation: "session.messages", sessionId }
-    );
+    let messages: unknown[];
+    try {
+      messages = await withOpenCodeErrorHandling(
+        () => workspace.client!.session.messages(sessionId),
+        { operation: "session.messages", sessionId }
+      );
+    } catch (error) {
+      // If the session doesn't exist in OpenCode CLI (404), return empty messages
+      // This can happen in test environments or if the session was created but never used
+      if (error instanceof OpenCodeError && error.context?.status === 404) {
+        messages = [];
+      } else {
+        throw error; // Re-throw other errors
+      }
+    }
 
     return NextResponse.json({
       workspaceId: workspaceId,

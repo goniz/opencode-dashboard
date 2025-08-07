@@ -26,47 +26,54 @@ export interface AppInitializationConfig {
 function getEnvironmentConfig(): AppInitializationConfig {
   const isDevelopment = process.env.NODE_ENV === 'development';
   const isProduction = process.env.NODE_ENV === 'production';
+  const isTest = process.env.NODE_ENV === 'test' || process.env.CI === 'true';
 
   if (isDevelopment) {
-    return {
+    const config = {
       shutdown: {
-        enableProcessMonitoring: true,
+        enableProcessMonitoring: !isTest, // Disable monitoring in test environments
         workspaceCleanupTimeout: 8000, // Longer timeout for dev to handle tests
         workspaceRetryAttempts: 3,
         enableVerboseLogging: true
       },
       enableSignalHandlers: true,
       enableExceptionHandlers: true,
-      enableProcessMonitoring: true
+      enableProcessMonitoring: !isTest // Disable monitoring in test environments
     };
+    console.log(`[DEBUG] Development config - workspaceCleanupTimeout: ${config.shutdown.workspaceCleanupTimeout}ms, processMonitoring: ${config.enableProcessMonitoring}`);
+    return config;
   }
 
   if (isProduction) {
-    return {
+    const config = {
       shutdown: {
-        enableProcessMonitoring: true,
+        enableProcessMonitoring: !isTest, // Disable monitoring in test environments
         workspaceCleanupTimeout: 15000, // Longer timeout for prod
         workspaceRetryAttempts: 3,
         enableVerboseLogging: false
       },
       enableSignalHandlers: true,
       enableExceptionHandlers: true,
-      enableProcessMonitoring: true
+      enableProcessMonitoring: !isTest // Disable monitoring in test environments
     };
+    console.log(`[DEBUG] Production config - workspaceCleanupTimeout: ${config.shutdown.workspaceCleanupTimeout}ms, processMonitoring: ${config.enableProcessMonitoring}`);
+    return config;
   }
 
   // Default configuration for other environments
-  return {
+  const config = {
     shutdown: {
-      enableProcessMonitoring: true,
+      enableProcessMonitoring: !isTest, // Disable monitoring in test environments
       workspaceCleanupTimeout: 10000,
       workspaceRetryAttempts: 3,
       enableVerboseLogging: false
     },
     enableSignalHandlers: true,
     enableExceptionHandlers: true,
-    enableProcessMonitoring: true
+    enableProcessMonitoring: !isTest // Disable monitoring in test environments
   };
+  console.log(`[DEBUG] Default config - workspaceCleanupTimeout: ${config.shutdown.workspaceCleanupTimeout}ms, processMonitoring: ${config.enableProcessMonitoring}`);
+  return config;
 }
 
 /**

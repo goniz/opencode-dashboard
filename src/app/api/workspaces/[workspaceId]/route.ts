@@ -7,14 +7,18 @@ export async function GET(
 ) {
   try {
     const { workspaceId } = await params;
+    console.log(`[DEBUG] GET workspace ${workspaceId} at ${new Date().toISOString()}`);
     const workspace = workspaceManager.getWorkspace(workspaceId);
 
     if (!workspace) {
+      console.log(`[DEBUG] Workspace ${workspaceId} not found in GET request`);
       return NextResponse.json(
         { error: "Workspace not found" },
         { status: 404 }
       );
     }
+
+    console.log(`[DEBUG] Workspace ${workspaceId} found, status: ${workspace.status}`);
 
     return NextResponse.json({
       id: workspace.id,
@@ -39,6 +43,8 @@ export async function DELETE(
 ) {
   try {
     const { workspaceId } = await params;
+    console.log(`[DEBUG] DELETE workspace ${workspaceId} at ${new Date().toISOString()}`);
+    console.log(`[DEBUG] DELETE request stack trace:`, new Error().stack);
     await workspaceManager.stopWorkspace(workspaceId);
 
     return NextResponse.json({ success: true });
