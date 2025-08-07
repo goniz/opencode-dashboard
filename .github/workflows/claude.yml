@@ -30,16 +30,17 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
       - name: Install uv
         run: curl -LsSf https://astral.sh/uv/install.sh | sh && echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Install OpenCode
         run: npm install -g opencode-ai@latest
+
+      - name: Configure OpenCode Auth
+        run: |
+          mkdir -p ~/.local/share/opencode
+          echo '{"anthropic": { "type": "api", "key": "${{ secrets.ANTHROPIC_API_KEY }}" } }' > ~/.local/share/opencode/auth.json
+          opencode auth list
 
       - name: Run Claude Code
         id: claude
@@ -66,7 +67,4 @@ jobs:
           custom_instructions: |
             read AGENTS.md for development guidelines
           
-          # Optional: Custom environment variables for Claude
-          # claude_env: |
-          #   NODE_ENV: test
 
