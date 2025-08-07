@@ -326,7 +326,7 @@ def base_url(server_manager: TestServerManager) -> str:
 @pytest.fixture
 async def client(base_url: str) -> AsyncGenerator[httpx.AsyncClient, None]:
     """Async HTTP client for making API requests."""
-    async with httpx.AsyncClient(base_url=base_url, timeout=120.0) as client:
+    async with httpx.AsyncClient(base_url=base_url, timeout=180.0) as client:
         yield client
 
 

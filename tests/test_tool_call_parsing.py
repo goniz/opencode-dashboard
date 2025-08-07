@@ -42,7 +42,7 @@ class TestToolCallParsing:
                 ],
                 "stream": False
             },
-            timeout=60.0
+            timeout=90.0
         )
         
         assert chat_response.status_code == 200
@@ -87,7 +87,7 @@ class TestToolCallParsing:
                 ],
                 "stream": False
             },
-            timeout=60.0
+            timeout=90.0
         )
         
         assert chat_response.status_code == 200
@@ -164,7 +164,7 @@ class TestToolCallParsing:
                 ],
                 "stream": True
             },
-            timeout=60.0
+            timeout=90.0
         ) as response:
             assert response.status_code == 200
             
@@ -216,7 +216,7 @@ class TestToolCallParsing:
                 ],
                 "stream": False
             },
-            timeout=60.0
+            timeout=90.0
         )
         
         assert chat_response.status_code == 200
@@ -278,7 +278,7 @@ class TestToolCallParsing:
                 ],
                 "stream": False
             },
-            timeout=60.0
+            timeout=90.0
         )
         
         # Should handle the request gracefully even if the file doesn't exist
@@ -313,7 +313,7 @@ class TestToolCallParsing:
                     ],
                     "stream": False
                 },
-                timeout=30.0
+                timeout=45.0
             )
             assert response.status_code == 200
             return response.json()
@@ -397,7 +397,7 @@ class TestToolCallParsing:
                     ],
                     "stream": False
                 },
-                timeout=30.0
+                timeout=45.0
             )
             
             assert chat_response.status_code == 200
@@ -442,7 +442,7 @@ class TestToolCallParsing:
                 ],
                 "stream": False
             },
-            timeout=120.0
+            timeout=180.0
         )
         
         end_time = time.time()

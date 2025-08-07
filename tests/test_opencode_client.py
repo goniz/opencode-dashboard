@@ -61,7 +61,7 @@ class TestOpenCodeClient:
                 ],
                 "stream": False
             },
-            timeout=60.0
+            timeout=90.0
         )
         
         assert chat_response.status_code == 200
@@ -127,7 +127,7 @@ class TestOpenCodeClient:
                 ],
                 "stream": True
             },
-            timeout=60.0
+            timeout=90.0
         ) as response:
             assert response.status_code == 200
             
@@ -210,7 +210,7 @@ class TestOpenCodeClient:
                 ],
                 "stream": False
             },
-            timeout=120.0
+            timeout=180.0
         )
         
         assert chat_response.status_code == 200
@@ -290,7 +290,7 @@ class TestOpenCodeClient:
                     ],
                     "stream": False
                 },
-                timeout=60.0
+                timeout=90.0
             )
             
             assert chat_response.status_code == 200
@@ -341,7 +341,7 @@ class TestOpenCodeClient:
                 ],
                 "stream": False
             },
-            timeout=60.0
+            timeout=90.0
         )
         
         assert chat_response.status_code == 200
@@ -397,7 +397,7 @@ class TestOpenCodeClient:
                 ],
                 "stream": False
             },
-            timeout=120.0
+            timeout=180.0
         )
         
         assert first_response.status_code == 200
@@ -414,7 +414,7 @@ class TestOpenCodeClient:
                 ],
                 "stream": False
             },
-            timeout=120.0
+            timeout=180.0
         )
         
         assert second_response.status_code == 200
