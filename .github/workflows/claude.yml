@@ -41,6 +41,11 @@ jobs:
       - name: Install OpenCode
         run: npm install -g opencode-ai@latest
 
+      - name: Configure OpenCode Auth
+        run: |
+          mkdir -p ~/.local/share/opencode
+          echo '{"anthropic": { "type": "api", "key": "${{ secrets.ANTHROPIC_API_KEY }}" } }' > ~/.local/share/opencode/auth.json
+
       - name: Run Claude Code
         id: claude
         uses: anthropics/claude-code-action@beta
@@ -66,7 +71,4 @@ jobs:
           custom_instructions: |
             read AGENTS.md for development guidelines
           
-          # Optional: Custom environment variables for Claude
-          claude_env: |
-            ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
