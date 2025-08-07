@@ -67,6 +67,6 @@ jobs:
             read AGENTS.md for development guidelines
           
           # Optional: Custom environment variables for Claude
-          # claude_env: |
-          #   NODE_ENV: test
+          claude_env: |
+            ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
