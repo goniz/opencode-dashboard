@@ -302,10 +302,21 @@ export async function GET(
     }
 
     // Get messages from the OpenCode session
-    const messages = await withOpenCodeErrorHandling(
-      () => workspace.client!.session.messages(sessionId),
-      { operation: "session.messages", sessionId }
-    );
+    let messages: unknown[];
+    try {
+      messages = await withOpenCodeErrorHandling(
+        () => workspace.client!.session.messages(sessionId),
+        { operation: "session.messages", sessionId }
+      );
+    } catch (error) {
+      // If the session doesn't exist in OpenCode CLI (404), return empty messages
+      // This can happen in test environments or if the session was created but never used
+      if (error instanceof OpenCodeError && error.context?.status === 404) {
+        messages = [];
+      } else {
+        throw error; // Re-throw other errors
+      }
+    }
 
     return NextResponse.json({
       workspaceId: workspaceId,
