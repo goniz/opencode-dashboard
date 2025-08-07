@@ -8,13 +8,6 @@ from typing import Dict, Any, List
 from .test_utils import parse_opencode_streaming_chunk
 
 
-# Skip OpenCode tests if API key is not available
-pytestmark = pytest.mark.skipif(
-    not os.environ.get("ANTHROPIC_API_KEY"),
-    reason="OpenCode tests require ANTHROPIC_API_KEY environment variable"
-)
-
-
 @pytest.mark.api
 class TestOpenCodeClient:
     """Test cases for OpenCode client integration and tool call parsing."""
