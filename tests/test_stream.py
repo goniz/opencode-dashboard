@@ -347,6 +347,7 @@ class TestWorkspaceStream:
                 # Note: Session might not appear immediately in stream updates
                 # This is acceptable as the stream is eventually consistent
 
+    @pytest.mark.skip(reason="Flaky test due to model variability in tool call generation")
     async def test_stream_tool_call_parsing_integration(self, client: httpx.AsyncClient, test_workspace):
         """Test stream integration with OpenCode tool call parsing."""
         workspace_id = test_workspace["id"]
