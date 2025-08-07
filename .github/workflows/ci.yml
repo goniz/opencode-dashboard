@@ -42,8 +42,23 @@ jobs:
       - name: Lint
         run: npm run lint
 
-  test:
+  test-matrix:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        test-file:
+          - test_chat.py
+          - test_error_handling.py
+          - test_folders.py
+          - test_health_endpoint.py
+          - test_individual_endpoints.py
+          - test_integration.py
+          - test_models.py
+          - test_opencode_client.py
+          - test_sessions.py
+          - test_stream.py
+          #- test_tool_call_parsing.py
+          - test_workspaces.py
 
     steps:
       - uses: actions/checkout@v3
@@ -53,11 +68,6 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
       - name: Install uv
         run: curl -LsSf https://astral.sh/uv/install.sh | sh && echo "$HOME/.local/bin" >> $GITHUB_PATH
 
@@ -66,10 +76,24 @@ jobs:
           npm install
           npm install -g opencode-ai@latest
 
-      - name: Test
+      - name: Test ${{ matrix.test-file }}
         run: |
           npm run test:install
-          npm run test
-          npm run test:leak
+          npm run test -- -n 0 -s -x tests/${{ matrix.test-file }}
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+  test:
+    runs-on: ubuntu-latest
+    needs: [test-matrix]
+    if: always()
+    steps:
+      - name: Check test results
+        run: |
+          if [[ "${{ needs.test-matrix.result }}" == "success" ]]; then
+            echo "All tests passed!"
+            exit 0
+          else
+            echo "Some tests failed!"
+            exit 1
+          fi

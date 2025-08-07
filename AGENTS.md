@@ -35,6 +35,11 @@
 - `public/` - Static assets
 - TypeScript strict mode enabled with path aliases configured
 
+## CI/CD Guidelines
+- **Test Matrix**: The CI workflow uses a matrix strategy to run each test file individually
+- **Adding/Removing Test Files**: When adding or removing test files in `tests/test_*.py`, update the matrix in `.github/workflows/ci.yml` to include/exclude the new test file name
+- **Matrix Location**: Update the `strategy.matrix.test-file` array in the `test` job
+
 ## Additional Notes
 - No Cursor or Copilot rules found in the repository.
 - Python API tests use pytest with httpx for testing Next.js API routes
