@@ -79,6 +79,6 @@ jobs:
       - name: Test ${{ matrix.test-file }}
         run: |
           npm run test:install
-          uv run pytest tests/${{ matrix.test-file }}
+          npm run test -- tests/${{ matrix.test-file }}
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
