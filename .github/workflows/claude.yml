@@ -40,6 +40,7 @@ jobs:
         run: |
           mkdir -p ~/.local/share/opencode
           echo '{"anthropic": { "type": "api", "key": "${{ secrets.ANTHROPIC_API_KEY }}" } }' > ~/.local/share/opencode/auth.json
+          opencode auth list
 
       - name: Run Claude Code
         id: claude
