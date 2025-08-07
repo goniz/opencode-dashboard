@@ -156,6 +156,8 @@ class OpenCodeWorkspaceManager {
       .toString(36)
       .substring(2, 11)}`;
 
+    console.log(`[DEBUG] Creating workspace ${workspaceId} at ${new Date().toISOString()} for folder: ${config.folder}`);
+
     const workspace: OpenCodeWorkspace = {
       id: workspaceId,
       folder: config.folder,
@@ -222,6 +224,7 @@ class OpenCodeWorkspaceManager {
         } else {
           workspace.status = "stopped";
         }
+        console.log(`[DEBUG] Workspace ${workspaceId} deleted due to process exit (code: ${code}) at ${new Date().toISOString()}`);
         this.workspaces.delete(workspaceId);
         this.markModified();
       });
@@ -322,6 +325,9 @@ class OpenCodeWorkspaceManager {
       forceKill: options?.forceKill ?? false
     };
 
+    console.log(`[DEBUG] Deleting workspace ${workspaceId} at ${new Date().toISOString()}`);
+    console.log(`[DEBUG] Workspace deletion reason: Manual stopWorkspace call`);
+    console.log(`[DEBUG] Stack trace:`, new Error().stack);
     console.log(`[WorkspaceManager] Stopping workspace ${workspaceId}...`);
 
     // Clean up all sessions in the workspace
@@ -337,6 +343,7 @@ class OpenCodeWorkspaceManager {
     workspace.status = "stopped";
     this.workspaces.delete(workspaceId);
     this.markModified();
+    console.log(`[DEBUG] Workspace ${workspaceId} deleted from workspaces map at ${new Date().toISOString()}`);
     console.log(`[WorkspaceManager] Workspace ${workspaceId} stopped and removed`);
   }
 
@@ -553,6 +560,7 @@ class OpenCodeWorkspaceManager {
       return; // Already monitoring
     }
 
+    console.log('[DEBUG] Starting process health monitoring - will check every 30 seconds');
     console.log('[WorkspaceManager] Starting process health monitoring...');
     this.processMonitoringInterval = setInterval(() => {
       this.checkProcessHealth();
@@ -578,10 +586,14 @@ class OpenCodeWorkspaceManager {
       return; // Don't monitor during shutdown
     }
 
+    console.log(`[DEBUG] Process health check at ${new Date().toISOString()} - checking ${this.workspaces.size} workspaces`);
     this.workspaces.forEach(async (workspace) => {
       if (workspace.process && workspace.status === 'running') {
-        if (!this.isProcessAlive(workspace.process)) {
+        const isAlive = this.isProcessAlive(workspace.process);
+        console.log(`[DEBUG] Workspace ${workspace.id} process health: ${isAlive ? 'ALIVE' : 'DEAD'} (PID: ${workspace.process.pid})`);
+        if (!isAlive) {
           console.warn(`[WorkspaceManager] Detected dead process for workspace ${workspace.id}`);
+          console.log(`[DEBUG] Process death detected - triggering cleanup for workspace ${workspace.id}`);
           await this.cleanupDeadWorkspace(workspace.id);
         }
       }
@@ -605,6 +617,7 @@ class OpenCodeWorkspaceManager {
       'The workspace process may have crashed or been terminated externally'
     );
     workspace.sessions.clear();
+    console.log(`[DEBUG] Workspace ${workspaceId} deleted due to dead process cleanup at ${new Date().toISOString()}`);
     this.workspaces.delete(workspaceId);
     this.markModified();
   }
