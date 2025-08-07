@@ -6,13 +6,6 @@ import os
 from .test_utils import parse_sse_chunk, find_first_sse_data, extract_sse_data_by_type, parse_opencode_streaming_chunk
 
 
-# Skip stream tests that require OpenCode if API key is not available
-pytestmark = pytest.mark.skipif(
-    not os.environ.get("ANTHROPIC_API_KEY"),
-    reason="Stream tests with OpenCode require ANTHROPIC_API_KEY environment variable"
-)
-
-
 @pytest.mark.api
 class TestWorkspaceStream:
     """Test cases for workspace streaming endpoint."""
