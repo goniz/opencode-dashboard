@@ -40,6 +40,9 @@ export async function POST(
     // Get the session
     const session = workspaceManager.getSession(workspaceId, sessionId);
     if (!session) {
+      console.error(`[ChatAPI] Session ${sessionId} not found in workspace ${workspaceId}`);
+      console.error(`[ChatAPI] Available sessions in workspace:`, workspaceManager.getWorkspaceSessions(workspaceId).map(s => s.id));
+      console.error(`[ChatAPI] Workspace status:`, workspace.status);
       return NextResponse.json(
         { error: `Session ${sessionId} not found in workspace ${workspaceId}` },
         { status: 404 }

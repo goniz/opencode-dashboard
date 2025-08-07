@@ -214,6 +214,8 @@ class TestChat:
         workspace_id = test_session["workspaceId"]
         session_id = test_session["id"]
         
+        print(f"DEBUG: Starting test with workspace {workspace_id}, session {session_id}")
+        
         test_messages = [
             "Hello, this is the first test message",
             "This is the second test message",
@@ -221,12 +223,34 @@ class TestChat:
         ]
         
         for i, content in enumerate(test_messages):
+            print(f"DEBUG: Sending message {i+1}/3: {content[:30]}...")
             messages = [{"role": "user", "content": content}]
             
             response = await client.post(
                 f"/api/workspaces/{workspace_id}/sessions/{session_id}/chat",
                 json={"messages": messages, "stream": False}
             )
+            
+            # Debug logging for CI investigation
+            if response.status_code not in [200, 400, 503, 508]:
+                print(f"DEBUG: Unexpected status code {response.status_code} for message {i+1}")
+                print(f"DEBUG: Workspace ID: {workspace_id}")
+                print(f"DEBUG: Session ID: {session_id}")
+                print(f"DEBUG: Response body: {response.text}")
+                
+                # Check if workspace still exists
+                workspace_check = await client.get(f"/api/workspaces/{workspace_id}")
+                print(f"DEBUG: Workspace check status: {workspace_check.status_code}")
+                if workspace_check.status_code == 200:
+                    workspace_data = workspace_check.json()
+                    print(f"DEBUG: Workspace status: {workspace_data.get('status', 'unknown')}")
+                
+                # Check if session still exists
+                session_check = await client.get(f"/api/workspaces/{workspace_id}/sessions/{session_id}")
+                print(f"DEBUG: Session check status: {session_check.status_code}")
+                if session_check.status_code == 200:
+                    session_data = session_check.json()
+                    print(f"DEBUG: Session data: {session_data}")
             
             # Due to opencode CLI requirement, some requests might fail
             # We accept both success and certain error codes
