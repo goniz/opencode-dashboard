@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import WorkspaceManager from "@/components/workspace-manager";
 import WorkspaceDashboard from "@/components/workspace-dashboard";
-import AgentFlow from "@/components/agent-flow";
+import OpenCodeChatInterface from "@/components/opencode-chat-interface";
 import QuickStart from "@/components/quick-start";
 import MobileNavigation from "@/components/mobile-navigation";
 import { useOpenCodeSessionContext } from "@/contexts/OpenCodeWorkspaceContext";
@@ -299,7 +299,7 @@ export default function Home() {
           </div>
         </div>
         <div className="h-[calc(100vh-73px)] md:h-[calc(100vh-73px)]">
-          <AgentFlow />
+          <OpenCodeChatInterface />
         </div>
       </div>
     );

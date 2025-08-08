@@ -74,7 +74,7 @@ export default function ModelSelector({
         if (parsedModels[firstProvider].length > 0) {
             const firstModel = parsedModels[firstProvider][0];
             setSelectedModel(firstModel);
-            onModelSelect(`${firstProvider}/${firstModel}`);
+            // We are not calling onModelSelect here to avoid auto-creating a session
         }
       }
 

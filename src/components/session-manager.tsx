@@ -31,6 +31,8 @@ export default function SessionManager({ workspaceId, folderPath, defaultModel, 
 
   const [createSessionState, setCreateSessionState] = useState<CreateSessionState>("idle");
   const [sessionToDelete, setSessionToDelete] = useState<string | null>(null);
+  const [selectedModelForCreation, setSelectedModelForCreation] = useState<string | null>(null);
+
 
   // Load sessions when workspace ID changes
   useEffect(() => {
@@ -97,7 +99,20 @@ export default function SessionManager({ workspaceId, folderPath, defaultModel, 
             Cancel
           </Button>
         </div>
-        <ModelSelector folderPath={folderPath || ""} defaultModel={defaultModel} onModelSelect={handleModelSelect} />
+        <ModelSelector
+          folderPath={folderPath || ""}
+          defaultModel={defaultModel}
+          onModelSelect={setSelectedModelForCreation}
+        />
+        <div className="mt-4 flex justify-end">
+          <Button
+            onClick={() => selectedModelForCreation && handleModelSelect(selectedModelForCreation)}
+            disabled={!selectedModelForCreation || createSessionState === "creating"}
+            className="min-h-[44px]"
+          >
+            {createSessionState === "creating" ? "Creating..." : "Create Session"}
+          </Button>
+        </div>
       </div>
     );
   }
