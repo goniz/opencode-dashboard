@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import ModelSelector from "./model-selector";
 import { Button } from "./button";
 import SimpleMarkdownText from "./simple-markdown-text";
+import { sessionOperations } from "../lib/opencode-client";
+import type { Opencode } from "@opencode-ai/sdk";
 
 type FlowStep = "PROMPT_INPUT" | "PLAN_APPROVAL" | "CODING" | "CODE_APPROVAL";
 
@@ -16,18 +18,42 @@ export default function AgentFlow() {
   const [code, setCode] = useState("");
   const [codingLog, setCodingLog] = useState<string[]>([]);
 
-  const handlePlanGeneration = () => {
-    // Mock plan generation
-    setPlan(`
-### Plan to implement a new user flow
+  const handlePlanGeneration = async () => {
+    if (!planningModel) {
+      console.error("Planning model not selected");
+      return;
+    }
 
-1.  **Create the \`AgentFlow.tsx\` component.** This will be the main component for the new user flow.
-2.  **Implement the "Prompt" step.** This will include a text area for the user's prompt and two \`ModelSelector\` components.
-3.  **Implement the "Plan Approval" step.** This will display the generated plan and have "Approve" and "Revise" buttons.
-4.  **Implement the "Implementing" step.** This will show a loading/progress indicator.
-5.  **Implement the "Implementation Approval" step.** This will display the generated code.
-    `);
-    setStep("PLAN_APPROVAL");
+    try {
+      const session = await sessionOperations.create();
+      const systemPrompt = `You are a planning expert for a software development AI agent. Your task is to create a detailed, step-by-step plan for the user's request. The plan should be broken down into clear, actionable steps. Output the plan as a numbered list inside a markdown block. Do not add any other text before or after the plan.`;
+
+      const [providerID, modelID] = planningModel.split(":");
+
+      const assistantMessageInfo = await sessionOperations.sendMessage(session.id, {
+        modelID: modelID || "default-model",
+        providerID: providerID || "default-provider",
+        parts: [{ type: "text", text: prompt }],
+        system: systemPrompt,
+      });
+
+      const messages = await sessionOperations.getMessages(session.id);
+      const matchingMessage = messages.find(m => m.info.id === assistantMessageInfo.id);
+
+      if (matchingMessage) {
+        const textPart = matchingMessage.parts.find(p => p.type === 'text') as Opencode.TextPart | undefined;
+        if (textPart) {
+          setPlan(textPart.text);
+          setStep("PLAN_APPROVAL");
+        } else {
+          console.error("Could not find text part in the message.");
+        }
+      } else {
+        console.error("Could not find the generated plan in the response.");
+      }
+    } catch (error) {
+      console.error("Failed to generate plan:", error);
+    }
   };
 
   const handlePlanApproval = () => {
