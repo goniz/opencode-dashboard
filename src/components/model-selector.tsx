@@ -42,7 +42,7 @@ export default function ModelSelector({
         onModelSelect(defaultModel);
       }
     }
-  }, [defaultModel, modelsByProvider]);
+  }, [defaultModel, modelsByProvider, onModelSelect]);
 
   const loadModels = async () => {
     setLoading(true);

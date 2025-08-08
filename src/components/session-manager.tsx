@@ -32,6 +32,7 @@ export default function SessionManager({ workspaceId, folderPath, defaultModel, 
   const [createSessionState, setCreateSessionState] = useState<CreateSessionState>("idle");
   const [sessionToDelete, setSessionToDelete] = useState<string | null>(null);
   const [selectedModelForCreation, setSelectedModelForCreation] = useState<string | null>(null);
+  const [isCreatingSession, setIsCreatingSession] = useState(false);
 
 
   // Load sessions when workspace ID changes
@@ -46,14 +47,15 @@ export default function SessionManager({ workspaceId, folderPath, defaultModel, 
   };
 
   const handleModelSelect = async (model: string) => {
-    setCreateSessionState("creating");
+    setIsCreatingSession(true);
 
     try {
       await createSession(workspaceId, model);
       setCreateSessionState("idle");
+      setIsCreatingSession(false);
     } catch (error) {
       console.error("Failed to create session:", error);
-      setCreateSessionState("model-selection");
+      setIsCreatingSession(false);
     }
   };
 
@@ -107,10 +109,10 @@ export default function SessionManager({ workspaceId, folderPath, defaultModel, 
         <div className="mt-4 flex justify-end">
           <Button
             onClick={() => selectedModelForCreation && handleModelSelect(selectedModelForCreation)}
-            disabled={!selectedModelForCreation || createSessionState === "creating"}
+            disabled={!selectedModelForCreation || isCreatingSession}
             className="min-h-[44px]"
           >
-            {createSessionState === "creating" ? "Creating..." : "Create Session"}
+            {isCreatingSession ? "Creating..." : "Create Session"}
           </Button>
         </div>
       </div>
