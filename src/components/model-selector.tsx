@@ -11,9 +11,19 @@ interface ModelSelectorProps {
   className?: string;
 }
 
-export default function ModelSelector({ folderPath, defaultModel, onModelSelect, className }: ModelSelectorProps) {
-  const [models, setModels] = useState<string[]>([]);
-  const [selectedModel, setSelectedModel] = useState<string | null>(defaultModel || null);
+interface ModelsByProvider {
+  [provider: string]: string[];
+}
+
+export default function ModelSelector({
+  folderPath,
+  defaultModel,
+  onModelSelect,
+  className,
+}: ModelSelectorProps) {
+  const [modelsByProvider, setModelsByProvider] = useState<ModelsByProvider>({});
+  const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
+  const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,28 +33,52 @@ export default function ModelSelector({ folderPath, defaultModel, onModelSelect,
     }
   }, [folderPath]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Set the default model when models are loaded
   useEffect(() => {
-    if (defaultModel && models.includes(defaultModel)) {
-      setSelectedModel(defaultModel);
+    if (defaultModel) {
+      const [provider, model] = defaultModel.split("/");
+      if (provider && model && modelsByProvider[provider]?.includes(model)) {
+        setSelectedProvider(provider);
+        setSelectedModel(model);
+        onModelSelect(defaultModel);
+      }
     }
-  }, [defaultModel, models]);
+  }, [defaultModel, modelsByProvider, onModelSelect]);
 
   const loadModels = async () => {
     setLoading(true);
     setError(null);
-
     try {
       const url = new URL("/api/models", window.location.origin);
       url.searchParams.set("folder", folderPath);
-
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error("Failed to load models");
       }
-
       const data = await response.json();
-      setModels(data.models);
+      const parsedModels: ModelsByProvider = {};
+      data.models.forEach((model: string) => {
+        const [provider, ...modelParts] = model.split("/");
+        const modelName = modelParts.join("/");
+        if (provider && modelName) {
+          if (!parsedModels[provider]) {
+            parsedModels[provider] = [];
+          }
+          parsedModels[provider].push(modelName);
+        }
+      });
+      setModelsByProvider(parsedModels);
+
+      const providers = Object.keys(parsedModels);
+      if(providers.length > 0 && !selectedProvider) {
+        const firstProvider = providers[0];
+        setSelectedProvider(firstProvider);
+        if (parsedModels[firstProvider].length > 0) {
+            const firstModel = parsedModels[firstProvider][0];
+            setSelectedModel(firstModel);
+            onModelSelect(`${firstProvider}/${firstModel}`);
+        }
+      }
+
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
@@ -52,19 +86,40 @@ export default function ModelSelector({ folderPath, defaultModel, onModelSelect,
     }
   };
 
-  const handleModelSelect = (model: string) => {
-    setSelectedModel(model);
-    onModelSelect(model);
+  const handleProviderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const provider = e.target.value;
+    setSelectedProvider(provider);
+    // Reset the model selection when the provider changes
+    setSelectedModel(null);
+    onModelSelect("");
   };
 
+  const handleModelChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const model = e.target.value;
+    setSelectedModel(model);
+    if (selectedProvider) {
+      onModelSelect(`${selectedProvider}/${model}`);
+    }
+  };
+
+  const providers = Object.keys(modelsByProvider);
+  const modelsForSelectedProvider = selectedProvider
+    ? modelsByProvider[selectedProvider] || []
+    : [];
+
   return (
-    <div className={cn("w-full max-w-2xl mx-auto p-4 md:p-6 bg-background rounded-lg shadow-lg border border-border", className)}>
+    <div
+      className={cn(
+        "w-full max-w-2xl mx-auto p-4 md:p-6 bg-background rounded-lg shadow-lg border border-border",
+        className
+      )}
+    >
       <div className="mb-4 md:mb-6">
         <h2 className="text-xl md:text-2xl font-bold text-foreground mb-2">
           Select a Model
         </h2>
         <p className="text-sm md:text-base text-muted-foreground">
-          Choose from available models in the selected folder
+          Choose a provider and a model
         </p>
       </div>
 
@@ -82,43 +137,57 @@ export default function ModelSelector({ folderPath, defaultModel, onModelSelect,
         </div>
       )}
 
-      <div className="space-y-2">
-        {loading ? (
-          <div className="text-center py-6 md:py-8 text-muted-foreground">Loading models...</div>
-        ) : models.length === 0 ? (
-          <div className="text-center py-6 md:py-8 text-muted-foreground">
-            No models found in this folder
-          </div>
-        ) : (
-          models.map((model) => (
-            <button
-              key={model}
-              onClick={() => handleModelSelect(model)}
-              className={cn(
-                "w-full text-left p-3 rounded border transition-colors touch-manipulation min-h-[44px] flex items-center",
-                selectedModel === model
-                  ? "bg-primary/10 border-primary/30 ring-2 ring-primary/20"
-                  : "hover:bg-muted/50 border-border"
-              )}
+      {loading ? (
+        <div className="text-center py-6 md:py-8 text-muted-foreground">
+          Loading models...
+        </div>
+      ) : providers.length === 0 && !error ? (
+        <div className="text-center py-6 md:py-8 text-muted-foreground">
+          No models found in this folder
+        </div>
+      ) : (
+        <div className="flex flex-col sm:flex-row gap-2">
+          <div className="flex-1">
+            <label htmlFor="provider-select" className="block text-sm font-medium text-muted-foreground mb-1">Provider</label>
+            <select
+              id="provider-select"
+              value={selectedProvider || ""}
+              onChange={handleProviderChange}
+              className="w-full p-2 rounded border bg-input text-foreground border-border"
+              disabled={providers.length === 0}
             >
-              <div className="flex items-center gap-2 w-full min-w-0">
-                <span className="text-primary text-lg">🤖</span>
-                <span className="font-medium text-foreground text-sm md:text-base truncate">
+              <option value="" disabled>Select a provider</option>
+              {providers.map((provider) => (
+                <option key={provider} value={provider}>
+                  {provider}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex-1">
+            <label htmlFor="model-select" className="block text-sm font-medium text-muted-foreground mb-1">Model</label>
+            <select
+              id="model-select"
+              value={selectedModel || ""}
+              onChange={handleModelChange}
+              className="w-full p-2 rounded border bg-input text-foreground border-border"
+              disabled={!selectedProvider}
+            >
+              <option value="" disabled>Select a model</option>
+              {modelsForSelectedProvider.map((model) => (
+                <option key={model} value={model}>
                   {model}
-                </span>
-                {selectedModel === model && (
-                  <span className="ml-auto text-primary text-lg">✓</span>
-                )}
-              </div>
-            </button>
-          ))
-        )}
-      </div>
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
 
-      {selectedModel && (
+      {selectedProvider && selectedModel && (
         <div className="mt-4 md:mt-6 p-3 md:p-4 bg-primary/10 border border-primary/20 rounded">
           <p className="text-primary font-medium text-sm md:text-base">
-            Selected model: {selectedModel}
+            Selected model: {selectedProvider}/{selectedModel}
           </p>
         </div>
       )}
