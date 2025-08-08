@@ -31,9 +31,8 @@ export default function WorkspaceManager({ className, onOpenWorkspace }: Workspa
 
   const [createWorkspaceState, setCreateWorkspaceState] = useState<CreateWorkspaceState>("idle");
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
-  const [selectedModel, setSelectedModel] = useState<string | null>(null);
+  const [, setSelectedModel] = useState<string | null>(null);
   const [workspaceToDelete, setWorkspaceToDelete] = useState<string | null>(null);
-  const [isCreatingWorkspace, setIsCreatingWorkspace] = useState(false);
 
 
   const handleCreateWorkspaceClick = () => {
@@ -49,7 +48,7 @@ export default function WorkspaceManager({ className, onOpenWorkspace }: Workspa
 
   const handleModelSelect = async (model: string) => {
     setSelectedModel(model);
-    setIsCreatingWorkspace(true);
+    setCreateWorkspaceState("creating");
 
     try {
       await createWorkspace({
@@ -59,10 +58,9 @@ export default function WorkspaceManager({ className, onOpenWorkspace }: Workspa
       setCreateWorkspaceState("idle");
       setSelectedFolder(null);
       setSelectedModel(null);
-      setIsCreatingWorkspace(false);
     } catch (error) {
       console.error("Failed to create workspace:", error);
-      setIsCreatingWorkspace(false);
+      setCreateWorkspaceState("model-selection");
     }
   };
 
@@ -129,16 +127,7 @@ export default function WorkspaceManager({ className, onOpenWorkspace }: Workspa
             Cancel
           </Button>
         </div>
-        <ModelSelector folderPath={selectedFolder} onModelSelect={setSelectedModel} />
-        <div className="mt-4 flex justify-end">
-          <Button
-            onClick={() => selectedModel && handleModelSelect(selectedModel)}
-            disabled={!selectedModel || isCreatingWorkspace}
-            className="min-h-[44px]"
-          >
-            {isCreatingWorkspace ? "Creating..." : "Create Workspace"}
-          </Button>
-        </div>
+        <ModelSelector folderPath={selectedFolder} onModelSelect={handleModelSelect} />
       </div>
     );
   }

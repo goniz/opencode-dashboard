@@ -22,9 +22,7 @@ export default function SessionCreator({
   disabled = false,
 }: SessionCreatorProps) {
   const [creationState, setCreationState] = useState<CreationState>("idle");
-  const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isCreating, setIsCreating] = useState(false);
 
   const handleCreateClick = () => {
     setCreationState("selecting");
@@ -32,17 +30,16 @@ export default function SessionCreator({
   };
 
   const handleModelSelect = async (model: string) => {
-    setIsCreating(true);
+    setCreationState("creating");
     setError(null);
 
     try {
       await onSessionCreate(model);
       setCreationState("idle");
-      setIsCreating(false);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to create session";
       setError(errorMessage);
-      setIsCreating(false);
+      setCreationState("selecting");
     }
   };
 
@@ -74,17 +71,8 @@ export default function SessionCreator({
 
         <ModelSelector
           folderPath=""
-          onModelSelect={setSelectedModel}
+          onModelSelect={handleModelSelect}
         />
-        <div className="mt-4 flex justify-end">
-          <Button
-            onClick={() => selectedModel && handleModelSelect(selectedModel)}
-            disabled={!selectedModel || isCreating}
-            className="min-h-[44px]"
-          >
-            {isCreating ? "Creating..." : "Create Session"}
-          </Button>
-        </div>
       </div>
     );
   }
@@ -93,11 +81,11 @@ export default function SessionCreator({
     <div className={cn("flex items-center gap-2", className)}>
       <Button
         onClick={handleCreateClick}
-        disabled={disabled || isCreating}
+        disabled={disabled || creationState === "creating"}
         size="sm"
         className="flex items-center gap-2"
       >
-        {isCreating ? (
+        {creationState === "creating" ? (
           <>
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
             Creating...
