@@ -4,9 +4,6 @@ import { useState, useEffect } from "react";
 import ModelSelector from "./model-selector";
 import { Button } from "./button";
 import SimpleMarkdownText from "./simple-markdown-text";
-import { sessionOperations } from "../lib/opencode-client";
-import type { Opencode } from "@opencode-ai/sdk";
-import { parseModelIdentifier } from "../lib/models";
 
 type FlowStep = "PROMPT_INPUT" | "PLAN_APPROVAL" | "CODING" | "CODE_APPROVAL";
 
@@ -20,40 +17,28 @@ export default function AgentFlow() {
   const [codingLog, setCodingLog] = useState<string[]>([]);
 
   const handlePlanGeneration = async () => {
-    if (!planningModel) {
-      console.error("Planning model not selected");
+    if (!prompt || !planningModel) {
       return;
     }
 
     try {
-      const session = await sessionOperations.create();
-      const systemPrompt = `You are a planning expert for a software development AI agent. Your task is to create a detailed, step-by-step plan for the user's request. The plan should be broken down into clear, actionable steps. Output the plan as a numbered list inside a markdown block. Do not add any other text before or after the plan.`;
-
-      const { providerID, modelID } = parseModelIdentifier(planningModel);
-
-      const assistantMessageInfo = await sessionOperations.sendMessage(session.id, {
-        modelID,
-        providerID,
-        parts: [{ type: "text", text: prompt }],
-        system: systemPrompt,
+      const response = await fetch('/api/agent/plan', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ prompt, planningModel }),
       });
 
-      const messages = await sessionOperations.getMessages(session.id);
-      const matchingMessage = messages.find(m => m.info.id === assistantMessageInfo.id);
-
-      if (matchingMessage) {
-        const textPart = matchingMessage.parts.find(p => p.type === 'text') as Opencode.TextPart | undefined;
-        if (textPart) {
-          setPlan(textPart.text);
-          setStep("PLAN_APPROVAL");
-        } else {
-          console.error("Could not find text part in the message.");
-        }
-      } else {
-        console.error("Could not find the generated plan in the response.");
+      if (!response.ok) {
+        throw new Error('Failed to generate plan');
       }
+
+      const data = await response.json();
+      setPlan(data.plan);
+      setStep('PLAN_APPROVAL');
     } catch (error) {
-      console.error("Failed to generate plan:", error);
+      console.error('Failed to generate plan:', error);
     }
   };
 
