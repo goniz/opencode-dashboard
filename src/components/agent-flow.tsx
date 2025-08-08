@@ -125,11 +125,11 @@ export default NewComponent;
             <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
                 <h3 className="text-lg font-semibold text-foreground mb-4">Planning Model</h3>
-                <ModelSelector folderPath="./" onModelSelect={setPlanningModel} defaultModel="planning-model" />
+                <ModelSelector folderPath="./" onModelSelect={setPlanningModel} />
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-foreground mb-4">Coding Model</h3>
-                <ModelSelector folderPath="./" onModelSelect={setCodingModel} defaultModel="coding-model" />
+                <ModelSelector folderPath="./" onModelSelect={setCodingModel} />
               </div>
             </div>
             <div className="mt-8 text-right">
