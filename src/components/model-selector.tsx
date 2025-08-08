@@ -39,6 +39,7 @@ export default function ModelSelector({
       if (provider && model && modelsByProvider[provider]?.includes(model)) {
         setSelectedProvider(provider);
         setSelectedModel(model);
+        onModelSelect(defaultModel);
       }
     }
   }, [defaultModel, modelsByProvider]);
@@ -74,7 +75,7 @@ export default function ModelSelector({
         if (parsedModels[firstProvider].length > 0) {
             const firstModel = parsedModels[firstProvider][0];
             setSelectedModel(firstModel);
-            // We are not calling onModelSelect here to avoid auto-creating a session
+            onModelSelect(`${firstProvider}/${firstModel}`);
         }
       }
 
