@@ -4,10 +4,12 @@ import { useState, useEffect } from "react";
 import ModelSelector from "./model-selector";
 import { Button } from "./button";
 import SimpleMarkdownText from "./simple-markdown-text";
+import { useOpenCodeSessionContext } from "@/contexts/OpenCodeWorkspaceContext";
 
 type FlowStep = "PROMPT_INPUT" | "PLAN_APPROVAL" | "CODING" | "CODE_APPROVAL";
 
 export default function AgentFlow() {
+  const { currentSession } = useOpenCodeSessionContext();
   const [step, setStep] = useState<FlowStep>("PROMPT_INPUT");
   const [prompt, setPrompt] = useState("");
   const [planningModel, setPlanningModel] = useState<string | null>(null);
@@ -17,7 +19,7 @@ export default function AgentFlow() {
   const [codingLog, setCodingLog] = useState<string[]>([]);
 
   const handlePlanGeneration = async () => {
-    if (!prompt || !planningModel) {
+    if (!prompt || !planningModel || !currentSession) {
       return;
     }
 
@@ -27,7 +29,7 @@ export default function AgentFlow() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ prompt, planningModel }),
+        body: JSON.stringify({ prompt, planningModel, workspaceId: currentSession.id }),
       });
 
       if (!response.ok) {
