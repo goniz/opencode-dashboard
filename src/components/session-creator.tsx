@@ -22,6 +22,7 @@ export default function SessionCreator({
   disabled = false,
 }: SessionCreatorProps) {
   const [creationState, setCreationState] = useState<CreationState>("idle");
+  const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleCreateClick = () => {
@@ -71,8 +72,17 @@ export default function SessionCreator({
 
         <ModelSelector
           folderPath=""
-          onModelSelect={handleModelSelect}
+          onModelSelect={setSelectedModel}
         />
+        <div className="mt-4 flex justify-end">
+          <Button
+            onClick={() => selectedModel && handleModelSelect(selectedModel)}
+            disabled={!selectedModel || creationState === "creating"}
+            className="min-h-[44px]"
+          >
+            {creationState === "creating" ? "Creating..." : "Create Session"}
+          </Button>
+        </div>
       </div>
     );
   }

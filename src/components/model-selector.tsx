@@ -88,15 +88,9 @@ export default function ModelSelector({
   const handleProviderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const provider = e.target.value;
     setSelectedProvider(provider);
-    const newModels = modelsByProvider[provider];
-    if (newModels && newModels.length > 0) {
-      const newModel = newModels[0];
-      setSelectedModel(newModel);
-      onModelSelect(`${provider}/${newModel}`);
-    } else {
-      setSelectedModel(null);
-      onModelSelect("");
-    }
+    // Reset the model selection when the provider changes
+    setSelectedModel(null);
+    onModelSelect("");
   };
 
   const handleModelChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
