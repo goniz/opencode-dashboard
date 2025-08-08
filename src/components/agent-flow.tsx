@@ -6,6 +6,7 @@ import { Button } from "./button";
 import SimpleMarkdownText from "./simple-markdown-text";
 import { sessionOperations } from "../lib/opencode-client";
 import type { Opencode } from "@opencode-ai/sdk";
+import { parseModelIdentifier } from "../lib/models";
 
 type FlowStep = "PROMPT_INPUT" | "PLAN_APPROVAL" | "CODING" | "CODE_APPROVAL";
 
@@ -28,11 +29,11 @@ export default function AgentFlow() {
       const session = await sessionOperations.create();
       const systemPrompt = `You are a planning expert for a software development AI agent. Your task is to create a detailed, step-by-step plan for the user's request. The plan should be broken down into clear, actionable steps. Output the plan as a numbered list inside a markdown block. Do not add any other text before or after the plan.`;
 
-      const [providerID, modelID] = planningModel.split(":");
+      const { providerID, modelID } = parseModelIdentifier(planningModel);
 
       const assistantMessageInfo = await sessionOperations.sendMessage(session.id, {
-        modelID: modelID || "default-model",
-        providerID: providerID || "default-provider",
+        modelID,
+        providerID,
         parts: [{ type: "text", text: prompt }],
         system: systemPrompt,
       });
