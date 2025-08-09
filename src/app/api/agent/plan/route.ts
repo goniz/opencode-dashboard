@@ -21,30 +21,43 @@ export async function POST(req: Request) {
       });
     }
 
-    const session = await workspace.client.session.create();
+    // Create a temporary session through the workspace manager so it is tracked
+    const managedSession = await workspaceManager.createSession(workspaceId, planningModel);
     const systemPrompt = `You are a planning expert for a software development AI agent. Your task is to create a detailed, step-by-step plan for the user's request. The plan should be broken down into clear, actionable steps. Output the plan as a numbered list inside a markdown block. Do not add any other text before or after the plan.`;
 
     const { providerID, modelID } = parseModelIdentifier(planningModel);
 
-    const assistantMessageInfo = await workspace.client.session.chat(session.id, {
+    const assistantMessageInfo = await workspace.client.session.chat(managedSession.id, {
       modelID,
       providerID,
       parts: [{ type: "text", text: prompt }],
       system: systemPrompt,
     });
 
-    const messages = await workspace.client.session.messages(session.id);
+    const messages = await workspace.client.session.messages(managedSession.id);
     const matchingMessage = messages.find(m => m.info.id === assistantMessageInfo.id);
 
     if (matchingMessage) {
       const textPart = matchingMessage.parts.find(p => p.type === 'text') as Opencode.TextPart | undefined;
       if (textPart) {
+        // Cleanup the temporary session before returning
+        try {
+          workspaceManager.deleteSession(workspaceId, managedSession.id);
+        } catch (e) {
+          console.warn("[PlanAPI] Failed to delete temporary session:", e);
+        }
         return new Response(JSON.stringify({ plan: textPart.text }), {
           headers: { "Content-Type": "application/json" },
         });
       }
     }
 
+    // Cleanup the temporary session on failure as well
+    try {
+      workspaceManager.deleteSession(workspaceId, managedSession.id);
+    } catch (e) {
+      console.warn("[PlanAPI] Failed to delete temporary session on error path:", e);
+    }
     return new Response(JSON.stringify({ error: "Could not generate plan" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
