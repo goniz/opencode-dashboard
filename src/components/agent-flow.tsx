@@ -4,10 +4,12 @@ import { useState, useEffect } from "react";
 import ModelSelector from "./model-selector";
 import { Button } from "./button";
 import SimpleMarkdownText from "./simple-markdown-text";
+import { useOpenCodeSessionContext } from "@/contexts/OpenCodeWorkspaceContext";
 
 type FlowStep = "PROMPT_INPUT" | "PLAN_APPROVAL" | "CODING" | "CODE_APPROVAL";
 
 export default function AgentFlow() {
+  const { currentSession } = useOpenCodeSessionContext();
   const [step, setStep] = useState<FlowStep>("PROMPT_INPUT");
   const [prompt, setPrompt] = useState("");
   const [planningModel, setPlanningModel] = useState<string | null>(null);
@@ -16,18 +18,30 @@ export default function AgentFlow() {
   const [code, setCode] = useState("");
   const [codingLog, setCodingLog] = useState<string[]>([]);
 
-  const handlePlanGeneration = () => {
-    // Mock plan generation
-    setPlan(`
-### Plan to implement a new user flow
+  const handlePlanGeneration = async () => {
+    if (!prompt || !planningModel || !currentSession) {
+      return;
+    }
 
-1.  **Create the \`AgentFlow.tsx\` component.** This will be the main component for the new user flow.
-2.  **Implement the "Prompt" step.** This will include a text area for the user's prompt and two \`ModelSelector\` components.
-3.  **Implement the "Plan Approval" step.** This will display the generated plan and have "Approve" and "Revise" buttons.
-4.  **Implement the "Implementing" step.** This will show a loading/progress indicator.
-5.  **Implement the "Implementation Approval" step.** This will display the generated code.
-    `);
-    setStep("PLAN_APPROVAL");
+    try {
+      const response = await fetch('/api/agent/plan', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ prompt, planningModel, workspaceId: currentSession.id }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate plan');
+      }
+
+      const data = await response.json();
+      setPlan(data.plan);
+      setStep('PLAN_APPROVAL');
+    } catch (error) {
+      console.error('Failed to generate plan:', error);
+    }
   };
 
   const handlePlanApproval = () => {
@@ -113,11 +127,11 @@ export default NewComponent;
             <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
                 <h3 className="text-lg font-semibold text-foreground mb-4">Planning Model</h3>
-                <ModelSelector folderPath="./" onModelSelect={setPlanningModel} defaultModel="planning-model" />
+                <ModelSelector folderPath="./" onModelSelect={setPlanningModel} />
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-foreground mb-4">Coding Model</h3>
-                <ModelSelector folderPath="./" onModelSelect={setCodingModel} defaultModel="coding-model" />
+                <ModelSelector folderPath="./" onModelSelect={setCodingModel} />
               </div>
             </div>
             <div className="mt-8 text-right">
