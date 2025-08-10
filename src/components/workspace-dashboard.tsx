@@ -18,10 +18,12 @@ interface WorkspaceDashboardProps {
   workspaceData: WorkspaceData;
   onWorkspaceStop: () => void;
   onOpenChat: (sessionId?: string) => void;
+  onNewChat: () => void;
+  onNewAgent: () => void;
   className?: string;
 }
 
-export default function WorkspaceDashboard({ workspaceData, onWorkspaceStop, onOpenChat, className }: WorkspaceDashboardProps) {
+export default function WorkspaceDashboard({ workspaceData, onWorkspaceStop, onOpenChat, onNewChat, onNewAgent, className }: WorkspaceDashboardProps) {
   const [isStopping, setIsStopping] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showSessionManager, setShowSessionManager] = useState(false);
@@ -95,13 +97,33 @@ export default function WorkspaceDashboard({ workspaceData, onWorkspaceStop, onO
           </div>
         )}
 
-        <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center mb-4 md:mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 justify-center mb-4 md:mb-6">
           <Button
-            onClick={() => setShowSessionManager(true)}
+            onClick={onNewChat}
             size="lg"
             className="flex-1 bg-primary/90 hover:bg-primary min-h-[44px]"
           >
             <MessageSquareIcon className="w-4 h-4 md:w-5 md:h-5 mr-2" />
+            New Chat
+          </Button>
+
+          <Button
+            onClick={onNewAgent}
+            size="lg"
+            className="flex-1 bg-primary/90 hover:bg-primary min-h-[44px]"
+          >
+            <BrainIcon className="w-4 h-4 md:w-5 md:h-5 mr-2" />
+            New Agent
+          </Button>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center mb-4 md:mb-6">
+          <Button
+            onClick={() => setShowSessionManager(true)}
+            size="lg"
+            variant="outline"
+            className="flex-1 min-h-[44px]"
+          >
             <span className="hidden sm:inline">Manage Sessions</span>
             <span className="sm:hidden">Sessions</span>
           </Button>
