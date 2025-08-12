@@ -12,13 +12,13 @@ from .test_utils import parse_opencode_streaming_chunk
 class TestOpenCodeClient:
     """Test cases for OpenCode client integration and tool call parsing."""
 
-    async def test_opencode_client_session_creation(self, client: httpx.AsyncClient, test_workspace):
+    async def test_opencode_client_session_creation(self, client: httpx.AsyncClient, test_workspace, test_model: str):
         """Test creating a session through OpenCode client and verifying tool call parsing."""
         workspace_id = test_workspace["id"]
         
         # Create a session
         response = await client.post(f"/api/workspaces/{workspace_id}/sessions", json={
-            "model": "anthropic/claude-3-5-haiku-20241022"
+            "model": test_model
         })
         
         assert response.status_code == 200
@@ -28,16 +28,16 @@ class TestOpenCodeClient:
         # Verify session structure
         assert "id" in session_data
         assert "model" in session_data
-        assert session_data["model"] == "anthropic/claude-3-5-haiku-20241022"
+        assert session_data["model"] == test_model
 
     @pytest.mark.skip(reason="Flaky test due to model variability in tool call generation")
-    async def test_opencode_chat_with_tool_calls(self, client: httpx.AsyncClient, test_workspace):
+    async def test_opencode_chat_with_tool_calls(self, client: httpx.AsyncClient, test_workspace, test_model: str):
         """Test sending a message that triggers tool calls and verify parsing."""
         workspace_id = test_workspace["id"]
         
         # Create a session
         session_response = await client.post(f"/api/workspaces/{workspace_id}/sessions", json={
-            "model": "anthropic/claude-3-5-haiku-20241022"
+            "model": test_model
         })
         assert session_response.status_code == 200
         session_data = session_response.json()
@@ -97,13 +97,13 @@ class TestOpenCodeClient:
         assert tool_results_found, "No tool results found in response"
 
     @pytest.mark.skip(reason="Flaky test due to model variability in tool call generation")
-    async def test_opencode_streaming_with_tool_calls(self, client: httpx.AsyncClient, test_workspace):
+    async def test_opencode_streaming_with_tool_calls(self, client: httpx.AsyncClient, test_workspace, test_model: str):
         """Test streaming chat with tool calls and verify parsing."""
         workspace_id = test_workspace["id"]
         
         # Create a session
         session_response = await client.post(f"/api/workspaces/{workspace_id}/sessions", json={
-            "model": "anthropic/claude-3-5-haiku-20241022"
+            "model": test_model
         })
         assert session_response.status_code == 200
         session_data = session_response.json()
@@ -149,7 +149,7 @@ class TestOpenCodeClient:
             # Note: The exact structure depends on the OpenCode SDK streaming format
             # We're mainly testing that the parsing doesn't break and we get valid JSON
 
-    async def test_opencode_error_handling(self, client: httpx.AsyncClient, test_workspace):
+    async def test_opencode_error_handling(self, client: httpx.AsyncClient, test_workspace, test_model: str):
         """Test error handling in OpenCode client operations."""
         workspace_id = test_workspace["id"]
         
@@ -182,13 +182,13 @@ class TestOpenCodeClient:
         assert malformed_response.status_code in [400, 422, 500]
 
     @pytest.mark.skip(reason="Flaky test due to model variability in tool call generation")
-    async def test_tool_call_argument_parsing(self, client: httpx.AsyncClient, test_workspace):
+    async def test_tool_call_argument_parsing(self, client: httpx.AsyncClient, test_workspace, test_model: str):
         """Test that tool call arguments are properly parsed and validated."""
         workspace_id = test_workspace["id"]
         
         # Create a session
         session_response = await client.post(f"/api/workspaces/{workspace_id}/sessions", json={
-            "model": "anthropic/claude-3-5-haiku-20241022"
+            "model": test_model
         })
         assert session_response.status_code == 200
         session_data = session_response.json()
@@ -262,14 +262,14 @@ class TestOpenCodeClient:
             assert len(tool_calls_with_complex_args) > 0, "No tool calls with complex arguments found"
 
     @pytest.mark.skip(reason="Flaky test due to model variability in tool call generation")
-    async def test_concurrent_opencode_sessions(self, client: httpx.AsyncClient, test_workspace):
+    async def test_concurrent_opencode_sessions(self, client: httpx.AsyncClient, test_workspace, test_model: str):
         """Test multiple concurrent OpenCode sessions and tool call parsing."""
         workspace_id = test_workspace["id"]
         
         async def create_session_and_chat():
             # Create a session
             session_response = await client.post(f"/api/workspaces/{workspace_id}/sessions", json={
-                "model": "anthropic/claude-3-5-haiku-20241022"
+                "model": test_model
             })
             assert session_response.status_code == 200
             session_data = session_response.json()
@@ -315,13 +315,13 @@ class TestOpenCodeClient:
             assert len(message["parts"]) > 0
 
     @pytest.mark.skip(reason="Flaky test due to model variability in tool call generation")
-    async def test_tool_call_result_parsing(self, client: httpx.AsyncClient, test_workspace):
+    async def test_tool_call_result_parsing(self, client: httpx.AsyncClient, test_workspace, test_model: str):
         """Test that tool call results are properly parsed and structured."""
         workspace_id = test_workspace["id"]
         
         # Create a session
         session_response = await client.post(f"/api/workspaces/{workspace_id}/sessions", json={
-            "model": "anthropic/claude-3-5-haiku-20241022"
+            "model": test_model
         })
         assert session_response.status_code == 200
         session_data = session_response.json()
@@ -372,13 +372,13 @@ class TestOpenCodeClient:
             assert len(tool_result_ids) > 0, "No tool results found despite tool calls"
 
     @pytest.mark.skip(reason="Flaky test due to model variability in tool call generation")
-    async def test_opencode_session_persistence(self, client: httpx.AsyncClient, test_workspace):
+    async def test_opencode_session_persistence(self, client: httpx.AsyncClient, test_workspace, test_model: str):
         """Test that OpenCode sessions maintain state across multiple messages."""
         workspace_id = test_workspace["id"]
         
         # Create a session
         session_response = await client.post(f"/api/workspaces/{workspace_id}/sessions", json={
-            "model": "anthropic/claude-3-5-haiku-20241022"
+            "model": test_model
         })
         assert session_response.status_code == 200
         session_data = session_response.json()

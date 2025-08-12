@@ -61,7 +61,7 @@ async def test_health_endpoint_basic(client: httpx.AsyncClient):
     print("✅ Health endpoint test passed - cleanup system is properly initialized")
 
 
-async def test_health_endpoint_with_workspace(client: httpx.AsyncClient):
+async def test_health_endpoint_with_workspace(client: httpx.AsyncClient, test_model: str):
     """Test health endpoint when workspaces are running."""
     
     import tempfile
@@ -80,7 +80,7 @@ async def test_health_endpoint_with_workspace(client: httpx.AsyncClient):
             # Create workspace
             response = await client.post("/api/workspaces", json={
                 "folder": test_folder,
-                "model": "anthropic/claude-3-5-haiku-20241022"
+                "model": test_model
             })
             
             if response.status_code != 200:
@@ -108,7 +108,7 @@ async def test_health_endpoint_with_workspace(client: httpx.AsyncClient):
                 if workspace["id"] == workspace_id:
                     workspace_found = True
                     assert workspace["folder"] == test_folder
-                    assert workspace["model"] == "anthropic/claude-3-5-haiku-20241022"
+                    assert workspace["model"] == test_model
                     assert "status" in workspace
                     assert "sessionCount" in workspace
                     assert "hasProcess" in workspace

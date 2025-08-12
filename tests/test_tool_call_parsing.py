@@ -14,13 +14,13 @@ from .test_utils import parse_opencode_streaming_chunk
 class TestToolCallParsing:
     """Comprehensive tests for OpenCode tool call parsing logic."""
 
-    async def test_basic_tool_call_structure_parsing(self, client: httpx.AsyncClient, test_workspace):
+    async def test_basic_tool_call_structure_parsing(self, client: httpx.AsyncClient, test_workspace, test_model: str):
         """Test that basic tool call structures are parsed correctly."""
         workspace_id = test_workspace["id"]
         
         # Create a session
         session_response = await client.post(f"/api/workspaces/{workspace_id}/sessions", json={
-            "model": "anthropic/claude-3-5-haiku-20241022"
+            "model": test_model
         })
         assert session_response.status_code == 200
         session_data = session_response.json()
@@ -59,13 +59,13 @@ class TestToolCallParsing:
         for tool_call in tool_calls:
             self._validate_tool_call_structure(tool_call)
 
-    async def test_complex_tool_call_arguments_parsing(self, client: httpx.AsyncClient, test_workspace):
+    async def test_complex_tool_call_arguments_parsing(self, client: httpx.AsyncClient, test_workspace, test_model: str):
         """Test parsing of complex tool call arguments."""
         workspace_id = test_workspace["id"]
         
         # Create a session
         session_response = await client.post(f"/api/workspaces/{workspace_id}/sessions", json={
-            "model": "anthropic/claude-3-5-haiku-20241022"
+            "model": test_model
         })
         assert session_response.status_code == 200
         session_data = session_response.json()
@@ -159,13 +159,13 @@ class TestToolCallParsing:
                     # Just validate that the tool call has proper structure
                     assert isinstance(args, dict), f"Tool arguments should be a dict: {args}"
 
-    async def test_streaming_tool_call_parsing(self, client: httpx.AsyncClient, test_workspace):
+    async def test_streaming_tool_call_parsing(self, client: httpx.AsyncClient, test_workspace, test_model: str):
         """Test parsing of tool calls in streaming responses."""
         workspace_id = test_workspace["id"]
         
         # Create a session
         session_response = await client.post(f"/api/workspaces/{workspace_id}/sessions", json={
-            "model": "anthropic/claude-3-5-haiku-20241022"
+            "model": test_model
         })
         assert session_response.status_code == 200
         session_data = session_response.json()
@@ -216,13 +216,13 @@ class TestToolCallParsing:
                     assert "name" in function_delta or "arguments" in function_delta, \
                         f"Function delta missing name/arguments: {function_delta}"
 
-    async def test_tool_call_result_correlation(self, client: httpx.AsyncClient, test_workspace):
+    async def test_tool_call_result_correlation(self, client: httpx.AsyncClient, test_workspace, test_model: str):
         """Test that tool call results are properly correlated with their calls."""
         workspace_id = test_workspace["id"]
         
         # Create a session
         session_response = await client.post(f"/api/workspaces/{workspace_id}/sessions", json={
-            "model": "anthropic/claude-3-5-haiku-20241022"
+            "model": test_model
         })
         assert session_response.status_code == 200
         session_data = session_response.json()
@@ -278,13 +278,13 @@ class TestToolCallParsing:
                 assert "content" in result or ("state" in result and "output" in result["state"]), \
                     f"Tool result for {call_id} missing content/output: {result}"
 
-    async def test_malformed_tool_call_handling(self, client: httpx.AsyncClient, test_workspace):
+    async def test_malformed_tool_call_handling(self, client: httpx.AsyncClient, test_workspace, test_model: str):
         """Test handling of potentially malformed tool calls."""
         workspace_id = test_workspace["id"]
         
         # Create a session
         session_response = await client.post(f"/api/workspaces/{workspace_id}/sessions", json={
-            "model": "anthropic/claude-3-5-haiku-20241022"
+            "model": test_model
         })
         assert session_response.status_code == 200
         session_data = session_response.json()
@@ -321,7 +321,7 @@ class TestToolCallParsing:
         for tool_call in tool_calls:
             self._validate_tool_call_structure(tool_call)
 
-    async def test_concurrent_tool_call_parsing(self, client: httpx.AsyncClient, test_workspace):
+    async def test_concurrent_tool_call_parsing(self, client: httpx.AsyncClient, test_workspace, test_model: str):
         """Test tool call parsing under concurrent load."""
         workspace_id = test_workspace["id"]
         
@@ -346,7 +346,7 @@ class TestToolCallParsing:
         sessions = []
         for i in range(3):
             session_response = await client.post(f"/api/workspaces/{workspace_id}/sessions", json={
-                "model": "anthropic/claude-3-5-haiku-20241022"
+                "model": test_model
             })
             assert session_response.status_code == 200
             sessions.append(session_response.json())
@@ -390,13 +390,13 @@ class TestToolCallParsing:
             for tool_call in tool_calls:
                 self._validate_tool_call_structure(tool_call)
 
-    async def test_tool_call_argument_edge_cases(self, client: httpx.AsyncClient, test_workspace):
+    async def test_tool_call_argument_edge_cases(self, client: httpx.AsyncClient, test_workspace, test_model: str):
         """Test parsing of tool call arguments with edge cases."""
         workspace_id = test_workspace["id"]
         
         # Create a session
         session_response = await client.post(f"/api/workspaces/{workspace_id}/sessions", json={
-            "model": "anthropic/claude-3-5-haiku-20241022"
+            "model": test_model
         })
         assert session_response.status_code == 200
         session_data = session_response.json()
@@ -439,13 +439,13 @@ class TestToolCallParsing:
                     args = tool_call["state"]["input"]
                     assert isinstance(args, dict), "Arguments should be a dictionary"
 
-    async def test_tool_call_parsing_performance(self, client: httpx.AsyncClient, test_workspace):
+    async def test_tool_call_parsing_performance(self, client: httpx.AsyncClient, test_workspace, test_model: str):
         """Test performance of tool call parsing with large responses."""
         workspace_id = test_workspace["id"]
         
         # Create a session
         session_response = await client.post(f"/api/workspaces/{workspace_id}/sessions", json={
-            "model": "anthropic/claude-3-5-haiku-20241022"
+            "model": test_model
         })
         assert session_response.status_code == 200
         session_data = session_response.json()
