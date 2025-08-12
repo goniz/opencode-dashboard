@@ -136,14 +136,14 @@ class TestSessions:
         assert session1["id"] in session_ids
         assert session2["id"] in session_ids
 
-    async def test_session_different_models(self, client: httpx.AsyncClient, test_workspace):
+    async def test_session_different_models(self, client: httpx.AsyncClient, test_workspace, test_model: str):
         """Test creating sessions with different models."""
         workspace_id = test_workspace["id"]
         
         models_to_test = [
+            test_model,  # Use the test model fixture as primary test
             "openai/gpt-4o-mini",
-            "openai/gpt-4o",
-            "anthropic/claude-3-5-sonnet-20241022"
+            "openai/gpt-4o"
         ]
         
         session_ids = []

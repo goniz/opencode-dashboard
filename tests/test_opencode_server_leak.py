@@ -93,7 +93,7 @@ def process_tracker():
     tracker.force_cleanup_leaked_processes()
 
 
-async def test_opencode_server_leak_on_shutdown(client: httpx.AsyncClient, process_tracker: ProcessTracker):
+async def test_opencode_server_leak_on_shutdown(client: httpx.AsyncClient, process_tracker: ProcessTracker, test_model: str):
     """
     Test that OpenCode server instances are properly cleaned up when workspaces are stopped.
     
@@ -125,7 +125,7 @@ async def test_opencode_server_leak_on_shutdown(client: httpx.AsyncClient, proce
             # Create workspace
             response = await client.post("/api/workspaces", json={
                 "folder": test_folder,
-                "model": "anthropic/claude-3-5-haiku-20241022"
+                "model": test_model
             })
             
             assert response.status_code == 200, f"Failed to create workspace {i}: {response.text}"
@@ -145,7 +145,7 @@ async def test_opencode_server_leak_on_shutdown(client: httpx.AsyncClient, proce
         session_ids = []
         for workspace_id in workspace_ids:
             response = await client.post(f"/api/workspaces/{workspace_id}/sessions", json={
-                "model": "anthropic/claude-3-5-haiku-20241022"
+                "model": test_model
             })
             assert response.status_code == 200, f"Failed to create session for workspace {workspace_id}"
             session_data = response.json()
@@ -199,7 +199,7 @@ async def test_opencode_server_leak_on_shutdown(client: httpx.AsyncClient, proce
                 print(f"Warning: Could not cleanup test folder {test_folder}: {e}")
 
 
-async def test_opencode_server_leak_on_app_shutdown(base_url: str, process_tracker: ProcessTracker):
+async def test_opencode_server_leak_on_app_shutdown(base_url: str, process_tracker: ProcessTracker, test_model: str):
     """
     Test that OpenCode server instances are cleaned up when the entire web app shuts down.
     
@@ -272,7 +272,7 @@ async def test_opencode_server_leak_on_app_shutdown(base_url: str, process_track
                     
                     response = await test_client.post("/api/workspaces", json={
                         "folder": test_folder,
-                        "model": "anthropic/claude-3-5-haiku-20241022"
+                        "model": test_model
                     })
                     
                     if response.status_code == 200:
@@ -340,7 +340,7 @@ async def test_opencode_server_leak_on_app_shutdown(base_url: str, process_track
                     app_process.wait()
 
 
-async def test_opencode_server_cleanup_on_sigterm(process_tracker: ProcessTracker):
+async def test_opencode_server_cleanup_on_sigterm(process_tracker: ProcessTracker, test_model: str):
     """
     Test that OpenCode server instances are cleaned up when the web app receives SIGTERM.
     
@@ -404,7 +404,7 @@ async def test_opencode_server_cleanup_on_sigterm(process_tracker: ProcessTracke
                 
                 response = await test_client.post("/api/workspaces", json={
                     "folder": test_folder,
-                    "model": "anthropic/claude-3-5-haiku-20241022"
+                    "model": test_model
                 })
                 
                 if response.status_code != 200:

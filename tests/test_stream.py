@@ -259,7 +259,7 @@ class TestWorkspaceStream:
                     break
 
     @pytest.mark.skip(reason="Flaky test due to model variability in tool call generation")
-    async def test_stream_with_opencode_session_activity(self, client: httpx.AsyncClient, test_workspace):
+    async def test_stream_with_opencode_session_activity(self, client: httpx.AsyncClient, test_workspace, test_model: str):
         """Test that stream updates when OpenCode sessions are active and parsing tool calls."""
         workspace_id = test_workspace["id"]
         
@@ -288,7 +288,7 @@ class TestWorkspaceStream:
         
         # Create a session and send a message that triggers tool calls
         session_response = await client.post(f"/api/workspaces/{workspace_id}/sessions", json={
-            "model": "anthropic/claude-3-5-haiku-20241022"
+            "model": test_model
         })
         assert session_response.status_code == 200
         session_data = session_response.json()
@@ -349,13 +349,13 @@ class TestWorkspaceStream:
                 # This is acceptable as the stream is eventually consistent
 
     @pytest.mark.skip(reason="Flaky test due to model variability in tool call generation")
-    async def test_stream_tool_call_parsing_integration(self, client: httpx.AsyncClient, test_workspace):
+    async def test_stream_tool_call_parsing_integration(self, client: httpx.AsyncClient, test_workspace, test_model: str):
         """Test stream integration with OpenCode tool call parsing."""
         workspace_id = test_workspace["id"]
         
         # Create a session
         session_response = await client.post(f"/api/workspaces/{workspace_id}/sessions", json={
-            "model": "anthropic/claude-3-5-haiku-20241022"
+            "model": test_model
         })
         assert session_response.status_code == 200
         session_data = session_response.json()
@@ -431,7 +431,7 @@ class TestWorkspaceStream:
         assert len(workspace_updates) > 0, "No workspace updates found in stream"
 
     @pytest.mark.skip(reason="Flaky test due to model variability in tool call generation")
-    async def test_stream_concurrent_tool_call_sessions(self, client: httpx.AsyncClient, test_workspace):
+    async def test_stream_concurrent_tool_call_sessions(self, client: httpx.AsyncClient, test_workspace, test_model: str):
         """Test stream behavior with multiple concurrent sessions using tool calls."""
         workspace_id = test_workspace["id"]
         
@@ -462,7 +462,7 @@ class TestWorkspaceStream:
         async def create_session_and_chat(message: str):
             # Create a session
             session_response = await client.post(f"/api/workspaces/{workspace_id}/sessions", json={
-                "model": "anthropic/claude-3-5-haiku-20241022"
+                "model": test_model
             })
             assert session_response.status_code == 200
             session_data = session_response.json()
@@ -535,13 +535,13 @@ class TestWorkspaceStream:
         assert max_sessions_seen >= 2, f"Expected to see at least 2 concurrent sessions, saw {max_sessions_seen}"
 
     @pytest.mark.skip(reason="Flaky test due to model variability in tool call generation")
-    async def test_stream_tool_call_error_handling(self, client: httpx.AsyncClient, test_workspace):
+    async def test_stream_tool_call_error_handling(self, client: httpx.AsyncClient, test_workspace, test_model: str):
         """Test stream behavior when tool calls encounter errors."""
         workspace_id = test_workspace["id"]
         
         # Create a session
         session_response = await client.post(f"/api/workspaces/{workspace_id}/sessions", json={
-            "model": "anthropic/claude-3-5-haiku-20241022"
+            "model": test_model
         })
         assert session_response.status_code == 200
         session_data = session_response.json()

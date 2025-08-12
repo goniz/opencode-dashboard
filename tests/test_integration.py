@@ -194,7 +194,7 @@ class TestOtherEndpoints:
         # This endpoint behavior depends on implementation
         assert response.status_code in [200, 404, 405, 500]
 
-    async def test_opencode_chat_endpoint(self, client: httpx.AsyncClient):
+    async def test_opencode_chat_endpoint(self, client: httpx.AsyncClient, test_model: str):
         """Test the opencode-chat endpoint."""
         # Try GET without sessionId - should return 400
         get_response = await client.get("/api/opencode-chat")
@@ -231,6 +231,6 @@ class TestOtherEndpoints:
         post_response_invalid_session = await client.post("/api/opencode-chat", json={
             "sessionId": "invalid-session",
             "messages": [{"role": "user", "content": "test"}],
-            "model": "anthropic/claude-3-5-haiku-20241022"
+            "model": test_model
         })
         assert post_response_invalid_session.status_code == 404
