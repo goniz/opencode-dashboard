@@ -10,7 +10,7 @@ import { useOpenCodeSessionContext } from "@/contexts/OpenCodeWorkspaceContext";
 import { Button } from "@/components/button";
 import { ArrowLeftIcon, SettingsIcon } from "lucide-react";
 
-type ViewState = "workspaces" | "workspace-dashboard" | "chat" | "tools";
+type ViewState = "workspaces" | "workspace-dashboard" | "chat" | "tools" | "agent-flow";
 
 export default function Home() {
   const { currentSession, sessions: workspaces, switchToSession, createSession, createOpenCodeSession } = useOpenCodeSessionContext();
@@ -21,6 +21,25 @@ export default function Home() {
   const handleOpenWorkspace = (workspaceId: string) => {
     setSelectedWorkspaceId(workspaceId);
     setViewState("workspace-dashboard");
+  };
+
+  const handleNewAgent = () => {
+    setViewState("agent-flow");
+  };
+
+  const handleNewChat = async () => {
+    if (selectedWorkspaceId) {
+      const workspace = workspaces.find(w => w.id === selectedWorkspaceId);
+      if (workspace) {
+        try {
+          const newSession = await createOpenCodeSession(workspace.id, workspace.model);
+          await switchToSession(workspace.id, newSession.id);
+          setViewState("chat");
+        } catch (error) {
+          console.error("Failed to create or switch to session:", error);
+        }
+      }
+    }
   };
 
   const handleOpenChat = async (sessionId?: string) => {
@@ -229,7 +248,46 @@ export default function Home() {
             }}
             onWorkspaceStop={handleBackToWorkspaces}
             onOpenChat={(sessionId?: string) => handleOpenChat(sessionId)}
+            onNewChat={handleNewChat}
+            onNewAgent={handleNewAgent}
           />
+        </div>
+      </div>
+    );
+  }
+
+  if (viewState === "agent-flow") {
+    const handleBackToDashboard = () => {
+      setViewState("workspace-dashboard");
+    };
+
+    return (
+      <div className="min-h-screen bg-background pb-16 md:pb-0">
+        <MobileNavigation
+          currentView={viewState}
+          onNavigate={setViewState}
+          onBackToWorkspaces={handleBackToWorkspaces}
+        />
+
+        <div className="hidden md:block border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="container mx-auto px-4 py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleBackToDashboard}
+                  className="flex items-center gap-2"
+                >
+                  <ArrowLeftIcon className="w-4 h-4" />
+                  Back to Dashboard
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="h-[calc(100vh-73px)] md:h-[calc(100vh-73px)]">
+          <AgentFlow />
         </div>
       </div>
     );

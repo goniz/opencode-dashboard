@@ -6,8 +6,8 @@ import { MenuIcon, XIcon, FolderIcon, MessageSquareIcon, SettingsIcon, ArrowLeft
 import { cn } from "@/lib/utils";
 
 interface MobileNavigationProps {
-  currentView: "workspaces" | "workspace-dashboard" | "chat" | "tools";
-  onNavigate: (view: "workspaces" | "workspace-dashboard" | "chat" | "tools") => void;
+  currentView: "workspaces" | "workspace-dashboard" | "chat" | "tools" | "agent-flow";
+  onNavigate: (view: "workspaces" | "workspace-dashboard" | "chat" | "tools" | "agent-flow") => void;
   onBackToWorkspaces: () => void;
   className?: string;
 }
