@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { OpenCodeSessionProvider } from "@/contexts/OpenCodeWorkspaceContext";
+import { TaskProvider } from "@/contexts/TaskContext";
 import { initializeCleanupHandlers } from "@/lib/app-initialization";
 
 const geistSans = Geist({
@@ -34,11 +34,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-900 text-white`}
       >
-        <OpenCodeSessionProvider>
+        <TaskProvider>
           {children}
-        </OpenCodeSessionProvider>
+        </TaskProvider>
       </body>
     </html>
   );
