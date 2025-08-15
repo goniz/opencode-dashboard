@@ -636,7 +636,9 @@ const workspaceData = await response.json();
         throw new Error("Failed to fetch folders");
       }
       
-      const folders = await response.json();
+      const data = await response.json();
+      const folders = Array.isArray(data) ? data : data.folders || [];
+      
       const codebases: Codebase[] = folders.map((folder: { name: string; path: string }) => ({
         id: `folder_${folder.path}`,
         name: folder.name,
