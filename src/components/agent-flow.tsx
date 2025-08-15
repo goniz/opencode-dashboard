@@ -17,30 +17,98 @@ export default function AgentFlow() {
   const [plan, setPlan] = useState("");
   const [code, setCode] = useState("");
   const [codingLog, setCodingLog] = useState<string[]>([]);
+  const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
+  const [planError, setPlanError] = useState<string | null>(null);
 
   const handlePlanGeneration = async () => {
+    console.log('[AgentFlow] Plan generation started');
+    console.log('[AgentFlow] Parameters:', {
+      hasPrompt: !!prompt,
+      promptLength: prompt.length,
+      planningModel,
+      hasCurrentSession: !!currentSession,
+      currentSessionId: currentSession?.id
+    });
+    
     if (!prompt || !planningModel || !currentSession) {
+      console.error('[AgentFlow] Missing required parameters:', {
+        hasPrompt: !!prompt,
+        hasPlanningModel: !!planningModel,
+        hasCurrentSession: !!currentSession
+      });
       return;
     }
 
+    setIsGeneratingPlan(true);
+    setPlanError(null);
+
     try {
+      // Add timeout to the fetch request
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        console.log('[AgentFlow] Request timeout triggered');
+        controller.abort();
+      }, 60000); // 60 second timeout
+
+      const requestBody = { prompt, planningModel, workspaceId: currentSession.id };
+      console.log('[AgentFlow] Sending request to /api/agent/plan:', requestBody);
+      
       const response = await fetch('/api/agent/plan', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ prompt, planningModel, workspaceId: currentSession.id }),
+        body: JSON.stringify(requestBody),
+        signal: controller.signal,
+      });
+      
+      console.log('[AgentFlow] Response received:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
       });
 
+      clearTimeout(timeoutId);
+
       if (!response.ok) {
-        throw new Error('Failed to generate plan');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('[AgentFlow] Server error response:', errorData);
+        throw new Error(errorData.error || `Server error: ${response.status}`);
       }
 
       const data = await response.json();
+      console.log('[AgentFlow] Response data:', data);
+      
+      // Validate API response
+      if (!data || typeof data.plan !== 'string' || !data.plan.trim()) {
+        console.error('[AgentFlow] Invalid response structure:', data);
+        throw new Error('Invalid response: Plan content is missing or empty');
+      }
+
+      console.log('[AgentFlow] Plan generated successfully, length:', data.plan.length);
       setPlan(data.plan);
       setStep('PLAN_APPROVAL');
     } catch (error) {
-      console.error('Failed to generate plan:', error);
+      console.error('[AgentFlow] Plan generation failed:', error);
+      console.error('[AgentFlow] Error details:', {
+        type: error?.constructor?.name,
+        message: error instanceof Error ? error.message : String(error),
+        name: error instanceof Error ? error.name : 'Unknown'
+      });
+      
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          console.log('[AgentFlow] Request was aborted (timeout)');
+          setPlanError('Request timed out. Please try again.');
+        } else {
+          setPlanError(error.message || 'Failed to generate plan. Please try again.');
+        }
+      } else {
+        setPlanError('An unexpected error occurred. Please try again.');
+      }
+    } finally {
+      console.log('[AgentFlow] Plan generation completed, cleaning up');
+      setIsGeneratingPlan(false);
     }
   };
 
@@ -135,10 +203,28 @@ export default NewComponent;
               </div>
             </div>
             <div className="mt-8 text-right">
-              <Button onClick={handlePlanGeneration} size="lg" disabled={!prompt || !planningModel || !codingModel}>
-                Generate Plan
+              <Button 
+                onClick={handlePlanGeneration} 
+                size="lg" 
+                disabled={!prompt || !planningModel || !codingModel || isGeneratingPlan}
+              >
+                {isGeneratingPlan ? 'Generating Plan...' : 'Generate Plan'}
               </Button>
             </div>
+            {planError && (
+              <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+                <p className="font-medium">Error generating plan:</p>
+                <p>{planError}</p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-2"
+                  onClick={() => setPlanError(null)}
+                >
+                  Dismiss
+                </Button>
+              </div>
+            )}
           </div>
         );
       case "PLAN_APPROVAL":
