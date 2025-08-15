@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useOpenCodeSession, type UseOpenCodeSessionReturn, type OpenCodeSession } from "./useOpenCodeWorkspace";
-import type { SSEMessage } from "./useSSEConnection";
 
 // Task/Workspace status types aligned with Google Jules
 export type TaskStatus = "pending" | "in-progress" | "completed" | "failed" | "running" | "stopped" | "error";
@@ -184,32 +183,49 @@ export function useTasks(): UseTasksReturn {
     updateTaskState({ error: taskError, isLoading: false });
   }, [updateTaskState]);
   
-  // Map OpenCode sessions to Tasks
-  const mapSessionsToTasks = useCallback((sessions: OpenCodeSession[]): Task[] => {
-    return sessions.map(session => ({
-      id: session.id,
-      title: `${session.folder.split("/").pop()} - ${session.model}`,
-      status: session.status as TaskStatus,
-      folder: session.folder,
-      model: session.model,
-      port: session.port,
-      createdAt: new Date(), // In a real implementation, this would come from the session data
-      sessions: session.sessions?.map(s => ({
-        id: s.id,
-        taskId: session.id,
-        model: s.model,
-        createdAt: new Date(s.createdAt),
-        lastActivity: new Date(s.lastActivity),
-        status: s.status,
-      })) || [],
-    }));
-  }, []);
   
-  // Handle SSE messages for real-time updates
-  const handleTaskSSEMessage = useCallback((message: SSEMessage) => {
-    if (message.type === "workspace_update" && message.data) {
-      const sessions = message.data as OpenCodeSession[];
-      const tasks = mapSessionsToTasks(sessions);
+  
+  // Load tasks (workspaces) from API
+  const loadTasks = useCallback(async () => {
+    updateTaskState({ isLoading: true, error: null });
+    
+    try {
+      const response = await fetch("/api/workspaces");
+      if (!response.ok) {
+        throw new Error("Failed to fetch workspaces");
+      }
+      
+      const workspaces = await response.json();
+      const tasks: Task[] = workspaces.map((workspace: { 
+        id: string; 
+        folder?: string; 
+        model: string; 
+        status: string; 
+        port: number; 
+        sessions?: Array<{
+          id: string;
+          model: string;
+          createdAt: string;
+          lastActivity: string;
+          status: string;
+        }>;
+      }) => ({
+        id: workspace.id,
+        title: workspace.folder ? `${workspace.folder.split("/").pop()} - ${workspace.model}` : `Workspace ${workspace.id}`,
+        status: workspace.status as TaskStatus,
+        folder: workspace.folder || "",
+        model: workspace.model,
+        port: workspace.port,
+        createdAt: new Date(),
+        sessions: workspace.sessions?.map((s) => ({
+          id: s.id,
+          taskId: workspace.id,
+          model: s.model,
+          createdAt: new Date(s.createdAt),
+          lastActivity: new Date(s.lastActivity),
+          status: s.status as "active" | "inactive",
+        })) || [],
+      }));
       
       // Preserve currentTask if it still exists in the updated tasks list
       const currentTaskId = taskState.currentTask?.id;
@@ -222,47 +238,54 @@ export function useTasks(): UseTasksReturn {
         currentTask: updatedCurrentTask,
         isLoading: false,
       });
-    } else if (message.type === "error") {
-      setTaskError(message.error || "SSE connection error");
+    } catch (error) {
+      console.error("Failed to load tasks:", error);
+      setTaskError(error instanceof Error ? error.message : "Failed to load tasks");
     }
-  }, [taskState.currentTask, mapSessionsToTasks, updateTaskState, setTaskError]);
-  
-  // Override the SSE message handler to use our task-specific one
-  useEffect(() => {
-    // We'll use the SSE connection from the base hook but with our handler
-    // This is handled by intercepting messages in the extended functions
-    // The handleTaskSSEMessage function is used in the base hook's SSE connection
-  }, [handleTaskSSEMessage]);
-  
-  // Override the SSE message handler to use our task-specific one
-  useEffect(() => {
-    // We'll use the SSE connection from the base hook but with our handler
-    // This is handled by intercepting messages in the extended functions
-  }, []);
+  }, [taskState.currentTask, updateTaskState, setTaskError]);
   
   // Create a new task (workspace)
   const createTask = useCallback(async (folder: string, model: string, title?: string): Promise<Task> => {
     updateTaskState({ isLoading: true, error: null });
     
     try {
-      const session = await openCodeSession.createSession({ folder, model });
-      const task: Task = {
-        id: session.id,
-        title: title || `${folder.split("/").pop()} - ${model}`,
-        status: session.status as TaskStatus,
-        folder: session.folder,
-        model: session.model,
-        port: session.port,
-        createdAt: new Date(),
-        sessions: session.sessions?.map(s => ({
-          id: s.id,
-          taskId: session.id,
-          model: s.model,
-          createdAt: new Date(s.createdAt),
-          lastActivity: new Date(s.lastActivity),
-          status: s.status,
-        })) || [],
-      };
+      const response = await fetch("/api/workspaces", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ folder, model }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to create workspace");
+      }
+      
+const workspaceData = await response.json();
+       const task: Task = {
+         id: workspaceData.id,
+         title: title || (workspaceData.folder ? `${workspaceData.folder.split("/").pop()} - ${workspaceData.model}` : `Workspace ${workspaceData.id}`),
+         status: workspaceData.status as TaskStatus,
+         folder: workspaceData.folder,
+         model: workspaceData.model,
+         port: workspaceData.port,
+         createdAt: new Date(),
+         sessions: workspaceData.sessions?.map((s: { 
+           id: string; 
+           model: string; 
+           createdAt: string; 
+           lastActivity: string; 
+           status: string; 
+         }) => ({
+           id: s.id,
+           taskId: workspaceData.id,
+           model: s.model,
+           createdAt: new Date(s.createdAt),
+           lastActivity: new Date(s.lastActivity),
+           status: s.status as "active" | "inactive",
+         })) || [],
+       };
       
       updateTaskState({
         tasks: [...taskState.tasks, task],
@@ -278,7 +301,7 @@ export function useTasks(): UseTasksReturn {
       setTaskError(errorMessage);
       throw new Error(errorMessage);
     }
-  }, [openCodeSession, taskState.tasks, updateTaskState, setTaskError]);
+  }, [taskState.tasks, updateTaskState, setTaskError]);
   
   // Update a task
   const updateTask = useCallback(async (taskId: string, updates: Partial<Task>): Promise<void> => {
@@ -392,6 +415,19 @@ export function useTasks(): UseTasksReturn {
       // Store the plan temporarily
       pendingPlans.current.set(plan.id, plan);
       
+      // Update the task with the new plan
+      const taskIndex = taskState.tasks.findIndex(t => t.id === taskId);
+      if (taskIndex !== -1) {
+        const updatedTasks = [...taskState.tasks];
+        updatedTasks[taskIndex] = { ...updatedTasks[taskIndex], plan };
+        updateTaskState({ tasks: updatedTasks });
+        
+        // Update current task if it's the same
+        if (taskState.currentTask?.id === taskId) {
+          updateTaskState({ currentTask: { ...taskState.currentTask, plan } });
+        }
+      }
+      
       updateTaskState({ isLoading: false });
       return plan;
     } catch (error) {
@@ -400,7 +436,7 @@ export function useTasks(): UseTasksReturn {
       setTaskError(errorMessage);
       throw new Error(errorMessage);
     }
-  }, [updateTaskState, setTaskError]);
+  }, [taskState.tasks, taskState.currentTask, updateTaskState, setTaskError]);
   
   // Approve plan
   const approvePlan = useCallback(async (planId: string) => {
@@ -420,13 +456,27 @@ export function useTasks(): UseTasksReturn {
       };
       
       pendingPlans.current.set(planId, approvedPlan);
+      
+      // Update the task with the approved plan
+      const taskIndex = taskState.tasks.findIndex(t => t.id === plan.taskId);
+      if (taskIndex !== -1) {
+        const updatedTasks = [...taskState.tasks];
+        updatedTasks[taskIndex] = { ...updatedTasks[taskIndex], plan: approvedPlan };
+        updateTaskState({ tasks: updatedTasks });
+        
+        // Update current task if it's the same
+        if (taskState.currentTask?.id === plan.taskId) {
+          updateTaskState({ currentTask: { ...taskState.currentTask, plan: approvedPlan } });
+        }
+      }
+      
       updateTaskState({ isLoading: false });
     } catch (error) {
       console.error("Failed to approve plan:", error);
       setTaskError(error instanceof Error ? error.message : "Failed to approve plan");
       throw new Error("Failed to approve plan");
     }
-  }, [updateTaskState, setTaskError]);
+  }, [taskState.tasks, taskState.currentTask, updateTaskState, setTaskError]);
   
   // Reject plan
   const rejectPlan = useCallback(async (planId: string) => {
@@ -445,13 +495,27 @@ export function useTasks(): UseTasksReturn {
       };
       
       pendingPlans.current.set(planId, rejectedPlan);
+      
+      // Update the task with the rejected plan
+      const taskIndex = taskState.tasks.findIndex(t => t.id === plan.taskId);
+      if (taskIndex !== -1) {
+        const updatedTasks = [...taskState.tasks];
+        updatedTasks[taskIndex] = { ...updatedTasks[taskIndex], plan: rejectedPlan };
+        updateTaskState({ tasks: updatedTasks });
+        
+        // Update current task if it's the same
+        if (taskState.currentTask?.id === plan.taskId) {
+          updateTaskState({ currentTask: { ...taskState.currentTask, plan: rejectedPlan } });
+        }
+      }
+      
       updateTaskState({ isLoading: false });
     } catch (error) {
       console.error("Failed to reject plan:", error);
       setTaskError(error instanceof Error ? error.message : "Failed to reject plan");
       throw new Error("Failed to reject plan");
     }
-  }, [updateTaskState, setTaskError]);
+  }, [taskState.tasks, taskState.currentTask, updateTaskState, setTaskError]);
   
   // Execute plan
   const executePlan = useCallback(async (planId: string) => {
@@ -470,6 +534,20 @@ export function useTasks(): UseTasksReturn {
       };
       
       pendingPlans.current.set(planId, executingPlan);
+      
+      // Update the task with the executing plan
+      const taskIndex = taskState.tasks.findIndex(t => t.id === plan.taskId);
+      if (taskIndex !== -1) {
+        const updatedTasks = [...taskState.tasks];
+        updatedTasks[taskIndex] = { ...updatedTasks[taskIndex], plan: executingPlan };
+        updateTaskState({ tasks: updatedTasks });
+        
+        // Update current task if it's the same
+        if (taskState.currentTask?.id === plan.taskId) {
+          updateTaskState({ currentTask: { ...taskState.currentTask, plan: executingPlan } });
+        }
+      }
+      
       updateTaskState({ isLoading: false });
       
       // In a real implementation, this would execute the plan
@@ -484,6 +562,20 @@ export function useTasks(): UseTasksReturn {
         };
         
         pendingPlans.current.set(planId, completedPlan);
+        
+        // Update the task with the completed plan
+        const taskIndex = taskState.tasks.findIndex(t => t.id === plan.taskId);
+        if (taskIndex !== -1) {
+          const updatedTasks = [...taskState.tasks];
+          updatedTasks[taskIndex] = { ...updatedTasks[taskIndex], plan: completedPlan };
+          updateTaskState({ tasks: updatedTasks });
+          
+          // Update current task if it's the same
+          if (taskState.currentTask?.id === plan.taskId) {
+            updateTaskState({ currentTask: { ...taskState.currentTask, plan: completedPlan } });
+          }
+        }
+        
         updateTaskState({ isLoading: false });
       }, 2000);
     } catch (error) {
@@ -491,7 +583,7 @@ export function useTasks(): UseTasksReturn {
       setTaskError(error instanceof Error ? error.message : "Failed to execute plan");
       throw new Error("Failed to execute plan");
     }
-  }, [updateTaskState, setTaskError]);
+  }, [taskState.tasks, taskState.currentTask, updateTaskState, setTaskError]);
   
   // Execute command
   const executeCommand = useCallback(async (taskId: string, sessionId: string, command: string) => {
@@ -519,11 +611,11 @@ export function useTasks(): UseTasksReturn {
       setTimeout(() => {
         if (!mountedRef.current) return;
         
-const updatedExecutions = taskState.commandExecutions.map(exec => 
-        exec.id === execution.id 
-          ? { ...exec, status: "completed" as const, completedAt: new Date(), output: "Command executed successfully" } 
-          : exec
-      );
+        const updatedExecutions = taskState.commandExecutions.map(exec => 
+          exec.id === execution.id 
+            ? { ...exec, status: "completed" as const, completedAt: new Date(), output: "Command executed successfully" } 
+            : exec
+        );
         
         updateTaskState({ commandExecutions: updatedExecutions });
       }, 1000);
@@ -562,12 +654,13 @@ const updatedExecutions = taskState.commandExecutions.map(exec =>
     }
   }, [updateTaskState, setTaskError]);
   
-  // Load codebases on mount
+  // Load tasks and codebases on mount
   useEffect(() => {
+    loadTasks();
     loadCodebases();
-  }, [loadCodebases]);
+  }, [loadTasks, loadCodebases]);
   
-// Return the combined interface
+  // Return the combined interface
   return {
     // State (inherited from OpenCode session)
     sessions: openCodeSession.sessions,
