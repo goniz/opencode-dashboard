@@ -1,19 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import WorkspaceManager from "@/components/workspace-manager";
-import WorkspaceDashboard from "@/components/workspace-dashboard";
-import AgentFlow from "@/components/agent-flow";
-import QuickStart from "@/components/quick-start";
+import { OpenCodeSidebar } from "@/components/ui/opencode-sidebar";
+import { NewWorkspaceForm } from "@/components/ui/new-workspace-form";
+import { WorkspaceChat } from "@/components/ui/workspace-chat";
 import MobileNavigation from "@/components/mobile-navigation";
-import { useOpenCodeSessionContext } from "@/contexts/OpenCodeWorkspaceContext";
+import { useTaskContext } from "@/contexts/TaskContext";
 import { Button } from "@/components/button";
 import { ArrowLeftIcon, SettingsIcon } from "lucide-react";
 
-type ViewState = "workspaces" | "workspace-dashboard" | "chat" | "tools";
+type ViewState = "sidebar" | "new-task" | "chat" | "workspace-dashboard" | "tools" | "workspaces";
 
 export default function Home() {
-  const { currentSession, sessions: workspaces, switchToSession, createSession, createOpenCodeSession } = useOpenCodeSessionContext();
+  const { currentSession, sessions: workspaces, switchToSession } = useTaskContext();
   const [viewState, setViewState] = useState<ViewState>("workspaces");
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null);
   const [showAdvancedView, setShowAdvancedView] = useState(false);
@@ -23,112 +22,13 @@ export default function Home() {
     setViewState("workspace-dashboard");
   };
 
-  const handleOpenChat = async (sessionId?: string) => {
-    if (sessionId) {
-      // First, find the workspace that contains this session
-      let foundWorkspace = null;
-      
-      for (const workspace of workspaces) {
-        if (workspace.sessions?.some(s => s.id === sessionId)) {
-          foundWorkspace = workspace;
-          break;
-        }
-      }
-      
-      if (foundWorkspace) {
-        try {
-          // Set the selected workspace ID to ensure it's available
-          setSelectedWorkspaceId(foundWorkspace.id);
-          
-          // Switch to chat view first to show loading state
-          setViewState("chat");
-          
-          // Switch to the workspace (not the individual session)
-          // The chat interface will handle the specific session
-          await switchToSession(foundWorkspace.id);
-        } catch (error) {
-          console.error("Error switching to workspace:", error);
-          // Return to workspace dashboard on error
-          setViewState("workspace-dashboard");
-        }
-      } else {
-        // Fallback: try to find the workspace by ID if the sessionId looks like a workspace ID
-        const workspaceById = workspaces.find(w => w.id === sessionId);
-        if (workspaceById) {
-          try {
-            setSelectedWorkspaceId(workspaceById.id);
-            setViewState("chat");
-            await switchToSession(workspaceById.id);
-          } catch (error) {
-            console.error("Error switching to workspace by ID:", error);
-            setViewState("workspace-dashboard");
-          }
-        }
-      }
-    } else if (currentSession) {
-      // If no session ID is provided but we have a current session, just switch to chat view
-      setViewState("chat");
-    }
-  };
+  
 
   const handleBackToWorkspaces = () => {
     setViewState("workspaces");
   };
 
-  const handleQuickStartWorkspaceCreated = async (workspaceData: { folder: string; model: string; autoOpenChat?: boolean }) => {
-    try {
-      // Create the workspace using the session context
-      const workspace = await createSession({
-        folder: workspaceData.folder,
-        model: workspaceData.model
-      });
-      
-      // If auto-chat is enabled, create an OpenCode session and go directly to chat
-      if (workspaceData.autoOpenChat) {
-        try {
-          await createOpenCodeSession(workspace.id, workspaceData.model);
-          // Wait a bit for the session data to be properly loaded
-          await new Promise(resolve => setTimeout(resolve, 500));
-          
-          // Wait for the workspace to appear in the workspaces list
-          let retries = 0;
-          const maxRetries = 20;
-          let foundWorkspace = null;
-          
-          while (retries < maxRetries && !foundWorkspace) {
-            foundWorkspace = workspaces.find(w => w.id === workspace.id);
-            if (foundWorkspace) {
-              break;
-            }
-            await new Promise(resolve => setTimeout(resolve, 100));
-            retries++;
-          }
-          
-          if (foundWorkspace) {
-            // Switch to the workspace (which now contains the session)
-            await switchToSession(workspace.id);
-            setSelectedWorkspaceId(workspace.id);
-            setViewState("chat");
-          } else {
-            setSelectedWorkspaceId(workspace.id);
-            setViewState("workspace-dashboard");
-          }
-        } catch (sessionError) {
-          console.error("Failed to create OpenCode session:", sessionError);
-          // Fall back to workspace dashboard if session creation fails
-          setSelectedWorkspaceId(workspace.id);
-          setViewState("workspace-dashboard");
-        }
-      } else {
-        // Otherwise go to workspace dashboard
-        setSelectedWorkspaceId(workspace.id);
-        setViewState("workspace-dashboard");
-      }
-    } catch (error) {
-      console.error("Failed to create workspace:", error);
-      // Stay on quick start view to show error
-    }
-  };
+  
 
   // Handle case where chat view is requested but no session is available
   useEffect(() => {
@@ -220,16 +120,7 @@ export default function Home() {
           </div>
         </div>
         <div className="py-8">
-          <WorkspaceDashboard
-            workspaceData={{
-              workspaceId: selectedWorkspace.id,
-              port: selectedWorkspace.port,
-              folder: selectedWorkspace.folder,
-              model: selectedWorkspace.model,
-            }}
-            onWorkspaceStop={handleBackToWorkspaces}
-            onOpenChat={(sessionId?: string) => handleOpenChat(sessionId)}
-          />
+          <WorkspaceChat onBackToSidebar={handleBackToWorkspaces} />
         </div>
       </div>
     );
@@ -299,7 +190,7 @@ export default function Home() {
           </div>
         </div>
         <div className="h-[calc(100vh-73px)] md:h-[calc(100vh-73px)]">
-          <AgentFlow />
+          <WorkspaceChat onBackToSidebar={handleBackToWorkspaces} />
         </div>
       </div>
     );
@@ -345,9 +236,12 @@ export default function Home() {
         </div>
         
         <div className="py-8 mt-16 md:mt-0">
-          <QuickStart 
-            onWorkspaceCreated={handleQuickStartWorkspaceCreated}
-            onWorkspaceOpen={handleOpenWorkspace}
+          <NewWorkspaceForm 
+            onBackToSidebar={handleBackToWorkspaces}
+            onWorkspaceCreated={(workspaceId) => {
+              // Handle workspace creation
+              console.log("Workspace created:", workspaceId);
+            }}
           />
         </div>
       </div>
@@ -395,7 +289,10 @@ export default function Home() {
         </div>
         
         <div className="container mx-auto px-4 py-8 mt-16 md:mt-0">
-          <WorkspaceManager onOpenWorkspace={handleOpenWorkspace} />
+          <OpenCodeSidebar 
+            onOpenWorkspace={handleOpenWorkspace}
+            onCreateNewWorkspace={() => setViewState("new-task")}
+          />
         </div>
       </div>
     );
