@@ -48,6 +48,7 @@ jobs:
       matrix:
         test-file:
           - test_chat.py
+          - test_plan_endpoint.py
           - test_error_handling.py
           - test_folders.py
           - test_health_endpoint.py

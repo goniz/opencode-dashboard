@@ -4,10 +4,12 @@ import { useState, useEffect } from "react";
 import ModelSelector from "./model-selector";
 import { Button } from "./button";
 import SimpleMarkdownText from "./simple-markdown-text";
+import { useOpenCodeSessionContext } from "@/contexts/OpenCodeWorkspaceContext";
 
 type FlowStep = "PROMPT_INPUT" | "PLAN_APPROVAL" | "CODING" | "CODE_APPROVAL";
 
 export default function AgentFlow() {
+  const { currentSession } = useOpenCodeSessionContext();
   const [step, setStep] = useState<FlowStep>("PROMPT_INPUT");
   const [prompt, setPrompt] = useState("");
   const [planningModel, setPlanningModel] = useState<string | null>(null);
@@ -15,19 +17,99 @@ export default function AgentFlow() {
   const [plan, setPlan] = useState("");
   const [code, setCode] = useState("");
   const [codingLog, setCodingLog] = useState<string[]>([]);
+  const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
+  const [planError, setPlanError] = useState<string | null>(null);
 
-  const handlePlanGeneration = () => {
-    // Mock plan generation
-    setPlan(`
-### Plan to implement a new user flow
+  const handlePlanGeneration = async () => {
+    console.log('[AgentFlow] Plan generation started');
+    console.log('[AgentFlow] Parameters:', {
+      hasPrompt: !!prompt,
+      promptLength: prompt.length,
+      planningModel,
+      hasCurrentSession: !!currentSession,
+      currentSessionId: currentSession?.id
+    });
+    
+    if (!prompt || !planningModel || !currentSession) {
+      console.error('[AgentFlow] Missing required parameters:', {
+        hasPrompt: !!prompt,
+        hasPlanningModel: !!planningModel,
+        hasCurrentSession: !!currentSession
+      });
+      return;
+    }
 
-1.  **Create the \`AgentFlow.tsx\` component.** This will be the main component for the new user flow.
-2.  **Implement the "Prompt" step.** This will include a text area for the user's prompt and two \`ModelSelector\` components.
-3.  **Implement the "Plan Approval" step.** This will display the generated plan and have "Approve" and "Revise" buttons.
-4.  **Implement the "Implementing" step.** This will show a loading/progress indicator.
-5.  **Implement the "Implementation Approval" step.** This will display the generated code.
-    `);
-    setStep("PLAN_APPROVAL");
+    setIsGeneratingPlan(true);
+    setPlanError(null);
+
+    try {
+      // Add timeout to the fetch request
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        console.log('[AgentFlow] Request timeout triggered');
+        controller.abort();
+      }, 60000); // 60 second timeout
+
+      const requestBody = { prompt, planningModel, workspaceId: currentSession.id };
+      console.log('[AgentFlow] Sending request to /api/agent/plan:', requestBody);
+      
+      const response = await fetch('/api/agent/plan', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+        signal: controller.signal,
+      });
+      
+      console.log('[AgentFlow] Response received:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('[AgentFlow] Server error response:', errorData);
+        throw new Error(errorData.error || `Server error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('[AgentFlow] Response data:', data);
+      
+      // Validate API response
+      if (!data || typeof data.plan !== 'string' || !data.plan.trim()) {
+        console.error('[AgentFlow] Invalid response structure:', data);
+        throw new Error('Invalid response: Plan content is missing or empty');
+      }
+
+      console.log('[AgentFlow] Plan generated successfully, length:', data.plan.length);
+      setPlan(data.plan);
+      setStep('PLAN_APPROVAL');
+    } catch (error) {
+      console.error('[AgentFlow] Plan generation failed:', error);
+      console.error('[AgentFlow] Error details:', {
+        type: error?.constructor?.name,
+        message: error instanceof Error ? error.message : String(error),
+        name: error instanceof Error ? error.name : 'Unknown'
+      });
+      
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          console.log('[AgentFlow] Request was aborted (timeout)');
+          setPlanError('Request timed out. Please try again.');
+        } else {
+          setPlanError(error.message || 'Failed to generate plan. Please try again.');
+        }
+      } else {
+        setPlanError('An unexpected error occurred. Please try again.');
+      }
+    } finally {
+      console.log('[AgentFlow] Plan generation completed, cleaning up');
+      setIsGeneratingPlan(false);
+    }
   };
 
   const handlePlanApproval = () => {
@@ -113,18 +195,36 @@ export default NewComponent;
             <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
                 <h3 className="text-lg font-semibold text-foreground mb-4">Planning Model</h3>
-                <ModelSelector folderPath="./" onModelSelect={setPlanningModel} defaultModel="planning-model" />
+                <ModelSelector folderPath="./" onModelSelect={setPlanningModel} />
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-foreground mb-4">Coding Model</h3>
-                <ModelSelector folderPath="./" onModelSelect={setCodingModel} defaultModel="coding-model" />
+                <ModelSelector folderPath="./" onModelSelect={setCodingModel} />
               </div>
             </div>
             <div className="mt-8 text-right">
-              <Button onClick={handlePlanGeneration} size="lg" disabled={!prompt || !planningModel || !codingModel}>
-                Generate Plan
+              <Button 
+                onClick={handlePlanGeneration} 
+                size="lg" 
+                disabled={!prompt || !planningModel || !codingModel || isGeneratingPlan}
+              >
+                {isGeneratingPlan ? 'Generating Plan...' : 'Generate Plan'}
               </Button>
             </div>
+            {planError && (
+              <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+                <p className="font-medium">Error generating plan:</p>
+                <p>{planError}</p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-2"
+                  onClick={() => setPlanError(null)}
+                >
+                  Dismiss
+                </Button>
+              </div>
+            )}
           </div>
         );
       case "PLAN_APPROVAL":
