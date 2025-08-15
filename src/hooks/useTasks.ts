@@ -196,21 +196,34 @@ export function useTasks(): UseTasksReturn {
       }
       
       const workspaces = await response.json();
-      const tasks: Task[] = workspaces.map((workspace: any) => ({
+      const tasks: Task[] = workspaces.map((workspace: { 
+        id: string; 
+        folder?: string; 
+        model: string; 
+        status: string; 
+        port: number; 
+        sessions?: Array<{
+          id: string;
+          model: string;
+          createdAt: string;
+          lastActivity: string;
+          status: string;
+        }>;
+      }) => ({
         id: workspace.id,
         title: workspace.folder ? `${workspace.folder.split("/").pop()} - ${workspace.model}` : `Workspace ${workspace.id}`,
         status: workspace.status as TaskStatus,
-        folder: workspace.folder,
+        folder: workspace.folder || "",
         model: workspace.model,
         port: workspace.port,
         createdAt: new Date(),
-        sessions: workspace.sessions?.map((s: any) => ({
+        sessions: workspace.sessions?.map((s) => ({
           id: s.id,
           taskId: workspace.id,
           model: s.model,
           createdAt: new Date(s.createdAt),
           lastActivity: new Date(s.lastActivity),
-          status: s.status,
+          status: s.status as "active" | "inactive",
         })) || [],
       }));
       
@@ -249,24 +262,30 @@ export function useTasks(): UseTasksReturn {
         throw new Error(errorData.error || "Failed to create workspace");
       }
       
-      const workspaceData = await response.json();
-      const task: Task = {
-        id: workspaceData.id,
-        title: title || (workspaceData.folder ? `${workspaceData.folder.split("/").pop()} - ${workspaceData.model}` : `Workspace ${workspaceData.id}`),
-        status: workspaceData.status as TaskStatus,
-        folder: workspaceData.folder,
-        model: workspaceData.model,
-        port: workspaceData.port,
-        createdAt: new Date(),
-        sessions: workspaceData.sessions?.map((s: any) => ({
-          id: s.id,
-          taskId: workspaceData.id,
-          model: s.model,
-          createdAt: new Date(s.createdAt),
-          lastActivity: new Date(s.lastActivity),
-          status: s.status,
-        })) || [],
-      };
+const workspaceData = await response.json();
+       const task: Task = {
+         id: workspaceData.id,
+         title: title || (workspaceData.folder ? `${workspaceData.folder.split("/").pop()} - ${workspaceData.model}` : `Workspace ${workspaceData.id}`),
+         status: workspaceData.status as TaskStatus,
+         folder: workspaceData.folder,
+         model: workspaceData.model,
+         port: workspaceData.port,
+         createdAt: new Date(),
+         sessions: workspaceData.sessions?.map((s: { 
+           id: string; 
+           model: string; 
+           createdAt: string; 
+           lastActivity: string; 
+           status: string; 
+         }) => ({
+           id: s.id,
+           taskId: workspaceData.id,
+           model: s.model,
+           createdAt: new Date(s.createdAt),
+           lastActivity: new Date(s.lastActivity),
+           status: s.status as "active" | "inactive",
+         })) || [],
+       };
       
       updateTaskState({
         tasks: [...taskState.tasks, task],
