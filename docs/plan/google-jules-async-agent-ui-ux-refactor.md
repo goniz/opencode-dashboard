@@ -1,114 +1,116 @@
 # OpenCode Dashboard UI/UX Refactor to Google Jules Async Agent Interface
 
-## 1. Overall Architecture Changes
+## Implementation Task List
 
-### 1.1. Core Concept Mapping
-- **Jules Tasks** → **OpenCode Workspaces**
-- **Jules Task Sessions** → **OpenCode Workspace Sessions**
-- **Jules Codebases** → **OpenCode Folders/Projects**
+### 1. Overall Architecture Changes
 
-### 1.2. State Management
-Replace the current `OpenCodeSessionContext` with a new `TaskContext` that manages:
-- Workspaces (as tasks)
-- Sessions (as sub-tasks or chat sessions within workspaces)
-- Chat messages per session
-- Execution status and plans
+#### 1.1. Core Concept Mapping
+- [x] **Jules Tasks** → **OpenCode Workspaces**
+- [x] **Jules Task Sessions** → **OpenCode Workspace Sessions**
+- [x] **Jules Codebases** → **OpenCode Folders/Projects**
 
-## 2. UI Component Refactoring
+#### 1.2. State Management
+- [x] Replace the current `OpenCodeSessionContext` with a new `TaskContext` that manages:
+  - [x] Workspaces (as tasks)
+  - [x] Sessions (as sub-tasks or chat sessions within workspaces)
+  - [x] Chat messages per session
+  - [x] Execution status and plans
 
-### 2.1. Main Layout Changes
-- **Current**: Multi-view system with workspaces, workspace dashboard, chat, and tools views
-- **Target**: Simplified three-view system:
-  1. **Sidebar View** - List of workspaces/sessions
-  2. **New Task/Workspace View** - Create new workspace
-  3. **Chat View** - Chat interface with plan execution
+### 2. UI Component Refactoring
 
-### 2.2. Color Scheme & Styling
-- **Current**: Light/dark mode with custom color variables
-- **Target**: Adopt Google Jules' dark theme with purple accent colors:
-  - Primary background: `gray-900`
-  - Text: `white`/`gray-200`/`gray-300`
-  - Accent color: `purple-600`
-  - Status colors: green (completed), orange (in-progress), blue (pending), red (failed)
+#### 2.1. Main Layout Changes
+- [x] **Current**: Multi-view system with workspaces, workspace dashboard, chat, and tools views
+- [x] **Target**: Simplified three-view system:
+  1. [x] **Sidebar View** - List of workspaces/sessions
+  2. [x] **New Task/Workspace View** - Create new workspace
+  3. [x] **Chat View** - Chat interface with plan execution
 
-### 2.3. Typography & Spacing
-- **Current**: Responsive fluid typography and spacing
-- **Target**: Simplified consistent sizing with tighter spacing similar to Google Jules
+#### 2.2. Color Scheme & Styling
+- [x] **Current**: Light/dark mode with custom color variables
+- [x] **Target**: Adopt Google Jules' dark theme with purple accent colors:
+  - [x] Primary background: `gray-900`
+  - [x] Text: `white`/`gray-200`/`gray-300`
+  - [x] Accent color: `purple-600`
+  - [x] Status colors: green (completed), orange (in-progress), blue (pending), red (failed)
 
-## 3. Component Implementation Plan
+#### 2.3. Typography & Spacing
+- [x] **Current**: Responsive fluid typography and spacing
+- [x] **Target**: Simplified consistent sizing with tighter spacing similar to Google Jules
 
-### 3.1. New Components to Create
-1. **OpenCodeSidebar** - Replace current workspace manager
-   - Recent workspaces list with status indicators
-   - Codebase/folder navigation
-   - Search functionality
-   - Bottom navigation links
+### 3. Component Implementation Plan
 
-2. **NewWorkspaceForm** - Replace current quick start
-   - Folder selection with dropdown
-   - Branch selection
-   - Task/workspace description input
-   - Create button with loading state
+#### 3.1. New Components to Create
+- [x] **OpenCodeSidebar** - Replace current workspace manager
+  - [x] Recent workspaces list with status indicators
+  - [x] Codebase/folder navigation
+  - [x] Search functionality
+  - [x] Bottom navigation links
 
-3. **WorkspaceChat** - Enhanced chat interface
-   - Workspace header with back button
-   - Plan visualization with step-by-step execution
-   - Approval/rejection controls for plans
-   - Chat message input
-   - Command execution results
+- [x] **NewWorkspaceForm** - Replace current quick start
+  - [x] Folder selection with dropdown
+  - [x] Branch selection
+  - [x] Task/workspace description input
+  - [x] Create button with loading state
 
-### 3.2. Components to Modify
-1. **Root Layout** (`src/app/layout.tsx`)
-   - Update to use dark theme by default
-   - Integrate new TaskProvider context
+- [x] **WorkspaceChat** - Enhanced chat interface
+  - [x] Workspace header with back button
+  - [x] Plan visualization with step-by-step execution
+  - [x] Approval/rejection controls for plans
+  - [x] Chat message input
+  - [x] Command execution results
 
-2. **Mobile Navigation** (`src/components/mobile-navigation.tsx`)
-   - Simplify to match Google Jules' minimal mobile UX
-   - Remove complex header animations
-   - Streamline navigation items
+#### 3.2. Components to Modify
+- [x] **Root Layout** (`src/app/layout.tsx`)
+  - [x] Update to use dark theme by default
+  - [x] Integrate new TaskProvider context
 
-### 3.3. Components to Remove/Replace
-1. **WorkspaceManager** - Replace with OpenCodeSidebar
-2. **WorkspaceDashboard** - Replace with WorkspaceChat
-3. **AgentFlow** - Integrate into WorkspaceChat
-4. **QuickStart** - Replace with NewWorkspaceForm
-5. **SessionManager** - Integrate into sidebar
-6. **ResponsiveSidebar** - Remove, use native sidebar
+- [ ] **Mobile Navigation** (`src/components/mobile-navigation.tsx`)
+  - [ ] Simplify to match Google Jules' minimal mobile UX
+  - [ ] Remove complex header animations
+  - [ ] Streamline navigation items
 
-## 4. State Management Refactor
+#### 3.3. Components to Remove/Replace
+- [x] **WorkspaceManager** - Replace with OpenCodeSidebar
+- [x] **WorkspaceDashboard** - Replace with WorkspaceChat
+- [x] **AgentFlow** - Integrate into WorkspaceChat
+- [x] **QuickStart** - Replace with NewWorkspaceForm
+- [x] **SessionManager** - Integrate into sidebar
+- [x] **ResponsiveSidebar** - Remove, use native sidebar
 
-### 4.1. New Context Structure
-Create `TaskContext` that extends the existing OpenCode session context with:
-- `workspaces` (equivalent to tasks)
-- `currentWorkspace` (equivalent to currentTask)
-- `chatMessages` (per workspace/session)
-- `commandExecutions` (execution status)
-- `codebases` (available folders/projects)
-- `isLoading` state
-- `currentView` state
+### 4. State Management Refactor
 
-### 4.2. Hook Updates
-Create `useTasks` hook that extends `useOpenCodeSession` with:
-- `createWorkspace` (equivalent to createTask)
-- `updateWorkspace` (equivalent to updateTask)
-- `setCurrentWorkspace` (equivalent to setCurrentTask)
-- `setView` (manage view states)
-- `addChatMessage` (add messages to workspace chat)
-- `createPlan` (generate execution plan)
-- `approvePlan`/`rejectPlan` (plan approval workflow)
-- `executePlan` (execute approved plans)
-- `executeCommand` (run commands)
+#### 4.1. New Context Structure
+- [x] Create `TaskContext` that extends the existing OpenCode session context with:
+  - [x] `workspaces` (equivalent to tasks)
+  - [x] `currentWorkspace` (equivalent to currentTask)
+  - [x] `chatMessages` (per workspace/session)
+  - [x] `commandExecutions` (execution status)
+  - [x] `codebases` (available folders/projects)
+  - [x] `isLoading` state
+  - [x] `currentView` state
 
-## 5. API Integration
+#### 4.2. Hook Updates
+- [x] Create `useTasks` hook that extends `useOpenCodeSession` with:
+  - [x] `createWorkspace` (equivalent to createTask)
+  - [x] `updateWorkspace` (equivalent to updateTask)
+  - [x] `setCurrentWorkspace` (equivalent to setCurrentTask)
+  - [x] `setView` (manage view states)
+  - [x] `addChatMessage` (add messages to workspace chat)
+  - [x] `createPlan` (generate execution plan)
+  - [x] `approvePlan`/`rejectPlan` (plan approval workflow)
+  - [x] `executePlan` (execute approved plans)
+  - [x] `executeCommand` (run commands)
 
-### 5.1. Backend Endpoint Mapping
-- **Jules Task Creation** → **OpenCode Workspace Creation** (`/api/workspaces`)
-- **Jules Plan Execution** → **OpenCode Agent Plan** (`/api/agent/plan`)
-- **Jules Chat Messages** → **OpenCode Chat Messages** (`/api/workspaces/[workspaceId]/sessions/[sessionId]/chat`)
-- **Jules Command Execution** → **OpenCode Tool Execution** (existing tool endpoints)
+### 5. API Integration
 
-### 5.2. Data Structure Mapping
-- **Jules Task** → **OpenCode Workspace**
+#### 5.1. Backend Endpoint Mapping
+- [x] **Jules Task Creation** → **OpenCode Workspace Creation** (`/api/workspaces`)
+- [x] **Jules Plan Execution** → **OpenCode Agent Plan** (`/api/agent/plan`)
+- [x] **Jules Chat Messages** → **OpenCode Chat Messages** (`/api/workspaces/[workspaceId]/sessions/[sessionId]/chat`)
+- [x] **Jules Command Execution** → **OpenCode Tool Execution** (existing tool endpoints)
+
+#### 5.2. Data Structure Mapping
+- [x] **Jules Task** → **OpenCode Workspace**
   ```typescript
   // Jules
   interface Task {
@@ -132,256 +134,256 @@ Create `useTasks` hook that extends `useOpenCodeSession` with:
   }
   ```
 
-## 6. Implementation Steps
+### 6. Implementation Steps
 
-### Phase 1: Foundation (Week 1)
+#### Phase 1: Foundation (Week 1) - COMPLETED
 **Parallelizable Tasks:**
-- Task 1.1: Create new `TaskContext` that extends `OpenCodeSessionContext` (**can be done in parallel with Task 1.4**)
-- Task 1.2: Implement state management for workspaces as tasks (**can be done in parallel with Task 1.3**)
-- Task 1.3: Create basic UI components (sidebar, new workspace form, chat) (**can be done in parallel with Task 1.2**)
-- Task 1.4: Update root layout to use dark theme and new context (**can be done in parallel with Task 1.1**)
+- [x] Task 1.1: Create new `TaskContext` that extends `OpenCodeSessionContext` (**can be done in parallel with Task 1.4**)
+- [x] Task 1.2: Implement state management for workspaces as tasks (**can be done in parallel with Task 1.3**)
+- [x] Task 1.3: Create basic UI components (sidebar, new workspace form, chat) (**can be done in parallel with Task 1.2**)
+- [x] Task 1.4: Update root layout to use dark theme and new context (**can be done in parallel with Task 1.1**)
 
-### Phase 2: Core Features (Week 2)
+#### Phase 2: Core Features (Week 2) - COMPLETED
 **Parallelizable Tasks:**
-- Task 2.1: Implement workspace creation flow using existing APIs (**can be done in parallel with Task 2.2**)
-- Task 2.2: Integrate with existing OpenCode API endpoints (**can be done in parallel with Task 2.1**)
-- Task 2.3: Implement plan generation and approval workflow (**can be done in parallel with Task 2.4**)
-- Task 2.4: Create chat interface with message history (**can be done in parallel with Task 2.3**)
+- [x] Task 2.1: Implement workspace creation flow using existing APIs (**can be done in parallel with Task 2.2**)
+- [x] Task 2.2: Integrate with existing OpenCode API endpoints (**can be done in parallel with Task 2.1**)
+- [x] Task 2.3: Implement plan generation and approval workflow (**can be done in parallel with Task 2.4**)
+- [x] Task 2.4: Create chat interface with message history (**can be done in parallel with Task 2.3**)
 
-### Phase 3: Enhancement & Polish (Week 3)
+#### Phase 3: Enhancement & Polish (Week 3) - IN PROGRESS
 **Parallelizable Tasks:**
-- Task 3.1: Add command execution visualization (**can be done in parallel with Tasks 3.2, 3.3, 3.4, 3.5**)
-- Task 3.2: Implement status indicators and progress tracking (**can be done in parallel with Tasks 3.1, 3.3, 3.4, 3.5**)
-- Task 3.3: Add search and filtering capabilities (**can be done in parallel with Tasks 3.1, 3.2, 3.4, 3.5**)
-- Task 3.4: Polish mobile responsiveness (**can be done in parallel with Tasks 3.1, 3.2, 3.3, 3.5**)
-- Task 3.5: Add animations and transitions (**can be done in parallel with Tasks 3.1, 3.2, 3.3, 3.4**)
+- [ ] Task 3.1: Add command execution visualization (**can be done in parallel with Tasks 3.2, 3.3, 3.4, 3.5**)
+- [ ] Task 3.2: Implement status indicators and progress tracking (**can be done in parallel with Tasks 3.1, 3.3, 3.4, 3.5**)
+- [ ] Task 3.3: Add search and filtering capabilities (**can be done in parallel with Tasks 3.1, 3.2, 3.4, 3.5**)
+- [ ] Task 3.4: Polish mobile responsiveness (**can be done in parallel with Tasks 3.1, 3.2, 3.3, 3.5**)
+- [ ] Task 3.5: Add animations and transitions (**can be done in parallel with Tasks 3.1, 3.2, 3.3, 3.4**)
 
-### Phase 4: Testing & Refinement (Week 4)
+#### Phase 4: Testing & Refinement (Week 4) - PENDING
 **Parallelizable Tasks:**
-- Task 4.1: Test all workflows with existing OpenCode functionality (**can be done in parallel with Tasks 4.2, 4.3, 4.4**)
-- Task 4.2: Ensure backward compatibility with current API (**can be done in parallel with Tasks 4.1, 4.3, 4.4**)
-- Task 4.3: Optimize performance and loading states (**can be done in parallel with Tasks 4.1, 4.2, 4.4**)
-- Task 4.4: Fix any UI/UX issues (**can be done in parallel with Tasks 4.1, 4.2, 4.3**)
-- Task 4.5: Update documentation and README (**should be done after Tasks 4.1-4.4 are completed**)
+- [ ] Task 4.1: Test all workflows with existing OpenCode functionality (**can be done in parallel with Tasks 4.2, 4.3, 4.4**)
+- [ ] Task 4.2: Ensure backward compatibility with current API (**can be done in parallel with Tasks 4.1, 4.3, 4.4**)
+- [ ] Task 4.3: Optimize performance and loading states (**can be done in parallel with Tasks 4.1, 4.2, 4.4**)
+- [ ] Task 4.4: Fix any UI/UX issues (**can be done in parallel with Tasks 4.1, 4.2, 4.3**)
+- [ ] Task 4.5: Update documentation and README (**should be done after Tasks 4.1-4.4 are completed**)
 
-## 7. Key UI/UX Improvements
+### 7. Key UI/UX Improvements
 
-### 7.1. Simplified Navigation
-- Single sidebar for all workspace management
-- Clear view states (sidebar, new workspace, chat)
-- Minimal mobile navigation with bottom bar
+#### 7.1. Simplified Navigation
+- [x] Single sidebar for all workspace management
+- [x] Clear view states (sidebar, new workspace, chat)
+- [ ] Minimal mobile navigation with bottom bar
 
-### 7.2. Enhanced Plan Visualization
-- Step-by-step plan execution with status indicators
-- Visual approval/rejection workflow
-- Progress tracking for long-running operations
+#### 7.2. Enhanced Plan Visualization
+- [x] Step-by-step plan execution with status indicators
+- [x] Visual approval/rejection workflow
+- [ ] Progress tracking for long-running operations
 
-### 7.3. Improved Chat Experience
-- Integrated plan display within chat
-- Command execution results inline
-- Better message grouping and timestamps
+#### 7.3. Improved Chat Experience
+- [x] Integrated plan display within chat
+- [x] Command execution results inline
+- [ ] Better message grouping and timestamps
 
-### 7.4. Consistent Styling
-- Unified dark theme with purple accents
-- Consistent spacing and typography
-- Improved visual hierarchy and focus states
+#### 7.4. Consistent Styling
+- [x] Unified dark theme with purple accents
+- [x] Consistent spacing and typography
+- [ ] Improved visual hierarchy and focus states
 
-## 8. Technical Considerations
+### 8. Technical Considerations
 
-### 8.1. Backward Compatibility
-- Maintain existing API endpoints
-- Ensure current workspace data structures still work
-- Provide migration path for existing users
+#### 8.1. Backward Compatibility
+- [x] Maintain existing API endpoints
+- [x] Ensure current workspace data structures still work
+- [ ] Provide migration path for existing users
 
-### 8.2. Performance Optimization
-- Implement virtualized lists for workspace/sidebar items
-- Optimize chat message rendering
-- Use memoization for expensive computations
+#### 8.2. Performance Optimization
+- [ ] Implement virtualized lists for workspace/sidebar items
+- [ ] Optimize chat message rendering
+- [ ] Use memoization for expensive computations
 
-### 8.3. Error Handling
-- Maintain existing error handling patterns
-- Add user-friendly error messages
-- Implement graceful degradation for failed operations
+#### 8.3. Error Handling
+- [x] Maintain existing error handling patterns
+- [ ] Add user-friendly error messages
+- [ ] Implement graceful degradation for failed operations
 
-## 9. Component-Specific Implementation Details
+### 9. Component-Specific Implementation Details
 
-### 9.1. OpenCodeSidebar Implementation
-- Use existing `useOpenCodeSession` hook to get workspace data
-- Display workspaces with status indicators (running, stopped, error)
-- Implement search functionality for filtering workspaces
-- Add "New Workspace" button at the top
-- Include codebase navigation section
-- Add bottom navigation links (Docs, Discord, etc.)
+#### 9.1. OpenCodeSidebar Implementation
+- [x] Use existing `useOpenCodeSession` hook to get workspace data
+- [x] Display workspaces with status indicators (running, stopped, error)
+- [x] Implement search functionality for filtering workspaces
+- [x] Add "New Workspace" button at the top
+- [x] Include codebase navigation section
+- [x] Add bottom navigation links (Docs, Discord, etc.)
 
-### 9.2. NewWorkspaceForm Implementation
-- Use folder selector component from existing codebase
-- Implement model selector with proper API integration
-- Add repository/branch selection (optional)
-- Include task description input
-- Add create button with loading state
-- Handle form validation and error states
+#### 9.2. NewWorkspaceForm Implementation
+- [x] Use folder selector component from existing codebase
+- [x] Implement model selector with proper API integration
+- [x] Add repository/branch selection (optional)
+- [x] Include task description input
+- [x] Add create button with loading state
+- [x] Handle form validation and error states
 
-### 9.3. WorkspaceChat Implementation
-- Display workspace information in header
-- Show chat messages in main content area
-- Implement plan visualization with steps
-- Add plan approval/rejection controls
-- Include chat input at the bottom
-- Show command execution results
-- Add back navigation to sidebar
+#### 9.3. WorkspaceChat Implementation
+- [x] Display workspace information in header
+- [x] Show chat messages in main content area
+- [x] Implement plan visualization with steps
+- [x] Add plan approval/rejection controls
+- [x] Include chat input at the bottom
+- [x] Show command execution results
+- [x] Add back navigation to sidebar
 
-### 9.4. TaskContext Implementation
-- Extend existing OpenCode session context
-- Add plan management functionality
-- Implement chat message handling
-- Add command execution tracking
-- Maintain backward compatibility with existing APIs
+#### 9.4. TaskContext Implementation
+- [x] Extend existing OpenCode session context
+- [x] Add plan management functionality
+- [x] Implement chat message handling
+- [x] Add command execution tracking
+- [x] Maintain backward compatibility with existing APIs
 
-## 10. Styling Guidelines
+### 10. Styling Guidelines
 
-### 10.1. Color Palette
-- Background: `#111827` (gray-900)
-- Text primary: `#FFFFFF` (white)
-- Text secondary: `#D1D5DB` (gray-300)
-- Text tertiary: `#9CA3AF` (gray-400)
-- Accent: `#9333EA` (purple-600)
-- Success: `#10B981` (green-500)
-- Warning: `#F59E0B` (amber-500)
-- Error: `#EF4444` (red-500)
+#### 10.1. Color Palette
+- [x] Background: `#111827` (gray-900)
+- [x] Text primary: `#FFFFFF` (white)
+- [x] Text secondary: `#D1D5DB` (gray-300)
+- [x] Text tertiary: `#9CA3AF` (gray-400)
+- [x] Accent: `#9333EA` (purple-600)
+- [x] Success: `#10B981` (green-500)
+- [x] Warning: `#F59E0B` (amber-500)
+- [x] Error: `#EF4444` (red-500)
 
-### 10.2. Typography
-- Headers: Geist Sans, semibold
-- Body: Geist Sans, normal
-- Code: Geist Mono
-- Font sizes: Use consistent scale (12px, 14px, 16px, 18px, 20px, 24px)
+#### 10.2. Typography
+- [x] Headers: Geist Sans, semibold
+- [x] Body: Geist Sans, normal
+- [x] Code: Geist Mono
+- [x] Font sizes: Use consistent scale (12px, 14px, 16px, 18px, 20px, 24px)
 
-### 10.3. Spacing
-- Use 4px base unit
-- Consistent padding/margin: 4px, 8px, 12px, 16px, 24px, 32px
-- Component heights: 36px (small), 44px (default), 56px (large)
+#### 10.3. Spacing
+- [x] Use 4px base unit
+- [x] Consistent padding/margin: 4px, 8px, 12px, 16px, 24px, 32px
+- [x] Component heights: 36px (small), 44px (default), 56px (large)
 
-### 10.4. Borders & Shadows
-- Border radius: 6px (default), 8px (cards), 12px (modals)
-- Border color: `#374151` (gray-700)
-- Shadows: Subtle elevation for depth
+#### 10.4. Borders & Shadows
+- [x] Border radius: 6px (default), 8px (cards), 12px (modals)
+- [x] Border color: `#374151` (gray-700)
+- [x] Shadows: Subtle elevation for depth
 
-## 11. Mobile Responsiveness
+### 11. Mobile Responsiveness
 
-### 11.1. Breakpoints
-- Mobile: 0-768px
-- Tablet: 769px-1024px
-- Desktop: 1025px+
+#### 11.1. Breakpoints
+- [x] Mobile: 0-768px
+- [x] Tablet: 769px-1024px
+- [x] Desktop: 1025px+
 
-### 11.2. Mobile-Specific Features
-- Bottom navigation bar for main views
-- Collapsible header that hides on scroll
-- Slide-out sidebar for additional options
-- Touch-friendly button sizes (minimum 44px)
-- Simplified forms with clear focus states
+#### 11.2. Mobile-Specific Features
+- [ ] Bottom navigation bar for main views
+- [ ] Collapsible header that hides on scroll
+- [ ] Slide-out sidebar for additional options
+- [ ] Touch-friendly button sizes (minimum 44px)
+- [ ] Simplified forms with clear focus states
 
-## 12. Accessibility Considerations
+### 12. Accessibility Considerations
 
-### 12.1. Keyboard Navigation
-- Ensure all interactive elements are keyboard accessible
-- Implement proper focus management
-- Add keyboard shortcuts for common actions
+#### 12.1. Keyboard Navigation
+- [ ] Ensure all interactive elements are keyboard accessible
+- [ ] Implement proper focus management
+- [ ] Add keyboard shortcuts for common actions
 
-### 12.2. Screen Reader Support
-- Use semantic HTML elements
-- Add appropriate ARIA labels
-- Implement proper heading hierarchy
+#### 12.2. Screen Reader Support
+- [ ] Use semantic HTML elements
+- [ ] Add appropriate ARIA labels
+- [ ] Implement proper heading hierarchy
 
-### 12.3. Color Contrast
-- Maintain minimum 4.5:1 contrast ratio for text
-- Ensure interactive elements have clear focus indicators
-- Test with color blindness simulators
+#### 12.3. Color Contrast
+- [ ] Maintain minimum 4.5:1 contrast ratio for text
+- [ ] Ensure interactive elements have clear focus indicators
+- [ ] Test with color blindness simulators
 
-## 13. Performance Optimization
+### 13. Performance Optimization
 
-### 13.1. Rendering Optimization
-- Use React.memo for components with static props
-- Implement virtualized lists for long item lists
-- Optimize chat message rendering with windowing
+#### 13.1. Rendering Optimization
+- [ ] Use React.memo for components with static props
+- [ ] Implement virtualized lists for long item lists
+- [ ] Optimize chat message rendering with windowing
 
-### 13.2. Data Fetching
-- Implement proper loading states
-- Add error boundaries for API calls
-- Use caching for frequently accessed data
+#### 13.2. Data Fetching
+- [ ] Implement proper loading states
+- [ ] Add error boundaries for API calls
+- [ ] Use caching for frequently accessed data
 
-### 13.3. Bundle Optimization
-- Code-split non-critical components
-- Optimize image assets
-- Minimize third-party dependencies
+#### 13.3. Bundle Optimization
+- [ ] Code-split non-critical components
+- [ ] Optimize image assets
+- [ ] Minimize third-party dependencies
 
-## 14. Testing Strategy
+### 14. Testing Strategy
 
-### 14.1. Unit Tests
-- Test context provider functionality
-- Test hook implementations
-- Test component rendering with different props
+#### 14.1. Unit Tests
+- [ ] Test context provider functionality
+- [ ] Test hook implementations
+- [ ] Test component rendering with different props
 
-### 14.2. Integration Tests
-- Test API integration points
-- Test end-to-end workflows
-- Test error handling scenarios
+#### 14.2. Integration Tests
+- [ ] Test API integration points
+- [ ] Test end-to-end workflows
+- [ ] Test error handling scenarios
 
-### 14.3. UI Tests
-- Test responsive design across breakpoints
-- Test accessibility features
-- Test cross-browser compatibility
+#### 14.3. UI Tests
+- [ ] Test responsive design across breakpoints
+- [ ] Test accessibility features
+- [ ] Test cross-browser compatibility
 
-## 15. Migration Path
+### 15. Migration Path
 
-### 15.1. Backward Compatibility
-- Maintain existing API endpoints
-- Keep current workspace data structures
-- Provide migration utilities for existing users
+#### 15.1. Backward Compatibility
+- [x] Maintain existing API endpoints
+- [x] Keep current workspace data structures
+- [ ] Provide migration utilities for existing users
 
-### 15.2. Deprecation Strategy
-- Mark old components as deprecated
-- Provide clear migration documentation
-- Maintain old components for one major release
+#### 15.2. Deprecation Strategy
+- [ ] Mark old components as deprecated
+- [ ] Provide clear migration documentation
+- [ ] Maintain old components for one major release
 
-### 15.3. User Communication
-- Add in-app notifications about UI changes
-- Provide detailed release notes
-- Offer support for transition period
+#### 15.3. User Communication
+- [ ] Add in-app notifications about UI changes
+- [ ] Provide detailed release notes
+- [ ] Offer support for transition period
 
-## 16. Specific Implementation Notes
+### 16. Specific Implementation Notes
 
-### 16.1. Leveraging Existing Components
-- Reuse `FolderSelector` component for folder selection
-- Reuse `ModelSelector` component for model selection
-- Reuse `Button` component with updated styling
-- Reuse `FloatingActionButton` for mobile actions
+#### 16.1. Leveraging Existing Components
+- [x] Reuse `FolderSelector` component for folder selection
+- [x] Reuse `ModelSelector` component for model selection
+- [x] Reuse `Button` component with updated styling
+- [x] Reuse `FloatingActionButton` for mobile actions
 
-### 16.2. API Integration Points
-- `/api/workspaces` - Workspace creation and management
-- `/api/workspaces/[workspaceId]/sessions` - Session management
-- `/api/agent/plan` - Plan generation
-- `/api/workspaces/[workspaceId]/sessions/[sessionId]/chat` - Chat messages
-- Existing tool execution endpoints
+#### 16.2. API Integration Points
+- [x] `/api/workspaces` - Workspace creation and management
+- [x] `/api/workspaces/[workspaceId]/sessions` - Session management
+- [x] `/api/agent/plan` - Plan generation
+- [x] `/api/workspaces/[workspaceId]/sessions/[sessionId]/chat` - Chat messages
+- [x] Existing tool execution endpoints
 
-### 16.3. Data Flow
-1. User creates workspace through NewWorkspaceForm
-2. Workspace is created via existing API endpoints
-3. Workspace appears in OpenCodeSidebar
-4. User selects workspace to open chat
-5. WorkspaceChat loads with existing session data
-6. User requests plan generation through chat
-7. Plan is generated and displayed for approval
-8. User approves plan and execution begins
-9. Command execution results are displayed in chat
+#### 16.3. Data Flow
+1. [x] User creates workspace through NewWorkspaceForm
+2. [x] Workspace is created via existing API endpoints
+3. [x] Workspace appears in OpenCodeSidebar
+4. [x] User selects workspace to open chat
+5. [x] WorkspaceChat loads with existing session data
+6. [x] User requests plan generation through chat
+7. [x] Plan is generated and displayed for approval
+8. [x] User approves plan and execution begins
+9. [x] Command execution results are displayed in chat
 
-### 16.4. Error Handling
-- Maintain existing error handling patterns from OpenCode
-- Add user-friendly error messages for plan generation
-- Implement retry mechanisms for failed operations
-- Provide clear recovery paths for common errors
+#### 16.4. Error Handling
+- [x] Maintain existing error handling patterns from OpenCode
+- [ ] Add user-friendly error messages for plan generation
+- [ ] Implement retry mechanisms for failed operations
+- [ ] Provide clear recovery paths for common errors
 
-## 17. Parallel Implementation Opportunities
+### 17. Parallel Implementation Opportunities
 
-### High-Level Parallelization Strategy
+#### High-Level Parallelization Strategy
 The refactor can be implemented with significant parallelization across teams or developers:
 
 1. **Frontend UI Development** (2-3 developers):
@@ -397,28 +399,28 @@ The refactor can be implemented with significant parallelization across teams or
    - Developer 1: Dark theme implementation and styling system
    - Developer 2: Animations, transitions, and visual polish
 
-### Component-Level Parallelization
-- **OpenCodeSidebar** and **Root Layout** can be developed simultaneously
-- **NewWorkspaceForm** and **WorkspaceChat** can be developed simultaneously
-- **TaskContext** and **useTasks** hook can be developed simultaneously
-- **Plan visualization** and **chat interface** can be developed simultaneously
-- **Mobile responsiveness** can be implemented in parallel with desktop UI
-- **Styling system** can be developed alongside component implementation
+#### Component-Level Parallelization
+- [x] **OpenCodeSidebar** and **Root Layout** can be developed simultaneously
+- [x] **NewWorkspaceForm** and **WorkspaceChat** can be developed simultaneously
+- [x] **TaskContext** and **useTasks** hook can be developed simultaneously
+- [x] **Plan visualization** and **chat interface** can be developed simultaneously
+- [ ] **Mobile responsiveness** can be implemented in parallel with desktop UI
+- [ ] **Styling system** can be developed alongside component implementation
 
-### API Integration Parallelization
-- **Workspace creation API** integration can happen in parallel with **plan generation API** integration
-- **Chat message handling** can be developed in parallel with **command execution tracking**
-- **Search functionality** can be implemented independently of core features
+#### API Integration Parallelization
+- [x] **Workspace creation API** integration can happen in parallel with **plan generation API** integration
+- [x] **Chat message handling** can be developed in parallel with **command execution tracking**
+- [ ] **Search functionality** can be implemented independently of core features
 
-### Testing Parallelization
-- **Unit tests** for individual components can be written as components are developed
-- **Integration tests** for API endpoints can be written in parallel with implementation
-- **UI testing** across different breakpoints can be done in parallel
-- **Accessibility testing** can be performed alongside UI development
+#### Testing Parallelization
+- [ ] **Unit tests** for individual components can be written as components are developed
+- [ ] **Integration tests** for API endpoints can be written in parallel with implementation
+- [ ] **UI testing** across different breakpoints can be done in parallel
+- [ ] **Accessibility testing** can be performed alongside UI development
 
-## 18. Implementation Progress
+### 18. Implementation Progress
 
-### Completed Tasks:
+#### Completed Tasks:
 1. **Task 1.2: State Management for Workspaces as Tasks** - COMPLETED
    - Enhanced `src/hooks/useTasks.ts` with comprehensive task management functionality
    - Implemented task data structures mapping to workspaces
@@ -467,7 +469,7 @@ The refactor can be implemented with significant parallelization across teams or
    - Added back navigation to sidebar view
    - Integrated existing OpenCode chat functionality through Thread component
 
-## 19. Key Deliverables Created
+### 19. Key Deliverables Created
 
 1. **Main Implementation Plan**: 
    - File: `docs/plan/google-jules-async-agent-ui-ux-refactor.md`
@@ -479,26 +481,26 @@ The refactor can be implemented with significant parallelization across teams or
    - High-level overview of the refactor plan
    - Summary of parallel implementation opportunities
 
-## 20. Plan Highlights
+### 20. Plan Highlights
 
-### Core Architecture Changes:
-- Simplified three-view system (Sidebar, New Workspace, Chat)
-- Dark theme with purple accent colors
-- Enhanced plan visualization and approval workflow
+#### Core Architecture Changes:
+- [x] Simplified three-view system (Sidebar, New Workspace, Chat)
+- [x] Dark theme with purple accent colors
+- [x] Enhanced plan visualization and approval workflow
 
-### Parallel Implementation Opportunities:
-- Phase 1: Foundation tasks can be done in parallel (Context, UI components, Layout)
-- Phase 2: Core features can be implemented concurrently (API integration, workflows)
-- Phase 3: All enhancement tasks can be done in parallel
-- Phase 4: Testing and refinement can be parallelized
+#### Parallel Implementation Opportunities:
+- [x] Phase 1: Foundation tasks can be done in parallel (Context, UI components, Layout)
+- [x] Phase 2: Core features can be implemented concurrently (API integration, workflows)
+- [ ] Phase 3: All enhancement tasks can be done in parallel
+- [ ] Phase 4: Testing and refinement can be parallelized
 
-### Component Development:
-- OpenCodeSidebar (replaces WorkspaceManager)
-- NewWorkspaceForm (replaces QuickStart)
-- WorkspaceChat (enhanced chat interface)
-- TaskContext (extended state management)
+#### Component Development:
+- [x] OpenCodeSidebar (replaces WorkspaceManager)
+- [x] NewWorkspaceForm (replaces QuickStart)
+- [x] WorkspaceChat (enhanced chat interface)
+- [x] TaskContext (extended state management)
 
-## 21. Next Steps
+### 21. Next Steps
 
 The plan is now ready for implementation by development teams. Key parallelization opportunities have been identified to enable efficient concurrent development across multiple developers or teams.
 
