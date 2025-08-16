@@ -185,7 +185,7 @@ export function useTasks(): UseTasksReturn {
   
   
   
-  // Load tasks (workspaces) from API
+  // Load tasks (sessions) from API
   const loadTasks = useCallback(async () => {
     updateTaskState({ isLoading: true, error: null });
     
@@ -196,12 +196,14 @@ export function useTasks(): UseTasksReturn {
       }
       
       const workspaces = await response.json();
-      const tasks: Task[] = workspaces.map((workspace: { 
+      
+      // Flatten all sessions from all workspaces into tasks
+      const tasks: Task[] = workspaces.flatMap((workspace: { 
         id: string; 
         folder?: string; 
         model: string; 
-        status: string; 
         port: number; 
+        status: string;
         sessions?: Array<{
           id: string;
           model: string;
@@ -209,23 +211,26 @@ export function useTasks(): UseTasksReturn {
           lastActivity: string;
           status: string;
         }>;
-      }) => ({
-        id: workspace.id,
-        title: workspace.folder ? `${workspace.folder.split("/").pop()} - ${workspace.model}` : `Workspace ${workspace.id}`,
-        status: workspace.status as TaskStatus,
-        folder: workspace.folder || "",
-        model: workspace.model,
-        port: workspace.port,
-        createdAt: new Date(),
-        sessions: workspace.sessions?.map((s) => ({
-          id: s.id,
-          taskId: workspace.id,
-          model: s.model,
-          createdAt: new Date(s.createdAt),
-          lastActivity: new Date(s.lastActivity),
-          status: s.status as "active" | "inactive",
-        })) || [],
-      }));
+      }) => {
+        if (!workspace.sessions || workspace.sessions.length === 0) {
+          // Don't create placeholder tasks for workspaces without sessions
+          // Instead, we'll create sessions when needed
+          return [];
+        }
+        
+        // Map each session to a task
+        return workspace.sessions.map((session) => ({
+          id: session.id,
+          title: workspace.folder ? `${workspace.folder.split("/").pop()} - ${session.model}` : `Session ${session.id}`,
+          status: session.status as TaskStatus,
+          folder: workspace.folder || "",
+          model: session.model,
+          port: workspace.port,
+          createdAt: new Date(session.createdAt),
+          lastActivity: new Date(session.lastActivity),
+          sessions: [],
+        }));
+      });
       
       // Preserve currentTask if it still exists in the updated tasks list
       const currentTaskId = taskState.currentTask?.id;
@@ -244,48 +249,92 @@ export function useTasks(): UseTasksReturn {
     }
   }, [taskState.currentTask, updateTaskState, setTaskError]);
   
-  // Create a new task (workspace)
+// Create a new task (session)
   const createTask = useCallback(async (folder: string, model: string, title?: string): Promise<Task> => {
     updateTaskState({ isLoading: true, error: null });
     
     try {
-      const response = await fetch("/api/workspaces", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ folder, model }),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to create workspace");
+      // First, get existing workspaces to check if one already exists for this folder
+      const workspacesResponse = await fetch("/api/workspaces");
+      if (!workspacesResponse.ok) {
+        throw new Error("Failed to fetch workspaces");
       }
       
-const workspaceData = await response.json();
-       const task: Task = {
-         id: workspaceData.id,
-         title: title || (workspaceData.folder ? `${workspaceData.folder.split("/").pop()} - ${workspaceData.model}` : `Workspace ${workspaceData.id}`),
-         status: workspaceData.status as TaskStatus,
-         folder: workspaceData.folder,
-         model: workspaceData.model,
-         port: workspaceData.port,
-         createdAt: new Date(),
-         sessions: workspaceData.sessions?.map((s: { 
-           id: string; 
-           model: string; 
-           createdAt: string; 
-           lastActivity: string; 
-           status: string; 
-         }) => ({
-           id: s.id,
-           taskId: workspaceData.id,
-           model: s.model,
-           createdAt: new Date(s.createdAt),
-           lastActivity: new Date(s.lastActivity),
-           status: s.status as "active" | "inactive",
-         })) || [],
-       };
+      const workspaces = await workspacesResponse.json();
+      const workspace = workspaces.find((w: { folder?: string; model: string }) => w.folder === folder && w.model === model);
+      
+      let sessionId: string;
+      let workspaceId: string;
+      let port: number;
+      
+      if (workspace) {
+        // Workspace exists, create a session within it
+        workspaceId = workspace.id;
+        port = workspace.port;
+        
+        const sessionResponse = await fetch(`/api/workspaces/${workspaceId}/sessions`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ model }),
+        });
+        
+        if (!sessionResponse.ok) {
+          const errorData = await sessionResponse.json();
+          throw new Error(errorData.error || "Failed to create session");
+        }
+        
+        const sessionData = await sessionResponse.json();
+        sessionId = sessionData.id;
+      } else {
+        // No workspace exists, create a new workspace first
+        const workspaceResponse = await fetch("/api/workspaces", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ folder, model }),
+        });
+        
+        if (!workspaceResponse.ok) {
+          const errorData = await workspaceResponse.json();
+          throw new Error(errorData.error || "Failed to create workspace");
+        }
+        
+        const workspaceData = await workspaceResponse.json();
+        workspaceId = workspaceData.id;
+        port = workspaceData.port;
+        
+        // Now create the first session for this new workspace
+        const sessionResponse = await fetch(`/api/workspaces/${workspaceId}/sessions`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ model }),
+        });
+        
+        if (!sessionResponse.ok) {
+          const errorData = await sessionResponse.json();
+          throw new Error(errorData.error || "Failed to create session");
+        }
+        
+        const sessionData = await sessionResponse.json();
+        sessionId = sessionData.id;
+      }
+      
+      // Create the task representing the session
+      const task: Task = {
+        id: sessionId,
+        title: title || (folder ? `${folder.split("/").pop()} - ${model}` : `Session ${sessionId}`),
+        status: "running" as TaskStatus,
+        folder: folder,
+        model: model,
+        port: port,
+        createdAt: new Date(),
+        sessions: [],
+      };
       
       updateTaskState({
         tasks: [...taskState.tasks, task],
@@ -626,22 +675,26 @@ const workspaceData = await response.json();
     }
   }, [taskState.commandExecutions, updateTaskState, setTaskError]);
   
-  // Load codebases
+  // Load codebases (active workspaces)
   const loadCodebases = useCallback(async () => {
     updateTaskState({ isLoading: true, error: null });
     
     try {
-      const response = await fetch("/api/folders");
+      const response = await fetch("/api/workspaces");
       if (!response.ok) {
-        throw new Error("Failed to fetch folders");
+        throw new Error("Failed to fetch workspaces");
       }
       
-      const folders = await response.json();
-      const codebases: Codebase[] = folders.map((folder: { name: string; path: string }) => ({
-        id: `folder_${folder.path}`,
-        name: folder.name,
-        path: folder.path,
-        lastModified: new Date(), // In a real implementation, this would come from fs stats
+      const workspaces = await response.json();
+      const codebases: Codebase[] = workspaces.map((workspace: { 
+        id: string; 
+        folder?: string; 
+        model: string; 
+      }) => ({
+        id: workspace.id,
+        name: workspace.folder ? `${workspace.folder.split("/").pop()} - ${workspace.model}` : `Workspace ${workspace.id}`,
+        path: workspace.folder || "",
+        lastModified: new Date(), // In a real implementation, this would come from workspace creation time
       }));
       
       updateTaskState({
@@ -654,11 +707,10 @@ const workspaceData = await response.json();
     }
   }, [updateTaskState, setTaskError]);
   
-  // Load tasks and codebases on mount
+  // Load tasks on mount
   useEffect(() => {
     loadTasks();
-    loadCodebases();
-  }, [loadTasks, loadCodebases]);
+  }, [loadTasks]);
   
   // Return the combined interface
   return {

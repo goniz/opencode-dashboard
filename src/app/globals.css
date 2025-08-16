@@ -1,8 +1,30 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #111827; /* gray-900 */
+  --foreground: #ffffff; /* white */
+  --foreground-secondary: #d1d5db; /* gray-300 */
+  --foreground-tertiary: #9ca3af; /* gray-400 */
+  
+  /* Google Jules accent colors */
+  --accent: #9333ea; /* purple-600 */
+  --accent-hover: #7e22ce; /* purple-700 */
+  --success: #10b981; /* green-500 */
+  --warning: #f59e0b; /* amber-500 */
+  --error: #ef4444; /* red-500 */
+  
+  /* Status colors */
+  --status-running: #10b981; /* green-500 */
+  --status-in-progress: #f59e0b; /* amber-500 */
+  --status-completed: #10b981; /* green-500 */
+  --status-failed: #ef4444; /* red-500 */
+  --status-pending: #3b82f6; /* blue-500 */
+  --status-stopped: #6b7280; /* gray-500 */
+  --status-error: #ef4444; /* red-500 */
+  
+  /* Border colors */
+  --border: #374151; /* gray-700 */
+  --border-hover: #4b5563; /* gray-600 */
   
   /* Mobile-first breakpoints */
   --breakpoint-sm: 480px;   /* Large mobile */
@@ -35,6 +57,15 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-foreground-secondary: var(--foreground-secondary);
+  --color-foreground-tertiary: var(--foreground-tertiary);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+  --color-border: var(--border);
+  --color-border-hover: var(--border-hover);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   
@@ -58,19 +89,77 @@
   --spacing-fluid-2xl: var(--spacing-2xl);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
   font-size: var(--text-base);
   line-height: 1.6;
+}
+
+/* Custom component styles for Google Jules theme */
+.button-primary {
+  background-color: var(--accent);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem; /* 6px */
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.button-primary:hover {
+  background-color: var(--accent-hover);
+}
+
+.button-outline {
+  background-color: transparent;
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem; /* 6px */
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.button-outline:hover {
+  background-color: var(--background);
+  border-color: var(--border-hover);
+}
+
+.status-indicator {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+}
+
+.status-running {
+  background-color: var(--status-running);
+}
+
+.status-in-progress {
+  background-color: var(--status-in-progress);
+}
+
+.status-completed {
+  background-color: var(--status-completed);
+}
+
+.status-failed {
+  background-color: var(--status-failed);
+}
+
+.status-pending {
+  background-color: var(--status-pending);
+}
+
+.status-stopped {
+  background-color: var(--status-stopped);
+}
+
+.status-error {
+  background-color: var(--status-error);
 }
 
 /* Touch-friendly base styles */

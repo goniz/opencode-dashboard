@@ -75,8 +75,8 @@ function ChatInterfaceContent({ className }: OpenCodeChatInterfaceProps) {
               <p className="text-sm text-white/60 mb-4">Choose an OpenCode session to start chatting.</p>
               <p className="text-xs text-white/40">
                 {workspaces.length === 0
-                  ? "No workspaces available. Create a new workspace to get started."
-                  : "Expand a workspace to see available sessions."}
+                  ? "No workspace containers available. Create a new workspace to get started."
+                  : "Expand a workspace container to see available sessions."}
               </p>
             </div>
           </div>
