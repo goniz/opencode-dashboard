@@ -21,7 +21,7 @@ export default function MobileNavigation({
   const navigationItems = [
     {
       id: "sidebar" as const,
-      label: "Workspaces",
+      label: "Tasks",
       icon: FolderIcon,
       action: () => onNavigate("sidebar"),
     },
@@ -53,14 +53,14 @@ export default function MobileNavigation({
             size="sm"
             onClick={onBackToWorkspaces || (() => onNavigate("sidebar"))}
             className="flex items-center gap-2 min-h-[44px] min-w-[44px] text-gray-300 hover:text-white hover:bg-gray-800"
-            aria-label="Back to workspaces"
+            aria-label="Back to tasks"
           >
             <ArrowLeftIcon className="w-5 h-5" />
           </Button>
 
           <div className="flex-1 text-center">
             <h1 className="text-lg font-semibold text-white">
-              {currentView === "new-task" && "New Workspace"}
+              {currentView === "new-task" && "New Task"}
               {currentView === "chat" && "Chat"}
             </h1>
           </div>
