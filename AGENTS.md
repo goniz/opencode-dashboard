@@ -1,7 +1,9 @@
 # Agent Guidelines for opencode-dashboard
 
+**IMPORTANT**: Never run `npm run dev` as it will block the agent and terminal indefinitely. Always use `npm run build` and `npm run start` for testing production builds.
+
 ## Build/Test/Lint Commands
-- `npm run dev` - Start development server with Turbopack
+- `npm run dev` - Start development server with Turbopack (**NEVER RUN THIS COMMAND** - It will block the agent and terminal indefinitely)
 - `npm run build` - Build for production
 - `npm run start` - Start production server
 - `npm run lint` - Run ESLint

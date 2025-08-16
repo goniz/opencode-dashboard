@@ -248,6 +248,55 @@ export default function Home() {
     );
   }
 
+  // New task/workspace view
+  if (viewState === "new-task") {
+    return (
+      <div className="min-h-screen bg-background py-8 pb-16 md:pb-8">
+        <MobileNavigation
+          currentView={viewState}
+          onNavigate={setViewState}
+          onBackToWorkspaces={handleBackToWorkspaces}
+        />
+        
+        <div className="hidden md:block border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="container mx-auto px-4 py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleBackToWorkspaces}
+                  className="flex items-center gap-2"
+                >
+                  <ArrowLeftIcon className="w-4 h-4" />
+                  Back to Workspaces
+                </Button>
+                <div className="h-4 w-px bg-border" />
+                <div>
+                  <h1 className="text-lg font-semibold text-foreground">
+                    Create New Workspace
+                  </h1>
+                  <p className="text-sm text-muted-foreground">
+                    Set up a new workspace for your project
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="container mx-auto px-4 py-8 mt-16 md:mt-0">
+          <NewWorkspaceForm 
+            onBackToSidebar={handleBackToWorkspaces}
+            onWorkspaceCreated={(workspaceId) => {
+              handleOpenWorkspace(workspaceId);
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
+
   // Advanced workspaces view
   if (viewState === "workspaces") {
     return (

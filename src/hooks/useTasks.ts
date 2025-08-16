@@ -213,17 +213,9 @@ export function useTasks(): UseTasksReturn {
         }>;
       }) => {
         if (!workspace.sessions || workspace.sessions.length === 0) {
-          // Create a placeholder task for the workspace if no sessions exist
-          return [{
-            id: workspace.id, // Use workspace ID for placeholder tasks
-            title: workspace.folder ? `${workspace.folder.split("/").pop()} - ${workspace.model}` : `Workspace ${workspace.id}`,
-            status: workspace.status as TaskStatus,
-            folder: workspace.folder || "",
-            model: workspace.model,
-            port: workspace.port,
-            createdAt: new Date(),
-            sessions: [],
-          }];
+          // Don't create placeholder tasks for workspaces without sessions
+          // Instead, we'll create sessions when needed
+          return [];
         }
         
         // Map each session to a task
@@ -312,8 +304,24 @@ export function useTasks(): UseTasksReturn {
         
         const workspaceData = await workspaceResponse.json();
         workspaceId = workspaceData.id;
-        sessionId = `default-${workspaceId}`; // Placeholder ID for the first session
         port = workspaceData.port;
+        
+        // Now create the first session for this new workspace
+        const sessionResponse = await fetch(`/api/workspaces/${workspaceId}/sessions`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ model }),
+        });
+        
+        if (!sessionResponse.ok) {
+          const errorData = await sessionResponse.json();
+          throw new Error(errorData.error || "Failed to create session");
+        }
+        
+        const sessionData = await sessionResponse.json();
+        sessionId = sessionData.id;
       }
       
       // Create the task representing the session
