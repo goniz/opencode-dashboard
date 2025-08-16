@@ -110,7 +110,18 @@ export function OpenCodeSidebar({
         <div className="p-4">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">Tasks</h2>
-            <span className="text-xs text-gray-400">{filteredTasks.length}</span>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={onCreateNewWorkspace}
+                className="p-1 rounded-full hover:bg-gray-700"
+                aria-label="Create new task"
+              >
+                <PlusIcon className="w-4 h-4" />
+              </Button>
+              <span className="text-xs text-gray-400">{filteredTasks.length}</span>
+            </div>
           </div>
           
           {isLoading ? (
@@ -159,7 +170,18 @@ export function OpenCodeSidebar({
         <div className="p-4 border-t border-gray-800">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">Codebases</h2>
-            <span className="text-xs text-gray-400">{filteredCodebases.length}</span>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={onCreateNewWorkspace}
+                className="p-1 rounded-full hover:bg-gray-700"
+                aria-label="Add new codebase"
+              >
+                <PlusIcon className="w-4 h-4" />
+              </Button>
+              <span className="text-xs text-gray-400">{filteredCodebases.length}</span>
+            </div>
           </div>
           
           {filteredCodebases.length === 0 ? (
